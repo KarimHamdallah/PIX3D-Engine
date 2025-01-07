@@ -1,0 +1,309 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>16.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{8bed3788-8cdc-423a-bca3-235c4d024a27}</ProjectGuid>
+    <RootNamespace>PIX3D</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <IncludePath>$(VULKAN_SDK)\Include;$(SolutionDir)\Vendor\assimp\include;$(SolutionDir)\Vendor\tiny gltf;$(SolutionDir)\PIX3D\imgui;$(SolutionDir)\Vendor\glm;$(SolutionDir)\Vendor\glad\include;$(SolutionDir)\Vendor\Mono\include;$(SolutionDir)\PIX3D\PIX3D;$(SolutionDir)\Vendor\glfw\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(VULKAN_SDK)\Lib;$(SolutionDir)\Vendor\assimp\bin\windows\Release;$(SolutionDir)\Vendor\Mono\lib;$(SolutionDir)\Vendor\glfw\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <IncludePath>$(SolutionDir)\Vendor\assimp\include;$(SolutionDir)\Vendor\tiny gltf;$(SolutionDir)\PIX3D\imgui;$(SolutionDir)\Vendor\glm;$(SolutionDir)\Vendor\glad\include;$(SolutionDir)\Vendor\Mono\include;$(SolutionDir)\PIX3D\PIX3D;$(SolutionDir)\Vendor\glfw\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)\Vendor\assimp\bin\windows\Release;$(SolutionDir)\Vendor\Mono\lib;$(SolutionDir)\Vendor\glfw\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IncludePath>$(VULKAN_SDK)\Include;$(SolutionDir)\Vendor\assimp\include;$(SolutionDir)\Vendor\tiny gltf;$(SolutionDir)\PIX3D\imgui;$(SolutionDir)\Vendor\glm;$(SolutionDir)\Vendor\glad\include;$(SolutionDir)\Vendor\Mono\include;$(SolutionDir)\PIX3D\PIX3D;$(SolutionDir)\Vendor\glfw\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(VULKAN_SDK)\Lib;$(SolutionDir)\Vendor\assimp\bin\windows\Release;$(SolutionDir)\Vendor\Mono\lib;$(SolutionDir)\Vendor\glfw\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IncludePath>$(SolutionDir)\Vendor\assimp\include;$(SolutionDir)\Vendor\tiny gltf;$(SolutionDir)\PIX3D\imgui;$(SolutionDir)\Vendor\glm;$(SolutionDir)\Vendor\glad\include;$(SolutionDir)\Vendor\Mono\include;$(SolutionDir)\PIX3D\PIX3D;$(SolutionDir)\Vendor\glfw\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)\Vendor\assimp\bin\windows\Release;$(SolutionDir)\Vendor\Mono\lib;$(SolutionDir)\Vendor\glfw\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);PIX_DEBUG;NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>glfw3.lib;opengl32.lib;mono-2.0-sgen.lib;assimp-vc143-mt.lib;vulkan-1.lib;SPIRVd.lib;SPIRV-Toolsd.lib;SPIRV-Tools-optd.lib;glslangd.lib;OSDependentd.lib;GenericCodeGend.lib;MachineIndependentd.lib;glslang-default-resource-limitsd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions);PIX_RELEASE</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>glfw3.lib;opengl32.lib;mono-2.0-sgen.lib;assimp-vc143.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);PIX_DEBUG;NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>glfw3.lib;opengl32.lib;mono-2.0-sgen.lib;assimp-vc143-mt.lib;vulkan-1.lib;SPIRVd.lib;SPIRV-Toolsd.lib;SPIRV-Tools-optd.lib;glslangd.lib;OSDependentd.lib;GenericCodeGend.lib;MachineIndependentd.lib;glslang-default-resource-limitsd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);PIX_RELEASE</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>glfw3.lib;opengl32.lib;mono-2.0-sgen.lib;assimp-vc143.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="imgui\imgui.cpp" />
+    <ClCompile Include="imgui\imgui_demo.cpp" />
+    <ClCompile Include="imgui\imgui_draw.cpp" />
+    <ClCompile Include="imgui\imgui_impl_glfw.cpp" />
+    <ClCompile Include="imgui\imgui_impl_opengl3.cpp" />
+    <ClCompile Include="imgui\imgui_tables.cpp" />
+    <ClCompile Include="imgui\imgui_widgets.cpp" />
+    <ClCompile Include="PIX3D\Core\Application.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="PIX3D\Core\Input.cpp" />
+    <ClCompile Include="PIX3D\glad.c" />
+    <ClCompile Include="PIX3D\Graphics\Camera2D.cpp" />
+    <ClCompile Include="PIX3D\Graphics\Camera3D.cpp" />
+    <ClCompile Include="PIX3D\Graphics\Mesh.cpp" />
+    <ClCompile Include="PIX3D\Graphics\Sprite.cpp" />
+    <ClCompile Include="PIX3D\Platfrom\GL\GLBloompass.cpp" />
+    <ClCompile Include="PIX3D\Platfrom\GL\GLDirShadowpass.cpp" />
+    <ClCompile Include="PIX3D\Platfrom\GL\GLMainRenderpass.cpp" />
+    <ClCompile Include="PIX3D\Platfrom\GL\GLPixelBatchRenderer2D.cpp" />
+    <ClCompile Include="PIX3D\Platfrom\GL\GLCommands.cpp" />
+    <ClCompile Include="PIX3D\Platfrom\GL\GLDynamicVertexBuffer.cpp" />
+    <ClCompile Include="PIX3D\Platfrom\GL\GLFramebuffer.cpp" />
+    <ClCompile Include="PIX3D\Platfrom\GL\GLGraphicsContext.cpp" />
+    <ClCompile Include="PIX3D\Platfrom\GL\GLIndexBuffer.cpp" />
+    <ClCompile Include="PIX3D\Platfrom\GL\GLPipeline.cpp" />
+    <ClCompile Include="PIX3D\Platfrom\GL\GLPostProcessingpass.cpp" />
+    <ClCompile Include="PIX3D\Platfrom\GL\GLRenderer.cpp" />
+    <ClCompile Include="PIX3D\Platfrom\GL\GLScreenQuadRenderpass.cpp" />
+    <ClCompile Include="PIX3D\Platfrom\GL\GLShader.cpp" />
+    <ClCompile Include="PIX3D\Platfrom\GL\GLStaticMeshFactory.cpp" />
+    <ClCompile Include="PIX3D\Platfrom\GL\GLStorageBuffer.cpp" />
+    <ClCompile Include="PIX3D\Platfrom\GL\GLTexture.cpp" />
+    <ClCompile Include="PIX3D\Platfrom\GL\GLUniformBuffer.cpp" />
+    <ClCompile Include="PIX3D\Platfrom\GL\GLVertexArray.cpp" />
+    <ClCompile Include="PIX3D\Platfrom\GL\GLVertexBuffer.cpp" />
+    <ClCompile Include="PIX3D\Platfrom\GL\GLPixelRenderer2D.cpp" />
+    <ClCompile Include="PIX3D\Platfrom\GL\IBL\GLHdrCubemap.cpp" />
+    <ClCompile Include="PIX3D\Platfrom\GL\IBL\IBLCubemapsGenerator.cpp" />
+    <ClCompile Include="PIX3D\Platfrom\ImGui\ImGuiLayer.cpp" />
+    <ClCompile Include="PIX3D\Platfrom\Vulkan\vulkanComputePipeline.cpp" />
+    <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanGraphicsContext.cpp" />
+    <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanGraphicsPipeline.cpp" />
+    <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanShader.cpp" />
+    <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanShaderStorageBuffer.cpp" />
+    <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanVertexBuffer.cpp" />
+    <ClCompile Include="PIX3D\Platfrom\WindowsPlatform.cpp" />
+    <ClCompile Include="PIX3D\Scene\Scene.cpp" />
+    <ClCompile Include="PIX3D\Scene\SceneSerializer.cpp" />
+    <ClCompile Include="PIX3D\Scene\Systems.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="imgui\imconfig.h" />
+    <ClInclude Include="imgui\imgui.h" />
+    <ClInclude Include="imgui\imgui_impl_glfw.h" />
+    <ClInclude Include="imgui\imgui_impl_opengl3.h" />
+    <ClInclude Include="imgui\imgui_impl_opengl3_loader.h" />
+    <ClInclude Include="imgui\imgui_internal.h" />
+    <ClInclude Include="imgui\imstb_rectpack.h" />
+    <ClInclude Include="imgui\imstb_textedit.h" />
+    <ClInclude Include="imgui\imstb_truetype.h" />
+    <ClInclude Include="PIX3D\Core\Application.h" />
+    <ClInclude Include="PIX3D\Core\Buffer.hpp" />
+    <ClInclude Include="PIX3D\Core\Core.h" />
+    <ClInclude Include="PIX3D\Core\Input.h" />
+    <ClInclude Include="PIX3D\Core\Key.h" />
+    <ClInclude Include="PIX3D\Core\Timer.h" />
+    <ClInclude Include="PIX3D\Engine\Engine.hpp" />
+    <ClInclude Include="PIX3D\Graphics\Camera2D.h" />
+    <ClInclude Include="PIX3D\Graphics\Camera3D.h" />
+    <ClInclude Include="PIX3D\Graphics\GraphicsContext.h" />
+    <ClInclude Include="PIX3D\Graphics\Mesh.h" />
+    <ClInclude Include="PIX3D\Graphics\Sprite.h" />
+    <ClInclude Include="PIX3D\Graphics\Transform.h" />
+    <ClInclude Include="PIX3D\PIX3D.h" />
+    <ClInclude Include="PIX3D\Platfrom\GL\GLBloompass.h" />
+    <ClInclude Include="PIX3D\Platfrom\GL\GLDirShadowpass.h" />
+    <ClInclude Include="PIX3D\Platfrom\GL\GLPixelBatchRenderer2D.h" />
+    <ClInclude Include="PIX3D\Platfrom\GL\GLCommands.h" />
+    <ClInclude Include="PIX3D\Platfrom\GL\GLDynamicVertexBuffer.h" />
+    <ClInclude Include="PIX3D\Platfrom\GL\GLFramebuffer.h" />
+    <ClInclude Include="PIX3D\Platfrom\GL\GLGraphicsContext.h" />
+    <ClInclude Include="PIX3D\Platfrom\GL\GLIndexBuffer.h" />
+    <ClInclude Include="PIX3D\Platfrom\GL\GLObject.h" />
+    <ClInclude Include="PIX3D\Platfrom\GL\GLPipeline.h" />
+    <ClInclude Include="PIX3D\Platfrom\GL\GLPostProcessingpass.h" />
+    <ClInclude Include="PIX3D\Platfrom\GL\GLRenderer.h" />
+    <ClInclude Include="PIX3D\Platfrom\GL\GLScreenQuadRenderpass.h" />
+    <ClInclude Include="PIX3D\Platfrom\GL\GLShader.h" />
+    <ClInclude Include="PIX3D\Platfrom\GL\GLStaticMeshFactory.h" />
+    <ClInclude Include="PIX3D\Platfrom\GL\GLStorageBuffer.h" />
+    <ClInclude Include="PIX3D\Platfrom\GL\GLTexture.h" />
+    <ClInclude Include="PIX3D\Platfrom\GL\GLUniformBuffer.h" />
+    <ClInclude Include="PIX3D\Platfrom\GL\GLVertexArray.h" />
+    <ClInclude Include="PIX3D\Platfrom\GL\GLVertexBuffer.h" />
+    <ClInclude Include="PIX3D\Platfrom\GL\GLPixelRenderer2D.h" />
+    <ClInclude Include="PIX3D\Platfrom\GL\IBL\GLHdrCubemap.h" />
+    <ClInclude Include="PIX3D\Platfrom\GL\IBL\IBLCubemapsGenerator.h" />
+    <ClInclude Include="PIX3D\Platfrom\GL\GLMainRenderpass.h" />
+    <ClInclude Include="PIX3D\Platfrom\ImGui\ImGuiLayer.h" />
+    <ClInclude Include="PIX3D\Platfrom\Platform.h" />
+    <ClInclude Include="PIX3D\Platfrom\Vulkan\vulkanComputePipeline.h" />
+    <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanGraphicsContext.h" />
+    <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanGraphicsPipeline.h" />
+    <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanHelper.h" />
+    <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanShader.h" />
+    <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanShaderStorageBuffer.h" />
+    <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanVertexBuffer.h" />
+    <ClInclude Include="PIX3D\Platfrom\WindowsPlatform.h" />
+    <ClInclude Include="PIX3D\Project\Project.h" />
+    <ClInclude Include="PIX3D\Scene\Components.h" />
+    <ClInclude Include="PIX3D\Scene\Scene.h" />
+    <ClInclude Include="PIX3D\Scene\SceneSerializer.h" />
+    <ClInclude Include="PIX3D\Scene\Systems.h" />
+    <ClInclude Include="PIX3D\Utils\entt.hpp" />
+    <ClInclude Include="PIX3D\Utils\FileWatcher.hpp" />
+    <ClInclude Include="PIX3D\Utils\json.hpp" />
+    <ClInclude Include="PIX3D\Utils\json_fwd.hpp" />
+    <ClInclude Include="PIX3D\Utils\rang.h" />
+    <ClInclude Include="PIX3D\Utils\stb_image.h" />
+    <ClInclude Include="PIX3D\Utils\stb_write.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="res\gl shaders\bloom.frag" />
+    <None Include="res\gl shaders\bloom.vert" />
+    <None Include="res\gl shaders\brdf_lut.frag" />
+    <None Include="res\gl shaders\brdf_lut.vert" />
+    <None Include="res\gl shaders\diffuse_irradiance.frag" />
+    <None Include="res\gl shaders\diffuse_irradiance.vert" />
+    <None Include="res\gl shaders\ibl_specular_map.frag" />
+    <None Include="res\gl shaders\ibl_specular_map.vert" />
+    <None Include="res\gl shaders\model3d.frag" />
+    <None Include="res\gl shaders\model3d.vert" />
+    <None Include="res\gl shaders\pixel_batch_renderer.frag" />
+    <None Include="res\gl shaders\pixel_batch_renderer.vert" />
+    <None Include="res\gl shaders\post.frag" />
+    <None Include="res\gl shaders\post.vert" />
+    <None Include="res\gl shaders\pos_fragment.frag" />
+    <None Include="res\gl shaders\pos_vertex.vert" />
+    <None Include="res\gl shaders\screen_quad.frag" />
+    <None Include="res\gl shaders\screen_quad.vert" />
+    <None Include="res\gl shaders\shadowmapping_depth.frag" />
+    <None Include="res\gl shaders\shadowmapping_depth.geom" />
+    <None Include="res\gl shaders\shadowmapping_depth.vert" />
+    <None Include="res\gl shaders\skybox.frag" />
+    <None Include="res\gl shaders\skybox.vert" />
+    <None Include="res\gl shaders\smooth_rounded_quad.frag" />
+    <None Include="res\gl shaders\smooth_rounded_quad.vert" />
+    <None Include="res\vk shaders\triangle.frag" />
+    <None Include="res\vk shaders\triangle.vert" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
