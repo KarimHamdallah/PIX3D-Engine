@@ -12,8 +12,8 @@ namespace PIX3D
             VulkanShaderStorageBuffer() = default;
             ~VulkanShaderStorageBuffer() {}
 
-            void Create();
-            void FillData(const void* BufferData, size_t Size);
+            void Create(size_t size);
+            void UpdateData(void* BufferData, size_t Size);
             void Destroy();
 
             VkBuffer GetBuffer() const { return m_StorageBuffer.m_Buffer; }
@@ -25,12 +25,6 @@ namespace PIX3D
                 VkMemoryPropertyFlags Properties,
                 VkPhysicalDevice PhysDevice);
 
-            void CopyBuffer(VkCommandPool CmdPool,
-                VkQueue Queue,
-                VkBuffer DstBuffer,
-                VkBuffer SrcBuffer,
-                VkDeviceSize Size);
-
             uint32_t FindMemoryType(VkPhysicalDevice PhysDevice,
                 uint32_t TypeFilter,
                 VkMemoryPropertyFlags Properties);
@@ -39,6 +33,7 @@ namespace PIX3D
             VkDevice m_Device = VK_NULL_HANDLE;
             VkPhysicalDevice m_PhysicalDevice = VK_NULL_HANDLE;
             BufferAndMemory m_StorageBuffer;
+            void* m_MappedData = nullptr;  // For persistent mapping
             size_t m_Size = 0;
         };
     }

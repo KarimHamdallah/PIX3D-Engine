@@ -23,7 +23,7 @@ namespace PIX3D
             ~VulkanTexture() { Destroy(); }
 
             void Create();
-            bool LoadFromFile(const std::filesystem::path& FilePath, bool IsSRGB);
+            bool LoadFromFile(const std::filesystem::path& FilePath, bool IsSRGB = false);
             bool LoadFromData(void* Data, uint32_t Width, uint32_t Height, TextureFormat Format);
             void Destroy();
 

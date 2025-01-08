@@ -1,59 +1,52 @@
 #include "VulkanShaderStorageBuffer.h"
 #include <Engine/Engine.hpp>
 #include "VulkanHelper.h"
+#include <Core/Core.h>
 
 namespace PIX3D
 {
     namespace VK
     {
-        void VulkanShaderStorageBuffer::Create()
+        void VulkanShaderStorageBuffer::Create(size_t size)
         {
             auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
 
             m_Device = Context->m_Device;
             m_PhysicalDevice = Context->m_PhysDevice.GetSelected().m_physDevice;
-        }
 
-        void VulkanShaderStorageBuffer::FillData(const void* BufferData, size_t Size)
-        {
-            m_Size = Size;
+            m_Size = size;
 
-            // Create staging buffer
-            BufferAndMemory StagingBuffer = CreateBuffer(
-                Size,
-                VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            // Create storage buffer - directly host visible for frequent updates
+            m_StorageBuffer = CreateBuffer(
+                size,
+                VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                 m_PhysicalDevice
             );
 
-            // Map and copy data to staging buffer
-            void* Data = nullptr;
-            VkResult res = vkMapMemory(m_Device, StagingBuffer.m_Memory, 0, Size, 0, &Data);
-            VK_CHECK_RESULT(res, "Failed to map staging buffer memory");
+            // Map memory persistently
+            VkResult res = vkMapMemory(m_Device, m_StorageBuffer.m_Memory, 0, size, 0, &m_MappedData);
+            VK_CHECK_RESULT(res, "Failed to map storage buffer memory");
+        }
 
-            memcpy(Data, BufferData, Size);
-            vkUnmapMemory(m_Device, StagingBuffer.m_Memory);
+        void VulkanShaderStorageBuffer::UpdateData(void* BufferData, size_t Size)
+        {
+            PIX_ASSERT(Size <= m_Size);
+            PIX_ASSERT(m_MappedData != nullptr);
 
-            // Create device local buffer
-            m_StorageBuffer = CreateBuffer(
-                Size,
-                VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                m_PhysicalDevice
-            );
-
-            auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
-
-            // Copy from staging buffer to device local buffer
-            CopyBuffer(Context->m_CommandPool, Context->m_Queue.GetVkQueue(), m_StorageBuffer.m_Buffer, StagingBuffer.m_Buffer, Size);
-
-            // Cleanup staging buffer
-            StagingBuffer.Destroy(m_Device);
+            memcpy(m_MappedData, BufferData, Size);
         }
 
         void VulkanShaderStorageBuffer::Destroy()
         {
-            if (m_Device != VK_NULL_HANDLE) {
+            if (m_Device != VK_NULL_HANDLE)
+            {
+                if (m_MappedData)
+                {
+                    vkUnmapMemory(m_Device, m_StorageBuffer.m_Memory);
+                    m_MappedData = nullptr;
+                }
+
                 m_StorageBuffer.Destroy(m_Device);
                 m_Device = VK_NULL_HANDLE;
             }
@@ -93,21 +86,6 @@ namespace PIX3D
             vkBindBufferMemory(m_Device, Result.m_Buffer, Result.m_Memory, 0);
 
             return Result;
-        }
-
-        void VulkanShaderStorageBuffer::CopyBuffer(VkCommandPool CmdPool,
-            VkQueue Queue,
-            VkBuffer DstBuffer,
-            VkBuffer SrcBuffer,
-            VkDeviceSize Size)
-        {
-            VkCommandBuffer CommandBuffer = VulkanHelper::BeginSingleTimeCommands(m_Device, CmdPool);
-
-            VkBufferCopy CopyRegion{};
-            CopyRegion.size = Size;
-            vkCmdCopyBuffer(CommandBuffer, SrcBuffer, DstBuffer, 1, &CopyRegion);
-
-            VulkanHelper::EndSingleTimeCommands(m_Device, Queue, CmdPool, CommandBuffer);
         }
 
         uint32_t VulkanShaderStorageBuffer::FindMemoryType(VkPhysicalDevice PhysDevice,

@@ -18,6 +18,7 @@
 #include <Platfrom/ImGui/ImGuiLayer.h>
 #include <Project/Project.h>
 #include <Platfrom/Vulkan/VulkanGraphicsContext.h>
+#include <Platfrom/Vulkan/VulkanSceneRenderer.h>
 
 namespace PIX3D
 {
@@ -83,6 +84,8 @@ namespace PIX3D
 			    {
 					s_GraphicsContext = new VK::VulkanGraphicsContext();
 					s_GraphicsContext->Init(s_Platform->GetNativeWindowHandel());
+
+					VK::VulkanSceneRenderer::Init();
 			    }break;
 			    
 			    case GraphicsAPI::NONE:

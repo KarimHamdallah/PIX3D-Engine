@@ -168,6 +168,7 @@
     <ClCompile Include="PIX3D\Graphics\Camera3D.cpp" />
     <ClCompile Include="PIX3D\Graphics\Mesh.cpp" />
     <ClCompile Include="PIX3D\Graphics\Sprite.cpp" />
+    <ClCompile Include="PIX3D\Graphics\VulkanStaticMesh.cpp" />
     <ClCompile Include="PIX3D\Platfrom\GL\GLBloompass.cpp" />
     <ClCompile Include="PIX3D\Platfrom\GL\GLDirShadowpass.cpp" />
     <ClCompile Include="PIX3D\Platfrom\GL\GLMainRenderpass.cpp" />
@@ -198,6 +199,7 @@
     <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanGraphicsContext.cpp" />
     <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanGraphicsPipeline.cpp" />
     <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanIndexBuffer.cpp" />
+    <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanSceneRenderer.cpp" />
     <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanShader.cpp" />
     <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanShaderStorageBuffer.cpp" />
     <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanTexture.cpp" />
@@ -232,6 +234,7 @@
     <ClInclude Include="PIX3D\Graphics\Mesh.h" />
     <ClInclude Include="PIX3D\Graphics\Sprite.h" />
     <ClInclude Include="PIX3D\Graphics\Transform.h" />
+    <ClInclude Include="PIX3D\Graphics\VulkanStaticMesh.h" />
     <ClInclude Include="PIX3D\PIX3D.h" />
     <ClInclude Include="PIX3D\Platfrom\GL\GLBloompass.h" />
     <ClInclude Include="PIX3D\Platfrom\GL\GLDirShadowpass.h" />
@@ -266,6 +269,7 @@
     <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanGraphicsPipeline.h" />
     <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanHelper.h" />
     <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanIndexBuffer.h" />
+    <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanSceneRenderer.h" />
     <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanShader.h" />
     <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanShaderStorageBuffer.h" />
     <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanTexture.h" />
