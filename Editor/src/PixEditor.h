@@ -3,10 +3,7 @@
 #include <PIX3D.h>
 #include <Platfrom/Vulkan/VulkanGraphicsPipeline.h>
 #include <Platfrom/Vulkan/VulkanShader.h>
-#include <Platfrom/Vulkan/VulkanShaderStorageBuffer.h>
 #include <Platfrom/Vulkan/VulkanIndexBuffer.h>
-#include <Platfrom/Vulkan/VulkanUniformBuffer.h>
-#include <Platfrom/Vulkan/VulkanTexture.h>
 #include <Platfrom/Vulkan/VulkanDescriptorSetLayout.h>
 #include <Platfrom/Vulkan/VulkanDescriptorSet.h>
 #include <Platfrom/Vulkan/VulkanVertexInputLayout.h>
@@ -15,6 +12,14 @@ using namespace PIX3D;
 
 class PixEditor : public PIX3D::Application
 {
+public:
+	struct _CameraUniformBuffer
+	{
+		glm::mat4 view;
+		glm::mat4 proj;
+	};
+
+
 public:
 	virtual void OnStart() override;
 	virtual void OnUpdate(float dt) override;
@@ -38,5 +43,9 @@ private:
 	VK::VulkanIndexBuffer m_IndexBuffer;
 	VK::VulkanTexture m_Texture;
 	VK::VulkanDescriptorSetLayout m_DescriptorSetLayout;
-	VK::VulkanDescriptorSet m_DescriptorSet;
+
+	std::vector<VK::VulkanDescriptorSet> m_DescriptorSets;
+	std::vector<VK::VulkanUniformBuffer> m_CameraUniformBuffers;
+
+	PIX3D::Camera3D Cam;
 };

@@ -11,9 +11,8 @@ namespace PIX3D
             VulkanUniformBuffer() = default;
             ~VulkanUniformBuffer() {}
 
-            void Create();
-            void FillData(const void* BufferData, size_t Size);
-            void UpdateData(const void* BufferData, size_t Size);  // New method for dynamic updates
+            void Create(size_t size);
+            void UpdateData(void* BufferData, size_t Size);  // New method for dynamic updates
             void Destroy();
 
             VkBuffer GetBuffer() const { return m_UniformBuffer.m_Buffer; }
@@ -25,16 +24,17 @@ namespace PIX3D
                 VkMemoryPropertyFlags Properties,
                 VkPhysicalDevice PhysDevice);
 
+            /*
             void CopyBuffer(VkCommandPool CmdPool,
                 VkQueue Queue,
                 VkBuffer DstBuffer,
                 VkBuffer SrcBuffer,
                 VkDeviceSize Size);
+                */
 
             uint32_t FindMemoryType(VkPhysicalDevice PhysDevice,
                 uint32_t TypeFilter,
                 VkMemoryPropertyFlags Properties);
-
         private:
             VkDevice m_Device = VK_NULL_HANDLE;
             VkPhysicalDevice m_PhysicalDevice = VK_NULL_HANDLE;

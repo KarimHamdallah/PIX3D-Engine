@@ -201,6 +201,7 @@
     <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanShader.cpp" />
     <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanShaderStorageBuffer.cpp" />
     <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanTexture.cpp" />
+    <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanUniformBuffer.cpp" />
     <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanVertexBuffer.cpp" />
     <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanVertexInputLayout.cpp" />
     <ClCompile Include="PIX3D\Platfrom\WindowsPlatform.cpp" />
@@ -286,7 +287,6 @@
     <ClInclude Include="PIX3D\Utils\stb_write.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="PIX3D\Platfrom\Vulkan\VulkanUniformBuffer.cpp" />
     <None Include="res\gl shaders\bloom.frag" />
     <None Include="res\gl shaders\bloom.vert" />
     <None Include="res\gl shaders\brdf_lut.frag" />

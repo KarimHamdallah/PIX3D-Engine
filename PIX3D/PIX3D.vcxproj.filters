@@ -177,6 +177,9 @@
     <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanVertexInputLayout.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanUniformBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="PIX3D\Platfrom\Platform.h">
@@ -389,9 +392,6 @@
     <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanIndexBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanUniformBuffer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanTexture.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -402,6 +402,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanVertexInputLayout.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanUniformBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -433,6 +436,5 @@
     <None Include="res\gl shaders\shadowmapping_depth.geom" />
     <None Include="res\vk shaders\triangle.vert" />
     <None Include="res\vk shaders\triangle.frag" />
-    <None Include="PIX3D\Platfrom\Vulkan\VulkanUniformBuffer.cpp" />
   </ItemGroup>
 </Project>

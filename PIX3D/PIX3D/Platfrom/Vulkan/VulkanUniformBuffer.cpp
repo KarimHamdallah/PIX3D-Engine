@@ -6,38 +6,29 @@ namespace PIX3D
 {
     namespace VK
     {
-        void VulkanUniformBuffer::Create()
+        void VulkanUniformBuffer::Create(size_t size)
         {
             auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
 
             m_Device = Context->m_Device;
             m_PhysicalDevice = Context->m_PhysDevice.GetSelected().m_physDevice;
-        }
 
-        void VulkanUniformBuffer::FillData(const void* BufferData, size_t Size)
-        {
-            m_Size = Size;
+            m_Size = size;
 
             // Create uniform buffer - directly host visible for frequent updates
             m_UniformBuffer = CreateBuffer(
-                Size,
+                size,
                 VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                 m_PhysicalDevice
             );
 
             // Map memory persistently
-            VkResult res = vkMapMemory(m_Device, m_UniformBuffer.m_Memory, 0, Size, 0, &m_MappedData);
+            VkResult res = vkMapMemory(m_Device, m_UniformBuffer.m_Memory, 0, size, 0, &m_MappedData);
             VK_CHECK_RESULT(res, "Failed to map uniform buffer memory");
-
-            // Initial data copy
-            if (BufferData)
-            {
-                memcpy(m_MappedData, BufferData, Size);
-            }
         }
 
-        void VulkanUniformBuffer::UpdateData(const void* BufferData, size_t Size)
+        void VulkanUniformBuffer::UpdateData(void* BufferData, size_t Size)
         {
             PIX_ASSERT(Size <= m_Size);
             PIX_ASSERT(m_MappedData != nullptr);
@@ -96,6 +87,7 @@ namespace PIX3D
             return Result;
         }
 
+        /*
         void VulkanUniformBuffer::CopyBuffer(VkCommandPool CmdPool,
             VkQueue Queue,
             VkBuffer DstBuffer,
@@ -110,6 +102,7 @@ namespace PIX3D
 
             VulkanHelper::EndSingleTimeCommands(m_Device, Queue, CmdPool, CommandBuffer);
         }
+        */
 
         uint32_t VulkanUniformBuffer::FindMemoryType(VkPhysicalDevice PhysDevice,
             uint32_t TypeFilter,

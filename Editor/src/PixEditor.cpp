@@ -44,6 +44,15 @@ void PixEditor::OnStart()
 		m_IndexBuffer.FillData(indices.data(), sizeof(uint32_t) * indices.size());
 	}
 
+	// camera uniform buffer
+	{
+		m_CameraUniformBuffers.resize(Context->m_SwapChainImages.size());
+		for (size_t i = 0; i < m_CameraUniformBuffers.size(); i++)
+		{
+			m_CameraUniformBuffers[i].Create(sizeof(_CameraUniformBuffer));
+		}
+	}
+
 	// texture loading
 	{
 		m_Texture.Create();
@@ -53,16 +62,23 @@ void PixEditor::OnStart()
 	// descriptor layout -- descripe shader resources
 	{
 		m_DescriptorSetLayout
-			.AddBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+			.AddBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)
+			.AddBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
 			.Build();
 	}
 	
 	// descriptor set -- save resources at specific bindings -- matches shader layout
 	{
-		m_DescriptorSet
-			.Init(m_DescriptorSetLayout)
-			.AddTexture(0, m_Texture)
-			.Build();
+		m_DescriptorSets.resize(Context->m_SwapChainImages.size());
+
+		for (size_t i = 0; i < m_DescriptorSets.size(); i++)
+		{
+			m_DescriptorSets[i]
+				.Init(m_DescriptorSetLayout)
+				.AddUniformBuffer(0, m_CameraUniformBuffers[i])
+				.AddTexture(1, m_Texture)
+				.Build();
+		}
 	}
 
 	// renderpass and framebuffers
@@ -144,7 +160,7 @@ void PixEditor::OnStart()
 
 			vkCmdBindPipeline(m_CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline.GetVkPipeline());
 
-			auto descriptor_set = m_DescriptorSet.GetVkDescriptorSet();
+			auto descriptor_set = m_DescriptorSets[i].GetVkDescriptorSet();
 			vkCmdBindDescriptorSets(m_CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptor_set, 0, nullptr);
 
 			VkBuffer vertexBuffers[] = { m_VertexBuffer.GetBuffer() };
@@ -161,13 +177,26 @@ void PixEditor::OnStart()
         }
         PIX_DEBUG_INFO("Command buffers recorded");
     }
+
+	Cam.Init({0.0f, 0.0f, 5.0f});
 }
 
 void PixEditor::OnUpdate(float dt)
 {
+	Cam.Update(dt);
+
     auto* Context = (VK::VulkanGraphicsContext*)Engine::GetGraphicsContext();
 
     uint32_t ImageIndex = Context->m_Queue.AcquireNextImage();
+
+	// Update Camera Uniform Buffer
+	_CameraUniformBuffer cameraData = {};
+	cameraData.proj = Cam.GetProjectionMatrix();
+	cameraData.view = Cam.GetViewMatrix();
+
+	m_CameraUniformBuffers[ImageIndex].UpdateData(&cameraData, sizeof(_CameraUniformBuffer));
+
+
     Context->m_Queue.SubmitAsync(m_CommandBuffers[ImageIndex]);
     Context->m_Queue.Present(ImageIndex);
 }
