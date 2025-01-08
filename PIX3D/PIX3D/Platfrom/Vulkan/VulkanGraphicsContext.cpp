@@ -304,6 +304,7 @@ namespace PIX3D
 			VkPhysicalDeviceFeatures DeviceFeatures = {};
 			DeviceFeatures.geometryShader = VK_TRUE;
 			DeviceFeatures.tessellationShader = VK_TRUE;
+			DeviceFeatures.samplerAnisotropy = VK_TRUE;
 
 			// Logical device creation
 			VkDeviceCreateInfo DeviceCreateInfo = {};
@@ -416,6 +417,30 @@ namespace PIX3D
             //////////////////////////////////////////////////////
 
 			VulkanHelper::CreateCommandBuffers(m_Device, m_CommandPool, 1, &m_CopyCommandBuffer);
+
+
+			//////////////////////////////////////////////////////
+            ////////////////// Descriptor Pool ///////////////////
+            //////////////////////////////////////////////////////
+
+			// Descriptor pool sizes
+			VkDescriptorPoolSize poolSizes[] =
+			{
+				{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, MAX_UNIFORM_BUFFERS },
+				{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, MAX_COMBINED_IMAGE_SAMPLERS },
+				{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, MAX_STORAGE_BUFFERS },
+			};
+
+			// Descriptor pool creation info
+			VkDescriptorPoolCreateInfo poolInfo = {};
+			poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+			poolInfo.poolSizeCount = sizeof(poolSizes) / sizeof(poolSizes[0]); // Number of pool sizes
+			poolInfo.pPoolSizes = poolSizes;                                  // Pool sizes array
+			poolInfo.maxSets = MAX_DESCRIPTOR_SETS;                           // Max descriptor sets
+
+			// Create the descriptor pool
+			if (vkCreateDescriptorPool(m_Device, &poolInfo, nullptr, &m_DescriptorPool) != VK_SUCCESS)
+				PIX_ASSERT_MSG(false, "Failed to create descriptor pool!");
 		}
 
 		void VulkanGraphicsContext::SwapBuffers(void* window_handle)

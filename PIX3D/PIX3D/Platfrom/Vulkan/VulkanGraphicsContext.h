@@ -205,6 +205,17 @@ namespace PIX3D
 			uint32_t m_QueueIndex;
 
 			VkCommandBuffer m_CopyCommandBuffer = nullptr;
+
+			enum
+			{
+				MAX_UNIFORM_BUFFERS = 20,
+				MAX_COMBINED_IMAGE_SAMPLERS = 500,
+				MAX_STORAGE_BUFFERS = 20,
+
+				MAX_DESCRIPTOR_SETS = 500
+			};
+
+			VkDescriptorPool m_DescriptorPool = nullptr;
 		};
 	}
 }

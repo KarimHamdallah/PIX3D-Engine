@@ -6,66 +6,80 @@ void PixEditor::OnStart()
 	auto* Context = (VK::VulkanGraphicsContext*)Engine::GetGraphicsContext();
 	auto specs = Engine::GetApplicationSpecs();
 
+	// Shader
+	m_TriangleShader.LoadFromFile("../PIX3D/res/vk shaders/triangle.vert", "../PIX3D/res/vk shaders/triangle.frag");
 
 	// vertex buffer
-	m_VertexBuffer.Create();
-
-	// Define triangle vertices
-	const std::vector<float> vertices = 
 	{
-		 // pos               // color
-		 0.0f,  0.5f, 0.0f,  1.0f, 0.0f, 0.0f,  // Bottom center, red
-		-0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 0.0f,   // Top right, green
-		 0.5f, -0.5f, 0.0f,  0.0f, 0.0f, 1.0f   // Top left, blue
-	};
+		m_VertexBuffer.Create();
+		const std::vector<float> vertices = 
+		{
+			// positions          // tex coords
+			-0.5f, -0.5f, 0.0f,  0.0f, 1.0f,  // bottom left
+			 0.5f, -0.5f, 0.0f,  1.0f, 1.0f,  // bottom right
+			 0.5f,  0.5f, 0.0f,  1.0f, 0.0f,  // top right
+			-0.5f,  0.5f, 0.0f,  0.0f, 0.0f   // top left
+		};
+		m_VertexBuffer.FillData(vertices.data(), sizeof(float) * vertices.size());
+	}
 
-	// Fill vertex buffer with triangle data
-	m_VertexBuffer.FillData(vertices.data(), sizeof(float) * vertices.size());
+	// vertex input
+	{
+		m_VertexInputLayout
+			.AddAttribute(VK::VertexAttributeFormat::Float3)  // position
+			.AddAttribute(VK::VertexAttributeFormat::Float2);  // texcoords
+	}
+	auto VertexBindingDescription = m_VertexInputLayout.GetBindingDescription();
+	auto VertexAttributeDescriptions = m_VertexInputLayout.GetAttributeDescriptions();
 
-	m_ShaderStorageBuffer.Create();
+	// index buffer
+	{
+		m_IndexBuffer.Create();
+		const std::vector<uint32_t> indices = 
+		{
+			0, 1, 2,  // first triangle
+			2, 3, 0   // second triangle
+		};
+		
+		m_IndexBuffer.FillData(indices.data(), sizeof(uint32_t) * indices.size());
+	}
 
-	{ // Create Command Buffers
+	// texture loading
+	{
+		m_Texture.Create();
+		m_Texture.LoadFromFile("res/samurai.png", true);
+	}
 
-        m_NumImages = Context->m_SwapChainImages.size();
-		m_CommandBuffers.resize(m_NumImages);
-		VK::VulkanHelper::CreateCommandBuffers(Context->m_Device, Context->m_CommandPool, m_NumImages, m_CommandBuffers.data());
+	// descriptor layout -- descripe shader resources
+	{
+		m_DescriptorSetLayout
+			.AddBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+			.Build();
+	}
+	
+	// descriptor set -- save resources at specific bindings -- matches shader layout
+	{
+		m_DescriptorSet
+			.Init(m_DescriptorSetLayout)
+			.AddTexture(0, m_Texture)
+			.Build();
+	}
 
+	// renderpass and framebuffers
+	{
 		m_Renderpass = VK::VulkanHelper::CreateSimpleRenderPass(Context->m_Device, Context->m_SwapChainSurfaceFormat.format);
 		m_FrameBuffers = VK::VulkanHelper::CreateSwapChainFrameBuffers(Context, m_Renderpass, specs.Width, specs.Height);
 	}
 
-	// Shader
-
-	m_TriangleShader.LoadFromFile("../PIX3D/res/vk shaders/triangle.vert", "../PIX3D/res/vk shaders/triangle.frag");
-
-
-	// Define vertex input binding and attributes
-	VkVertexInputBindingDescription bindingDescription{};
-	bindingDescription.binding = 0;
-	bindingDescription.stride = 6 * sizeof(float);
-	bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-	std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions{};
-
-	// Position attribute
-	attributeDescriptions[0].binding = 0;
-	attributeDescriptions[0].location = 0;
-	attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-	attributeDescriptions[0].offset = 0;
-
-	// Color attribute
-	attributeDescriptions[1].binding = 0;
-	attributeDescriptions[1].location = 1;
-	attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-	attributeDescriptions[1].offset = 3 * sizeof(float);
-
-	// Define a pipeline layout (descriptor sets or push constants)
+	// pipeline layout (descriptor sets or push constants)
 	VkPipelineLayout pipelineLayout = nullptr;
 	{
+		auto layout = m_DescriptorSetLayout.GetVkDescriptorSetLayout();
+
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
 		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		pipelineLayoutInfo.setLayoutCount = 0; // No descriptor sets
-		pipelineLayoutInfo.pSetLayouts = nullptr; // Descriptor set layouts
+		pipelineLayoutInfo.setLayoutCount = 1; // No descriptor sets
+		pipelineLayoutInfo.pSetLayouts = &layout; // Descriptor set layouts
 		pipelineLayoutInfo.pushConstantRangeCount = 0; // No push constants
 		pipelineLayoutInfo.pPushConstantRanges = nullptr; // Push constant ranges
 
@@ -76,7 +90,7 @@ void PixEditor::OnStart()
 	// graphics pipeline
 	m_GraphicsPipeline.Init(Context->m_Device, m_Renderpass)
 		.AddShaderStages(m_TriangleShader.GetVertexShader(), m_TriangleShader.GetFragmentShader())
-		.AddVertexInputState(&bindingDescription, attributeDescriptions.data(), 1, attributeDescriptions.size())
+		.AddVertexInputState(&VertexBindingDescription, VertexAttributeDescriptions.data(), 1, VertexAttributeDescriptions.size())
 		.AddViewportState(800.0f, 600.0f)
 		.AddInputAssemblyState(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, VK_FALSE)
 		.AddRasterizationState(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE)
@@ -84,6 +98,16 @@ void PixEditor::OnStart()
 		.AddColorBlendState(false)
 		.SetPipelineLayout(pipelineLayout)
 		.Build();
+
+
+	{ // Create Command Buffers
+
+		m_NumImages = Context->m_SwapChainImages.size();
+		m_CommandBuffers.resize(m_NumImages);
+		VK::VulkanHelper::CreateCommandBuffers(Context->m_Device, Context->m_CommandPool, m_NumImages, m_CommandBuffers.data());
+	}
+
+
 
     { // Record Command Buffers
 
@@ -116,33 +140,25 @@ void PixEditor::OnStart()
 			VK::VulkanHelper::BeginCommandBuffer(m_CommandBuffers[i], VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
 
 			RenderPassBeginInfo.framebuffer = m_FrameBuffers[i];
-
 			vkCmdBeginRenderPass(m_CommandBuffers[i], &RenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-			
-			// draw triangle
-			
-			// Bind graphics pipeline
+
 			vkCmdBindPipeline(m_CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline.GetVkPipeline());
 
-			// Bind vertex buffer
+			auto descriptor_set = m_DescriptorSet.GetVkDescriptorSet();
+			vkCmdBindDescriptorSets(m_CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptor_set, 0, nullptr);
+
 			VkBuffer vertexBuffers[] = { m_VertexBuffer.GetBuffer() };
 			VkDeviceSize offsets[] = { 0 };
 			vkCmdBindVertexBuffers(m_CommandBuffers[i], 0, 1, vertexBuffers, offsets);
+			vkCmdBindIndexBuffer(m_CommandBuffers[i], m_IndexBuffer.GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
-			uint32_t VertexCount = 3;
-			uint32_t InstanceCount = 1;
-			uint32_t FirstVertex = 0;
-			uint32_t FirstInstance = 0;
+			vkCmdDrawIndexed(m_CommandBuffers[i], 6, 1, 0, 0, 0);  // 6 indices for quad
 
-			vkCmdDraw(m_CommandBuffers[i], VertexCount, InstanceCount, FirstVertex, FirstInstance);
-
-			
 			vkCmdEndRenderPass(m_CommandBuffers[i]);
 
 			VkResult res = vkEndCommandBuffer(m_CommandBuffers[i]);
 			VK_CHECK_RESULT(res, "vkEndCommandBuffer");
         }
-
         PIX_DEBUG_INFO("Command buffers recorded");
     }
 }

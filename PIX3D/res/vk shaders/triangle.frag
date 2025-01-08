@@ -2,13 +2,17 @@
 
 #extension GL_KHR_vulkan_glsl : enable
 
+// out
 layout(location = 0) out vec4 outColor;
 
 // in
-layout (location = 0) in vec3 in_Color;
+layout (location = 0) in vec2 in_TexCoords;
+
+// resources
+layout(binding = 0) uniform sampler2D TexSampler;
 
 
 void main()
 {
-    outColor = vec4(in_Color, 1.0);
+    outColor = texture(TexSampler, in_TexCoords);
 }

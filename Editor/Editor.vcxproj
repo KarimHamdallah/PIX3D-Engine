@@ -45,8 +45,8 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(VULKAN_SDK)\Include;F:\Projects\PIX3D Engine\PIX3D\PIX3D;F:\Projects\PIX3D Engine\Vendor\glm;F:\Projects\PIX3D Engine\Vendor\glfw\include;F:\Projects\PIX3D Engine\Editor\imgui;F:\Projects\PIX3D Engine\Vendor\assimp\include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(VULKAN_SDK)\Lib;F:\Projects\PIX3D Engine\Vendor\glfw\lib;F:\Projects\PIX3D Engine\Vendor\assimp\bin\windows\Release;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(VULKAN_SDK)\Include;$(SolutionDir)\PIX3D\PIX3D;$(SolutionDir)\Vendor\glm;$(SolutionDir)\Vendor\glfw\include;$(SolutionDir)\Editor\imgui;$(SolutionDir)\Vendor\assimp\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(VULKAN_SDK)\Lib;$(SolutionDir)\Vendor\glfw\lib;$(SolutionDir)\Vendor\assimp\bin\windows\Release;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>

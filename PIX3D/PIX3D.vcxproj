@@ -193,11 +193,16 @@
     <ClCompile Include="PIX3D\Platfrom\GL\IBL\IBLCubemapsGenerator.cpp" />
     <ClCompile Include="PIX3D\Platfrom\ImGui\ImGuiLayer.cpp" />
     <ClCompile Include="PIX3D\Platfrom\Vulkan\vulkanComputePipeline.cpp" />
+    <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanDescriptorSet.cpp" />
+    <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanDescriptorSetLayout.cpp" />
     <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanGraphicsContext.cpp" />
     <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanGraphicsPipeline.cpp" />
+    <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanIndexBuffer.cpp" />
     <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanShader.cpp" />
     <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanShaderStorageBuffer.cpp" />
+    <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanTexture.cpp" />
     <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanVertexBuffer.cpp" />
+    <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanVertexInputLayout.cpp" />
     <ClCompile Include="PIX3D\Platfrom\WindowsPlatform.cpp" />
     <ClCompile Include="PIX3D\Scene\Scene.cpp" />
     <ClCompile Include="PIX3D\Scene\SceneSerializer.cpp" />
@@ -254,12 +259,18 @@
     <ClInclude Include="PIX3D\Platfrom\ImGui\ImGuiLayer.h" />
     <ClInclude Include="PIX3D\Platfrom\Platform.h" />
     <ClInclude Include="PIX3D\Platfrom\Vulkan\vulkanComputePipeline.h" />
+    <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanDescriptorSet.h" />
+    <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanDescriptorSetLayout.h" />
     <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanGraphicsContext.h" />
     <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanGraphicsPipeline.h" />
     <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanHelper.h" />
+    <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanIndexBuffer.h" />
     <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanShader.h" />
     <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanShaderStorageBuffer.h" />
+    <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanTexture.h" />
+    <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanUniformBuffer.h" />
     <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanVertexBuffer.h" />
+    <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanVertexInputLayout.h" />
     <ClInclude Include="PIX3D\Platfrom\WindowsPlatform.h" />
     <ClInclude Include="PIX3D\Project\Project.h" />
     <ClInclude Include="PIX3D\Scene\Components.h" />
@@ -275,6 +286,7 @@
     <ClInclude Include="PIX3D\Utils\stb_write.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="PIX3D\Platfrom\Vulkan\VulkanUniformBuffer.cpp" />
     <None Include="res\gl shaders\bloom.frag" />
     <None Include="res\gl shaders\bloom.vert" />
     <None Include="res\gl shaders\brdf_lut.frag" />
