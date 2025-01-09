@@ -42,6 +42,9 @@ namespace PIX3D
             VkFormat GetVKormat() const { return GetVulkanFormat(m_Format); }
             VkImage GetVKImage() const { return m_Image; }
 
+            void TransitionImageLayout(VkFormat Format,
+                VkImageLayout OldLayout, VkImageLayout NewLayout, VkCommandBuffer ExistingCommandBuffer = VK_NULL_HANDLE);
+
         private:
             void CreateImage(uint32_t Width, uint32_t Height, VkFormat Format,
                 VkImageTiling Tiling, VkImageUsageFlags Usage,
@@ -49,8 +52,6 @@ namespace PIX3D
 
             void CreateImageView(VkFormat Format);
             void CreateSampler();
-            void TransitionImageLayout(VkFormat Format,
-                VkImageLayout OldLayout, VkImageLayout NewLayout);
 
             void CopyBufferToImage(VkBuffer Buffer, uint32_t Width, uint32_t Height);
             VkFormat GetVulkanFormat(TextureFormat Format) const;

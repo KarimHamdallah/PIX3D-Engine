@@ -20,12 +20,14 @@ namespace PIX3D
 			VulkanFullScreenQuadRenderpass() = default;
 			~VulkanFullScreenQuadRenderpass() {}
 
-			void Init(uint32_t width, uint32_t height, VulkanTexture* ColorAttachment);
+			void Init(uint32_t width, uint32_t height, VulkanTexture* color_attachment);
 			void Destroy();
 
-			void Render();
+			void RecordCommandBuffer(VkCommandBuffer commandbuffer, uint32_t ImageIndex);
 
 		private:
+
+			uint32_t m_Width, m_Height = 0;
 
 			VulkanShader m_Shader;
 
@@ -40,8 +42,7 @@ namespace PIX3D
 			std::vector<VulkanFramebuffer> m_Framebuffers;
 
 			VulkanGraphicsPipeline m_GraphicsPipeline;
-
-			std::vector<VkCommandBuffer> m_CommandBuffers;
+			VkPipelineLayout m_PipelineLayout = nullptr;
 		};
 	}
 }

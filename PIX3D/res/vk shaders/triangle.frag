@@ -15,5 +15,5 @@ layout(set = 1, binding = 0) uniform sampler2D TexSampler;
 void main()
 {
     outColor1 = texture(TexSampler, in_TexCoords);
-    outColor2 = vec4(1.0, 0.0, 0.0, 1.0);
+    outColor2 = vec4(0.0, 0.0, 1.0, 1.0);
 }

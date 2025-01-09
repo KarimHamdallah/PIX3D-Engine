@@ -472,7 +472,7 @@ namespace PIX3D
 			{
 		      .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
 		      .pNext = NULL,
-		      .flags = 0,
+		      .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
 		      .queueFamilyIndex = m_QueueFamily
 			};
 
@@ -745,6 +745,7 @@ namespace PIX3D
 		*/
 
 
+
 		void VulkanQueue::Init(VkDevice Device, VkSwapchainKHR SwapChain, uint32_t QueueFamily, uint32_t QueueIndex)
 		{
 			m_Device = Device;
@@ -844,6 +845,5 @@ namespace PIX3D
 
 			WaitIdle();	// TODO: looks like a workaround but we're getting error messages without it
 		}
-
 	}
 }

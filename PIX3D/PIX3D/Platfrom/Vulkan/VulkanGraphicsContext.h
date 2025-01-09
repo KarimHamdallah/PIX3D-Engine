@@ -179,7 +179,7 @@ namespace PIX3D
 
 			VkQueue GetVkQueue() { return m_Queue; }
 
-		private:
+		public:
 
 			void CreateSemaphores();
 
@@ -188,6 +188,17 @@ namespace PIX3D
 			VkQueue m_Queue = VK_NULL_HANDLE;
 			VkSemaphore m_RenderCompleteSem;
 			VkSemaphore m_PresentCompleteSem;
+
+			enum
+			{
+				MAX_FRAMES_IN_FLIGHT = 3
+			};
+
+			std::vector<VkSemaphore> m_ImageAvailableSemaphores;
+			std::vector<VkSemaphore> m_RenderFinishedSemaphores;
+			std::vector<VkFence> m_InFlightFences;
+			std::vector<VkFence> m_ImagesInFlight;
+			size_t m_CurrentFrame = 0;
 		};
 
 

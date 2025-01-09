@@ -1,6 +1,52 @@
 #include "PixEditor.h"
 #include <Platfrom/Vulkan/VulkanHelper.h>
 
+namespace
+{
+	void TransitionSwapChainImageLayout(VkImage swapChainImage, VkImageLayout oldLayout, VkImageLayout newLayout)
+	{
+		auto* Context = (VK::VulkanGraphicsContext*)PIX3D::Engine::GetGraphicsContext();
+
+		VkCommandBuffer CommandBuffer = PIX3D::VK::VulkanHelper::BeginSingleTimeCommands(Context->m_Device, Context->m_CommandPool);
+
+		VkImageMemoryBarrier barrier{};
+		barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		barrier.oldLayout = oldLayout;
+		barrier.newLayout = newLayout;
+		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		barrier.image = swapChainImage;
+		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		barrier.subresourceRange.baseMipLevel = 0;
+		barrier.subresourceRange.levelCount = 1;
+		barrier.subresourceRange.baseArrayLayer = 0;
+		barrier.subresourceRange.layerCount = 1;
+
+		VkPipelineStageFlags sourceStage;
+		VkPipelineStageFlags destinationStage;
+
+		if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
+			newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
+			barrier.srcAccessMask = 0;
+			barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+			destinationStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		}
+
+		vkCmdPipelineBarrier(
+			CommandBuffer,
+			sourceStage, destinationStage,
+			0,
+			0, nullptr,
+			0, nullptr,
+			1, &barrier
+		);
+
+		VK::VulkanHelper::EndSingleTimeCommands(Context->m_Device, Context->m_Queue.m_Queue, Context->m_CommandPool, CommandBuffer);
+	}
+}
+
+
 void PixEditor::OnStart()
 {
 	auto* Context = (VK::VulkanGraphicsContext*)Engine::GetGraphicsContext();
@@ -59,6 +105,12 @@ void PixEditor::OnStart()
 		m_ColorAttachmentTexture->Create();
 		m_ColorAttachmentTexture->CreateColorAttachment(specs.Width, specs.Height, VK::TextureFormat::RGBA16F);
 
+		m_ColorAttachmentTexture->TransitionImageLayout(
+			m_ColorAttachmentTexture->GetVKormat(),
+			VK_IMAGE_LAYOUT_UNDEFINED,
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+		);
+
 
 		m_BloomBrightnessAttachmentTexture = new VK::VulkanTexture();
 		m_BloomBrightnessAttachmentTexture->Create();
@@ -77,8 +129,8 @@ void PixEditor::OnStart()
 				VK_SAMPLE_COUNT_1_BIT,
 				VK_ATTACHMENT_LOAD_OP_CLEAR,
 				VK_ATTACHMENT_STORE_OP_STORE,
-				VK_IMAGE_LAYOUT_UNDEFINED,
-				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
 
 			// Second color attachment (for bloom brightness texture)
 
@@ -103,6 +155,15 @@ void PixEditor::OnStart()
 			// Subpass with 2 color attachments and 1 depth attachment
 
 			.AddSubpass(VK_PIPELINE_BIND_POINT_GRAPHICS)
+			.AddDependency(
+				VK_SUBPASS_EXTERNAL,                            // srcSubpass
+				0,                                              // dstSubpass
+				VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,          // srcStageMask
+				VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,  // dstStageMask
+				VK_ACCESS_SHADER_READ_BIT,                      // srcAccessMask
+				VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,           // dstAccessMask
+				0                                               // dependencyFlags
+			)
 			.Build();
 
 		m_Framebuffers.resize(Context->m_SwapChainImages.size());
@@ -119,7 +180,6 @@ void PixEditor::OnStart()
 	}
 
 	// pipeline layout (descriptor sets or push constants)
-	VkPipelineLayout pipelineLayout = nullptr;
 	{
 		VkDescriptorSetLayout layouts[] =
 		{
@@ -135,7 +195,7 @@ void PixEditor::OnStart()
 		pipelineLayoutInfo.pushConstantRangeCount = 0; // No push constants
 		pipelineLayoutInfo.pPushConstantRanges = nullptr; // Push constant ranges
 
-		if (vkCreatePipelineLayout(Context->m_Device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS)
+		if (vkCreatePipelineLayout(Context->m_Device, &pipelineLayoutInfo, nullptr, &m_PipelineLayout) != VK_SUCCESS)
 			PIX_ASSERT_MSG(false, "Failed to create pipeline layout!");
 	}
 
@@ -151,8 +211,8 @@ void PixEditor::OnStart()
 		.AddRasterizationState(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE)
 		.AddMultisampleState(VK_SAMPLE_COUNT_1_BIT)
 		.AddDepthStencilState(true, true)
-		.AddColorBlendState(false, 2)
-		.SetPipelineLayout(pipelineLayout)
+		.AddColorBlendState(true, 2)
+		.SetPipelineLayout(m_PipelineLayout)
 		.Build();
 
 
@@ -163,83 +223,6 @@ void PixEditor::OnStart()
 		VK::VulkanHelper::CreateCommandBuffers(Context->m_Device, Context->m_CommandPool, m_NumImages, m_CommandBuffers.data());
 	}
 
-
-
-    { // Record Command Buffers
-
-		VkClearColorValue ClearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
-		VkClearValue ClearValue[3];
-
-		ClearValue[0].color = ClearColor;
-		ClearValue[0].depthStencil = { 1.0f, 0 };
-
-		ClearValue[1].color = ClearColor;
-		ClearValue[1].depthStencil = { 1.0f, 0 };
-
-		ClearValue[2].color = ClearColor;
-		ClearValue[2].depthStencil = { 1.0f, 0 };
-
-		VkRenderPassBeginInfo RenderPassBeginInfo = 
-		{
-			.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-			.pNext = NULL,
-			.renderPass = m_Renderpass.GetVKRenderpass(),
-			.renderArea = {
-				.offset = {
-					.x = 0,
-					.y = 0
-				},
-				.extent = {
-					.width = specs.Width,
-					.height = specs.Height
-				}
-			},
-			.clearValueCount = 3,
-			.pClearValues = ClearValue
-		};
-
-		for (uint32_t i = 0; i < m_CommandBuffers.size(); i++)
-		{
-
-			VK::VulkanHelper::BeginCommandBuffer(m_CommandBuffers[i], VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
-
-			RenderPassBeginInfo.framebuffer = m_Framebuffers[i].GetVKFramebuffer();
-			vkCmdBeginRenderPass(m_CommandBuffers[i], &RenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-			vkCmdBindPipeline(m_CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline.GetVkPipeline());
-
-			auto camera_descriptor_set = m_CameraDescriptorSets[i].GetVkDescriptorSet();
-			vkCmdBindDescriptorSets(m_CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &camera_descriptor_set, 0, nullptr);
-
-			VkBuffer vertexBuffers[] = { m_Mesh.GetVertexBuffer() };
-			VkDeviceSize offsets[] = { 0 };
-			vkCmdBindVertexBuffers(m_CommandBuffers[i], 0, 1, vertexBuffers, offsets);
-			vkCmdBindIndexBuffer(m_CommandBuffers[i], m_Mesh.GetIndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
-
-			for (const auto& subMesh : m_Mesh.m_SubMeshes)
-			{
-				if (subMesh.MaterialIndex >= 0)
-				{
-					auto material_descriptor_set = m_Mesh.m_DescriptorSets[subMesh.MaterialIndex].GetVkDescriptorSet();
-					vkCmdBindDescriptorSets(m_CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, 1, &material_descriptor_set, 0, nullptr);
-				}
-				// Draw the submesh using its base vertex and index offsets
-				vkCmdDrawIndexed(m_CommandBuffers[i],
-					subMesh.IndicesCount,    // Index count for this submesh
-					1,                       // Instance count
-					subMesh.BaseIndex,      // First index
-					subMesh.BaseVertex,     // Vertex offset
-					0);                     // First instance
-			}
-
-			vkCmdEndRenderPass(m_CommandBuffers[i]);
-
-			VkResult res = vkEndCommandBuffer(m_CommandBuffers[i]);
-			VK_CHECK_RESULT(res, "vkEndCommandBuffer");
-        }
-        PIX_DEBUG_INFO("Command buffers recorded");
-    }
-
 	Cam.Init({0.0f, 0.0f, 5.0f});
 
 	m_FullScreenQuadRenderpass.Init(specs.Width, specs.Height, m_ColorAttachmentTexture);
@@ -247,25 +230,120 @@ void PixEditor::OnStart()
 
 void PixEditor::OnUpdate(float dt)
 {
-	Cam.Update(dt);
+	auto* Context = (VK::VulkanGraphicsContext*)Engine::GetGraphicsContext();
+	auto specs = Engine::GetApplicationSpecs();
 
-    auto* Context = (VK::VulkanGraphicsContext*)Engine::GetGraphicsContext();
+	uint32_t ImageIndex = Context->m_Queue.AcquireNextImage();
 
-    uint32_t ImageIndex = Context->m_Queue.AcquireNextImage();
-
-	// Update Camera Uniform Buffer
-	_CameraUniformBuffer cameraData = {};
-	cameraData.proj = Cam.GetProjectionMatrix();
-	cameraData.view = Cam.GetViewMatrix();
-
-	m_CameraUniformBuffers[ImageIndex].UpdateData(&cameraData, sizeof(_CameraUniformBuffer));
+	// update
+	{
+		Cam.Update(dt);
 
 
-    Context->m_Queue.SubmitAsync(m_CommandBuffers[ImageIndex]);
-    Context->m_Queue.Present(ImageIndex);
+
+		// Update Camera Uniform Buffer
+		_CameraUniformBuffer cameraData = {};
+		cameraData.proj = Cam.GetProjectionMatrix();
+		cameraData.view = Cam.GetViewMatrix();
+
+		m_CameraUniformBuffers[ImageIndex].UpdateData(&cameraData, sizeof(_CameraUniformBuffer));
+	}
+
+	// render
+
+	// Record Command Buffers
+	{
+		VK::VulkanHelper::BeginCommandBuffer(m_CommandBuffers[ImageIndex], VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
+		
+		// main renderpass record command buffers
+		{
+
+			VkClearColorValue ClearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
+			VkClearValue ClearValue[3];
+
+			ClearValue[0].color = ClearColor;
+
+			ClearValue[1].color = ClearColor;
+
+			ClearValue[2].depthStencil = { 1.0f, 0 };
+
+			VkRenderPassBeginInfo RenderPassBeginInfo =
+			{
+				.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+				.pNext = NULL,
+				.renderPass = m_Renderpass.GetVKRenderpass(),
+				.renderArea = {
+					.offset = {
+						.x = 0,
+						.y = 0
+					},
+					.extent = {
+						.width = specs.Width,
+						.height = specs.Height
+					}
+				},
+				.clearValueCount = 3,
+				.pClearValues = ClearValue
+			};
 
 
-	m_FullScreenQuadRenderpass.Render();
+			RenderPassBeginInfo.framebuffer = m_Framebuffers[ImageIndex].GetVKFramebuffer();
+			vkCmdBeginRenderPass(m_CommandBuffers[ImageIndex], &RenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+			vkCmdBindPipeline(m_CommandBuffers[ImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline.GetVkPipeline());
+
+			auto camera_descriptor_set = m_CameraDescriptorSets[ImageIndex].GetVkDescriptorSet();
+			vkCmdBindDescriptorSets(m_CommandBuffers[ImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 0, 1, &camera_descriptor_set, 0, nullptr);
+
+			VkBuffer vertexBuffers[] = { m_Mesh.GetVertexBuffer() };
+			VkDeviceSize offsets[] = { 0 };
+			vkCmdBindVertexBuffers(m_CommandBuffers[ImageIndex], 0, 1, vertexBuffers, offsets);
+			vkCmdBindIndexBuffer(m_CommandBuffers[ImageIndex], m_Mesh.GetIndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
+
+			for (const auto& subMesh : m_Mesh.m_SubMeshes)
+			{
+				if (subMesh.MaterialIndex >= 0)
+				{
+					auto material_descriptor_set = m_Mesh.m_DescriptorSets[subMesh.MaterialIndex].GetVkDescriptorSet();
+					vkCmdBindDescriptorSets(m_CommandBuffers[ImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 1, 1, &material_descriptor_set, 0, nullptr);
+				}
+				// Draw the submesh using its base vertex and index offsets
+				vkCmdDrawIndexed(m_CommandBuffers[ImageIndex],
+					subMesh.IndicesCount,    // Index count for this submesh
+					1,                       // Instance count
+					subMesh.BaseIndex,      // First index
+					subMesh.BaseVertex,     // Vertex offset
+					0);                     // First instance
+			}
+
+			vkCmdEndRenderPass(m_CommandBuffers[ImageIndex]);
+		}
+
+		m_ColorAttachmentTexture->TransitionImageLayout(
+			m_ColorAttachmentTexture->GetVKormat(),
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			m_CommandBuffers[ImageIndex]
+		);
+
+		// fullscreen quadpass record command buffers
+		{
+			m_FullScreenQuadRenderpass.RecordCommandBuffer(m_CommandBuffers[ImageIndex], ImageIndex);
+		}
+
+		VkResult res = vkEndCommandBuffer(m_CommandBuffers[ImageIndex]);
+		VK_CHECK_RESULT(res, "vkEndCommandBuffer");
+	}
+	
+	Context->m_Queue.SubmitAsync(m_CommandBuffers[ImageIndex]);
+	Context->m_Queue.Present(ImageIndex);
+
+
+	m_ColorAttachmentTexture->TransitionImageLayout(
+		m_ColorAttachmentTexture->GetVKormat(),
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+		VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+	);
 }
 
 void PixEditor::OnDestroy()

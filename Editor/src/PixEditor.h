@@ -38,6 +38,7 @@ private:
 
 	VK::VulkanShader m_TriangleShader;
 	VK::VulkanGraphicsPipeline m_GraphicsPipeline;
+	VkPipelineLayout m_PipelineLayout = nullptr;
 
 	VK::VulkanVertexBuffer m_VertexBuffer;
 	VK::VulkanVertexInputLayout m_VertexInputLayout;

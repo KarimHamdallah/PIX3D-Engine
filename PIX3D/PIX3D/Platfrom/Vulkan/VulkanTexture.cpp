@@ -25,10 +25,12 @@ namespace PIX3D
             m_Height = Height;
             m_Format = Format;
 
+            auto usage = IsDepthFormat(GetVulkanFormat(Format)) ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
             // Create the image
             CreateImage(Width, Height, GetVulkanFormat(Format),
                 VK_IMAGE_TILING_OPTIMAL,
-                IsDepthFormat(GetVulkanFormat(Format)) ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                usage | VK_IMAGE_USAGE_SAMPLED_BIT,
                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
             // Create image view and sampler
@@ -317,9 +319,15 @@ namespace PIX3D
             }
         }
 
-        void VulkanTexture::TransitionImageLayout(VkFormat Format, VkImageLayout OldLayout, VkImageLayout NewLayout)
+        void VulkanTexture::TransitionImageLayout(VkFormat Format, VkImageLayout OldLayout, VkImageLayout NewLayout, VkCommandBuffer ExistingCommandBuffer)
         {
-            VkCommandBuffer CommandBuffer = VulkanHelper::BeginSingleTimeCommands(m_Device, m_CmdPool);
+            VkCommandBuffer CommandBuffer;
+            bool useExistingCommandBuffer = (ExistingCommandBuffer != VK_NULL_HANDLE);
+
+            if (!useExistingCommandBuffer)
+                CommandBuffer = VulkanHelper::BeginSingleTimeCommands(m_Device, m_CmdPool);
+            else
+                CommandBuffer = ExistingCommandBuffer;
 
             VkImageMemoryBarrier barrier{};
             barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -344,6 +352,34 @@ namespace PIX3D
                 sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
                 destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
             }
+            else if (OldLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL && NewLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+            {
+                barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+                barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+                sourceStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+                destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+            }
+            else if (OldLayout == VK_IMAGE_LAYOUT_UNDEFINED && NewLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+            {
+                barrier.srcAccessMask = 0;
+                barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+                sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+                destinationStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+            }
+            else if (OldLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL && NewLayout == VK_IMAGE_LAYOUT_UNDEFINED)
+            {
+                barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+                barrier.dstAccessMask = 0;
+                sourceStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+                destinationStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+            }
+            else if (OldLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL && NewLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+            {
+                barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+                barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+                sourceStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+                destinationStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+            }
             else if (OldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && NewLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
             {
                 barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
@@ -361,7 +397,8 @@ namespace PIX3D
                 0, nullptr,
                 1, &barrier);
 
-            VulkanHelper::EndSingleTimeCommands(m_Device, m_Queue, m_CmdPool, CommandBuffer);
+            if (!useExistingCommandBuffer)
+                VulkanHelper::EndSingleTimeCommands(m_Device, m_Queue, m_CmdPool, CommandBuffer);
         }
 
         void VulkanTexture::CopyBufferToImage(VkBuffer Buffer, uint32_t Width, uint32_t Height)

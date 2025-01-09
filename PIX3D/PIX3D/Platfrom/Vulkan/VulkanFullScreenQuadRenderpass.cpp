@@ -7,10 +7,12 @@ namespace PIX3D
 {
 	namespace VK
 	{
-		void VulkanFullScreenQuadRenderpass::Init(uint32_t width, uint32_t height, VulkanTexture* ColorAttachment)
+		void VulkanFullScreenQuadRenderpass::Init(uint32_t width, uint32_t height, VulkanTexture* color_attachment)
 		{
-			auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
+			m_Width = width;
+			m_Height = height;
 
+			auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
 
 			// load shader
 			m_Shader.LoadFromFile("../PIX3D/res/vk shaders/full_screen_quad.vert", "../PIX3D/res/vk shaders/full_screen_quad.frag");
@@ -56,7 +58,7 @@ namespace PIX3D
 
 			// descriptor set -- save resources at specific bindings -- matches shader layout
 			m_DescriptorSet.Init(m_DescriptorSetLayout)
-				.AddTexture(0, *ColorAttachment)
+				.AddTexture(0, *color_attachment)
 				.Build();
 
 
@@ -86,7 +88,6 @@ namespace PIX3D
 
 
 			// pipeline layout (descriptor sets or push constants)
-			VkPipelineLayout pipelineLayout = nullptr;
 			{
 				VkDescriptorSetLayout layouts[] =
 				{
@@ -101,7 +102,7 @@ namespace PIX3D
 				pipelineLayoutInfo.pushConstantRangeCount = 0; // No push constants
 				pipelineLayoutInfo.pPushConstantRanges = nullptr; // Push constant ranges
 
-				if (vkCreatePipelineLayout(Context->m_Device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS)
+				if (vkCreatePipelineLayout(Context->m_Device, &pipelineLayoutInfo, nullptr, &m_PipelineLayout) != VK_SUCCESS)
 					PIX_ASSERT_MSG(false, "Failed to create pipeline layout!");
 			}
 
@@ -114,83 +115,59 @@ namespace PIX3D
 				.AddRasterizationState(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE)
 				.AddMultisampleState(VK_SAMPLE_COUNT_1_BIT)
 				.AddDepthStencilState(false, false)
-				.AddColorBlendState(false, 1)
-				.SetPipelineLayout(pipelineLayout)
+				.AddColorBlendState(true, 1)
+				.SetPipelineLayout(m_PipelineLayout)
 				.Build();
-
-			{ // Create Command Buffers			
-				m_CommandBuffers.resize(Context->m_SwapChainImages.size());
-				VK::VulkanHelper::CreateCommandBuffers(Context->m_Device, Context->m_CommandPool, Context->m_SwapChainImages.size(), m_CommandBuffers.data());
-			}
-
-
-			{ // Record Command Buffers
-
-				VkClearColorValue ClearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
-				VkClearValue ClearValue;
-				ClearValue.color = ClearColor;
-
-				VkRenderPassBeginInfo RenderPassBeginInfo =
-				{
-					.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-					.pNext = NULL,
-					.renderPass = m_Renderpass.GetVKRenderpass(),
-					.renderArea = {
-						.offset = {
-							.x = 0,
-							.y = 0
-						},
-						.extent = {
-							.width = width,
-							.height = height
-						}
-					},
-					.clearValueCount = 1,
-					.pClearValues = &ClearValue
-				};
-
-				for (uint32_t i = 0; i < m_CommandBuffers.size(); i++)
-				{
-
-					VK::VulkanHelper::BeginCommandBuffer(m_CommandBuffers[i], VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
-
-					RenderPassBeginInfo.framebuffer = m_Framebuffers[i].GetVKFramebuffer();
-					vkCmdBeginRenderPass(m_CommandBuffers[i], &RenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-					vkCmdBindPipeline(m_CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline.GetVkPipeline());
-
-					auto descriptor_set = m_DescriptorSet.GetVkDescriptorSet();
-					vkCmdBindDescriptorSets(m_CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptor_set, 0, nullptr);
-
-					VkBuffer vertexBuffers[] = { m_VertexBuffer.GetBuffer() };
-					VkDeviceSize offsets[] = { 0 };
-					vkCmdBindVertexBuffers(m_CommandBuffers[i], 0, 1, vertexBuffers, offsets);
-					vkCmdBindIndexBuffer(m_CommandBuffers[i], m_IndexBuffer.GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
-
-						// Draw the submesh using its base vertex and index offsets
-					vkCmdDrawIndexed(m_CommandBuffers[i],
-						6,    // Index count for this submesh
-						1,                       // Instance count
-						0,      // First index
-						0,     // Vertex offset
-						0);                     // First instance
-
-					vkCmdEndRenderPass(m_CommandBuffers[i]);
-
-					VkResult res = vkEndCommandBuffer(m_CommandBuffers[i]);
-					VK_CHECK_RESULT(res, "vkEndCommandBuffer");
-				}
-				PIX_DEBUG_INFO("Command buffers recorded");
-			}
 		}
 
-		void VulkanFullScreenQuadRenderpass::Render()
+		void VulkanFullScreenQuadRenderpass::RecordCommandBuffer(VkCommandBuffer commandbuffer, uint32_t ImageIndex)
 		{
-			auto* Context = (VK::VulkanGraphicsContext*)Engine::GetGraphicsContext();
+			VkClearColorValue ClearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
 
-			uint32_t ImageIndex = Context->m_Queue.AcquireNextImage();
-			Context->m_Queue.SubmitAsync(m_CommandBuffers[ImageIndex]);
-			Context->m_Queue.Present(ImageIndex);
+			VkClearValue ClearValue;
+			ClearValue.color = ClearColor;
+
+			VkRenderPassBeginInfo RenderPassBeginInfo =
+			{
+				.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+				.pNext = NULL,
+				.renderPass = m_Renderpass.GetVKRenderpass(),
+				.renderArea = {
+					.offset = {
+						.x = 0,
+						.y = 0
+					},
+					.extent = {
+						.width = m_Width,
+						.height = m_Height
+					}
+				},
+				.clearValueCount = 1,
+				.pClearValues = &ClearValue
+			};
+
+			RenderPassBeginInfo.framebuffer = m_Framebuffers[ImageIndex].GetVKFramebuffer();
+			vkCmdBeginRenderPass(commandbuffer, &RenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+			vkCmdBindPipeline(commandbuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline.GetVkPipeline());
+
+			auto descriptor_set = m_DescriptorSet.GetVkDescriptorSet();
+			vkCmdBindDescriptorSets(commandbuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 0, 1, &descriptor_set, 0, nullptr);
+
+			VkBuffer vertexBuffers[] = { m_VertexBuffer.GetBuffer() };
+			VkDeviceSize offsets[] = { 0 };
+			vkCmdBindVertexBuffers(commandbuffer, 0, 1, vertexBuffers, offsets);
+			vkCmdBindIndexBuffer(commandbuffer, m_IndexBuffer.GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
+
+			// Draw the submesh using its base vertex and index offsets
+			vkCmdDrawIndexed(commandbuffer,
+				6,    // Index count for this submesh
+				1,                       // Instance count
+				0,      // First index
+				0,     // Vertex offset
+				0);                     // First instance
+
+			vkCmdEndRenderPass(commandbuffer);
 		}
 
 		void VulkanFullScreenQuadRenderpass::Destroy()
