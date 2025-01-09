@@ -9,6 +9,7 @@
 #include <Platfrom/GL/IBL/GLHdrCubemap.h>
 #include <Graphics/Camera3D.h>
 #include <Graphics/Mesh.h>
+#include <Graphics/VulkanStaticMesh.h>
 #include <Graphics/Transform.h>
 #include <Core/Timer.h>
 #include <Scene/SceneSerializer.h>

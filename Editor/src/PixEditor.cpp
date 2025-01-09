@@ -6,31 +6,11 @@ void PixEditor::OnStart()
 	auto* Context = (VK::VulkanGraphicsContext*)Engine::GetGraphicsContext();
 	auto specs = Engine::GetApplicationSpecs();
 
+
+	m_Mesh.Load("res/helmet/DamagedHelmet.gltf");
+
 	// Shader
 	m_TriangleShader.LoadFromFile("../PIX3D/res/vk shaders/triangle.vert", "../PIX3D/res/vk shaders/triangle.frag");
-
-	// vertex buffer
-	{
-		m_VertexBuffer.Create();
-		const std::vector<float> vertices = 
-		{
-			// positions          // tex coords
-			-0.5f, -0.5f, 0.0f,  0.0f, 1.0f,  // bottom left
-			 0.5f, -0.5f, 0.0f,  1.0f, 1.0f,  // bottom right
-			 0.5f,  0.5f, 0.0f,  1.0f, 0.0f,  // top right
-			-0.5f,  0.5f, 0.0f,  0.0f, 0.0f   // top left
-		};
-		m_VertexBuffer.FillData(vertices.data(), sizeof(float) * vertices.size());
-	}
-
-	// vertex input
-	{
-		m_VertexInputLayout
-			.AddAttribute(VK::VertexAttributeFormat::Float3)  // position
-			.AddAttribute(VK::VertexAttributeFormat::Float2);  // texcoords
-	}
-	auto VertexBindingDescription = m_VertexInputLayout.GetBindingDescription();
-	auto VertexAttributeDescriptions = m_VertexInputLayout.GetAttributeDescriptions();
 
 	// index buffer
 	{
@@ -53,49 +33,105 @@ void PixEditor::OnStart()
 		}
 	}
 
-	// texture loading
-	{
-		m_Texture.Create();
-		m_Texture.LoadFromFile("res/samurai.png", true);
-	}
-
 	// descriptor layout -- descripe shader resources
 	{
-		m_DescriptorSetLayout
+		m_CameraDescriptorSetLayout
 			.AddBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)
-			.AddBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
 			.Build();
 	}
 	
 	// descriptor set -- save resources at specific bindings -- matches shader layout
 	{
-		m_DescriptorSets.resize(Context->m_SwapChainImages.size());
+		m_CameraDescriptorSets.resize(Context->m_SwapChainImages.size());
 
-		for (size_t i = 0; i < m_DescriptorSets.size(); i++)
+		for (size_t i = 0; i < m_CameraDescriptorSets.size(); i++)
 		{
-			m_DescriptorSets[i]
-				.Init(m_DescriptorSetLayout)
+			m_CameraDescriptorSets[i]
+				.Init(m_CameraDescriptorSetLayout)
 				.AddUniformBuffer(0, m_CameraUniformBuffers[i])
-				.AddTexture(1, m_Texture)
 				.Build();
 		}
 	}
 
+	// texture loading
+	{
+		m_ColorAttachmentTexture = new VK::VulkanTexture();
+		m_ColorAttachmentTexture->Create();
+		m_ColorAttachmentTexture->CreateColorAttachment(specs.Width, specs.Height, VK::TextureFormat::RGBA16F);
+
+
+		m_BloomBrightnessAttachmentTexture = new VK::VulkanTexture();
+		m_BloomBrightnessAttachmentTexture->Create();
+		m_BloomBrightnessAttachmentTexture->CreateColorAttachment(specs.Width, specs.Height, VK::TextureFormat::RGBA16F);
+	}
+
 	// renderpass and framebuffers
 	{
-		m_Renderpass = VK::VulkanHelper::CreateSimpleRenderPass(Context->m_Device, Context->m_SwapChainSurfaceFormat.format);
-		m_FrameBuffers = VK::VulkanHelper::CreateSwapChainFrameBuffers(Context, m_Renderpass, specs.Width, specs.Height);
+		m_Renderpass
+			.Init(Context->m_Device)
+
+			// firts color attachment (for bloom brightness texture)
+
+			.AddColorAttachment(
+				m_ColorAttachmentTexture->GetVKormat(),
+				VK_SAMPLE_COUNT_1_BIT,
+				VK_ATTACHMENT_LOAD_OP_CLEAR,
+				VK_ATTACHMENT_STORE_OP_STORE,
+				VK_IMAGE_LAYOUT_UNDEFINED,
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+
+			// Second color attachment (for bloom brightness texture)
+
+			.AddColorAttachment(
+				m_BloomBrightnessAttachmentTexture->GetVKormat(),
+				VK_SAMPLE_COUNT_1_BIT,
+				VK_ATTACHMENT_LOAD_OP_CLEAR,
+				VK_ATTACHMENT_STORE_OP_STORE,
+				VK_IMAGE_LAYOUT_UNDEFINED,
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+
+			// Depth attachment
+
+			.AddDepthAttachment(
+				Context->m_SupportedDepthFormat,
+				VK_SAMPLE_COUNT_1_BIT,
+				VK_ATTACHMENT_LOAD_OP_CLEAR,
+				VK_ATTACHMENT_STORE_OP_DONT_CARE,
+				VK_IMAGE_LAYOUT_UNDEFINED,
+				VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
+
+			// Subpass with 2 color attachments and 1 depth attachment
+
+			.AddSubpass(VK_PIPELINE_BIND_POINT_GRAPHICS)
+			.Build();
+
+		m_Framebuffers.resize(Context->m_SwapChainImages.size());
+
+		for (uint32_t i = 0; i < Context->m_SwapChainImages.size(); i++)
+		{
+			m_Framebuffers[i]
+				.Init(Context->m_Device, m_Renderpass.GetVKRenderpass(), specs.Width, specs.Height)
+				.AddAttachment(m_ColorAttachmentTexture)
+				.AddAttachment(m_BloomBrightnessAttachmentTexture)
+				.AddAttachment(Context->m_DepthAttachmentTexture)
+				.Build();
+		}
 	}
 
 	// pipeline layout (descriptor sets or push constants)
 	VkPipelineLayout pipelineLayout = nullptr;
 	{
-		auto layout = m_DescriptorSetLayout.GetVkDescriptorSetLayout();
+		VkDescriptorSetLayout layouts[] =
+		{
+			m_CameraDescriptorSetLayout.GetVkDescriptorSetLayout(),
+			m_Mesh.m_MaterialDescriptorSetLayout.GetVkDescriptorSetLayout()
+		};
+
 
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
 		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		pipelineLayoutInfo.setLayoutCount = 1; // No descriptor sets
-		pipelineLayoutInfo.pSetLayouts = &layout; // Descriptor set layouts
+		pipelineLayoutInfo.setLayoutCount = 2; // No descriptor sets
+		pipelineLayoutInfo.pSetLayouts = &layouts[0]; // Descriptor set layouts
 		pipelineLayoutInfo.pushConstantRangeCount = 0; // No push constants
 		pipelineLayoutInfo.pPushConstantRanges = nullptr; // Push constant ranges
 
@@ -103,15 +139,19 @@ void PixEditor::OnStart()
 			PIX_ASSERT_MSG(false, "Failed to create pipeline layout!");
 	}
 
+	auto VertexBindingDescription = VulkanStaticMeshVertex::GetBindingDescription();
+	auto VertexAttributeDescriptions = VulkanStaticMeshVertex::GetAttributeDescriptions();
+
 	// graphics pipeline
-	m_GraphicsPipeline.Init(Context->m_Device, m_Renderpass)
+	m_GraphicsPipeline.Init(Context->m_Device, m_Renderpass.GetVKRenderpass())
 		.AddShaderStages(m_TriangleShader.GetVertexShader(), m_TriangleShader.GetFragmentShader())
 		.AddVertexInputState(&VertexBindingDescription, VertexAttributeDescriptions.data(), 1, VertexAttributeDescriptions.size())
 		.AddViewportState(800.0f, 600.0f)
 		.AddInputAssemblyState(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, VK_FALSE)
 		.AddRasterizationState(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE)
 		.AddMultisampleState(VK_SAMPLE_COUNT_1_BIT)
-		.AddColorBlendState(false)
+		.AddDepthStencilState(true, true)
+		.AddColorBlendState(false, 2)
 		.SetPipelineLayout(pipelineLayout)
 		.Build();
 
@@ -128,14 +168,22 @@ void PixEditor::OnStart()
     { // Record Command Buffers
 
 		VkClearColorValue ClearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
-		VkClearValue ClearValue;
-		ClearValue.color = ClearColor;
+		VkClearValue ClearValue[3];
+
+		ClearValue[0].color = ClearColor;
+		ClearValue[0].depthStencil = { 1.0f, 0 };
+
+		ClearValue[1].color = ClearColor;
+		ClearValue[1].depthStencil = { 1.0f, 0 };
+
+		ClearValue[2].color = ClearColor;
+		ClearValue[2].depthStencil = { 1.0f, 0 };
 
 		VkRenderPassBeginInfo RenderPassBeginInfo = 
 		{
 			.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
 			.pNext = NULL,
-			.renderPass = m_Renderpass,
+			.renderPass = m_Renderpass.GetVKRenderpass(),
 			.renderArea = {
 				.offset = {
 					.x = 0,
@@ -146,8 +194,8 @@ void PixEditor::OnStart()
 					.height = specs.Height
 				}
 			},
-			.clearValueCount = 1,
-			.pClearValues = &ClearValue
+			.clearValueCount = 3,
+			.pClearValues = ClearValue
 		};
 
 		for (uint32_t i = 0; i < m_CommandBuffers.size(); i++)
@@ -155,20 +203,34 @@ void PixEditor::OnStart()
 
 			VK::VulkanHelper::BeginCommandBuffer(m_CommandBuffers[i], VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
 
-			RenderPassBeginInfo.framebuffer = m_FrameBuffers[i];
+			RenderPassBeginInfo.framebuffer = m_Framebuffers[i].GetVKFramebuffer();
 			vkCmdBeginRenderPass(m_CommandBuffers[i], &RenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 			vkCmdBindPipeline(m_CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline.GetVkPipeline());
 
-			auto descriptor_set = m_DescriptorSets[i].GetVkDescriptorSet();
-			vkCmdBindDescriptorSets(m_CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptor_set, 0, nullptr);
+			auto camera_descriptor_set = m_CameraDescriptorSets[i].GetVkDescriptorSet();
+			vkCmdBindDescriptorSets(m_CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &camera_descriptor_set, 0, nullptr);
 
-			VkBuffer vertexBuffers[] = { m_VertexBuffer.GetBuffer() };
+			VkBuffer vertexBuffers[] = { m_Mesh.GetVertexBuffer() };
 			VkDeviceSize offsets[] = { 0 };
 			vkCmdBindVertexBuffers(m_CommandBuffers[i], 0, 1, vertexBuffers, offsets);
-			vkCmdBindIndexBuffer(m_CommandBuffers[i], m_IndexBuffer.GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
+			vkCmdBindIndexBuffer(m_CommandBuffers[i], m_Mesh.GetIndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
-			vkCmdDrawIndexed(m_CommandBuffers[i], 6, 1, 0, 0, 0);  // 6 indices for quad
+			for (const auto& subMesh : m_Mesh.m_SubMeshes)
+			{
+				if (subMesh.MaterialIndex >= 0)
+				{
+					auto material_descriptor_set = m_Mesh.m_DescriptorSets[subMesh.MaterialIndex].GetVkDescriptorSet();
+					vkCmdBindDescriptorSets(m_CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, 1, &material_descriptor_set, 0, nullptr);
+				}
+				// Draw the submesh using its base vertex and index offsets
+				vkCmdDrawIndexed(m_CommandBuffers[i],
+					subMesh.IndicesCount,    // Index count for this submesh
+					1,                       // Instance count
+					subMesh.BaseIndex,      // First index
+					subMesh.BaseVertex,     // Vertex offset
+					0);                     // First instance
+			}
 
 			vkCmdEndRenderPass(m_CommandBuffers[i]);
 
@@ -179,6 +241,8 @@ void PixEditor::OnStart()
     }
 
 	Cam.Init({0.0f, 0.0f, 5.0f});
+
+	m_FullScreenQuadRenderpass.Init(specs.Width, specs.Height, m_ColorAttachmentTexture);
 }
 
 void PixEditor::OnUpdate(float dt)
@@ -199,6 +263,9 @@ void PixEditor::OnUpdate(float dt)
 
     Context->m_Queue.SubmitAsync(m_CommandBuffers[ImageIndex]);
     Context->m_Queue.Present(ImageIndex);
+
+
+	m_FullScreenQuadRenderpass.Render();
 }
 
 void PixEditor::OnDestroy()

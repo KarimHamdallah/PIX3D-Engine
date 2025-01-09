@@ -68,11 +68,11 @@ namespace PIX3D
 
         for (auto& material : m_Materials)
         {
-            if (material.UseAlbedoTexture) material.AlbedoTexture.Destroy();
-            if (material.UseNormalTexture) material.NormalTexture.Destroy();
-            if (material.UseMetallicRoughnessTexture) material.MetalRoughnessTexture.Destroy();
-            if (material.useAoTexture) material.AoTexture.Destroy();
-            if (material.UseEmissiveTexture) material.EmissiveTexture.Destroy();
+            if (material.UseAlbedoTexture) material.AlbedoTexture->Destroy();
+            if (material.UseNormalTexture) material.NormalTexture->Destroy();
+            if (material.UseMetallicRoughnessTexture) material.MetalRoughnessTexture->Destroy();
+            if (material.useAoTexture) material.AoTexture->Destroy();
+            if (material.UseEmissiveTexture) material.EmissiveTexture->Destroy();
         }
 
         // free descriptor sets
@@ -174,7 +174,11 @@ namespace PIX3D
                 if (FileExists(FullPath.string())) // AlbedoMap Found
                 {
                     mat.UseAlbedoTexture = true;
-                    mat.AlbedoTexture.LoadFromFile(FullPath.string(), true);
+                    
+                    mat.AlbedoTexture = new VK::VulkanTexture();
+                    mat.AlbedoTexture->Create();
+                    
+                    mat.AlbedoTexture->LoadFromFile(FullPath.string(), true);
                 }
                 else // Default Albedo
                 {
@@ -201,7 +205,11 @@ namespace PIX3D
                 if (FileExists(FullPath.string())) // NormalMap Found
                 {
                     mat.UseNormalTexture = true;
-                    mat.NormalTexture.LoadFromFile(FullPath.string());
+
+                    mat.NormalTexture = new VK::VulkanTexture();
+                    mat.NormalTexture->Create();
+
+                    mat.NormalTexture->LoadFromFile(FullPath.string());
                 }
                 else
                 {
@@ -227,7 +235,11 @@ namespace PIX3D
                 if (FileExists(FullPath.string())) // RoughnessMap Found
                 {
                     mat.UseMetallicRoughnessTexture = true;
-                    mat.MetalRoughnessTexture.LoadFromFile(FullPath.string());
+                    
+                    mat.MetalRoughnessTexture = new VK::VulkanTexture();
+                    mat.MetalRoughnessTexture->Create();
+
+                    mat.MetalRoughnessTexture->LoadFromFile(FullPath.string());
                 }
                 else
                 {
@@ -245,7 +257,11 @@ namespace PIX3D
                 if (FileExists(FullPath.string())) // RoughnessMap Found
                 {
                     mat.useAoTexture = true;
-                    mat.AoTexture.LoadFromFile(FullPath.string());
+
+                    mat.AoTexture = new VK::VulkanTexture();
+                    mat.AoTexture->Create();
+
+                    mat.AoTexture->LoadFromFile(FullPath.string());
                 }
                 else
                 {
@@ -263,7 +279,11 @@ namespace PIX3D
                 if (FileExists(FullPath.string())) // RoughnessMap Found
                 {
                     mat.UseEmissiveTexture = true;
-                    mat.EmissiveTexture.LoadFromFile(FullPath.string());
+
+                    mat.EmissiveTexture = new VK::VulkanTexture();
+                    mat.EmissiveTexture->Create();
+
+                    mat.EmissiveTexture->LoadFromFile(FullPath.string());
                 }
                 else
                 {
@@ -301,29 +321,22 @@ namespace PIX3D
 
         m_MaterialInfoBuffer.Create(m_Materials.size() * sizeof(MaterialGPUShader_InfoBufferData));
         FillMaterialBuffer();
-    }
 
-    void VulkanStaticMesh::CreateDescriptorSets(VkDescriptorSetLayout layout)
-    {
-        auto* Context = (VK::VulkanGraphicsContext*)Engine::GetGraphicsContext();
+        // create descriptor layout (set = 1) -- material set
+        m_MaterialDescriptorSetLayout
+            .AddBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+            .Build();
 
-        // Create descriptor sets for each material
+        // create descriptor sets for each material
         m_DescriptorSets.resize(m_Materials.size());
 
-        /*
         for (size_t i = 0; i < m_Materials.size(); i++)
         {
             auto& material = m_Materials[i];
 
-            m_DescriptorSets[i].Init(layout)
-                .AddStorageBuffer(0, m_MaterialBuffer)
-                .AddTexture(1, material.AlbedoTexture)
-                .AddTexture(2, material.NormalTexture)
-                .AddTexture(3, material.MetalRoughnessTexture)
-                .AddTexture(4, material.AoTexture)
-                .AddTexture(5, material.EmissiveTexture)
+            m_DescriptorSets[i].Init(m_MaterialDescriptorSetLayout)
+                .AddTexture(0, *material.AlbedoTexture)
                 .Build();
         }
-        */
     }
 }

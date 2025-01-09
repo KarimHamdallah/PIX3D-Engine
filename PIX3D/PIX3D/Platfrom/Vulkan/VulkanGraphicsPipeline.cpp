@@ -50,6 +50,14 @@ namespace PIX3D
             m_multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
             m_multisampleState.sampleShadingEnable = VK_FALSE;
 
+            m_depthStencilState = {};
+            m_depthStencilState.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+            m_depthStencilState.depthTestEnable = VK_TRUE;
+            m_depthStencilState.depthWriteEnable = VK_TRUE;
+            m_depthStencilState.depthCompareOp = VK_COMPARE_OP_LESS;
+            m_depthStencilState.depthBoundsTestEnable = VK_FALSE;
+            m_depthStencilState.stencilTestEnable = VK_FALSE;
+
             m_colorBlendState = {};
 
             return *this;
@@ -171,29 +179,52 @@ namespace PIX3D
         }
 
         // Add color blend state
-        VulkanGraphicsPipeline& VulkanGraphicsPipeline::AddColorBlendState(bool enable_blend)
+        VulkanGraphicsPipeline& VulkanGraphicsPipeline::AddColorBlendState(bool enable_blend, uint32_t attachmentCount)
         {
-            static VkPipelineColorBlendAttachmentState BlendAttachState = {};
+            // Clear previous attachments
+            m_colorBlendAttachments.clear();
 
-            BlendAttachState.blendEnable = enable_blend ? VK_TRUE : VK_FALSE;
-            BlendAttachState.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;  // Default valid value
-            BlendAttachState.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO; // Default valid value
-            BlendAttachState.colorBlendOp = VK_BLEND_OP_ADD;            // Default valid value
-            BlendAttachState.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;  // Default valid value
-            BlendAttachState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO; // Default valid value
-            BlendAttachState.alphaBlendOp = VK_BLEND_OP_ADD;             // Default valid value
-            BlendAttachState.colorWriteMask =
-                VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
-                VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+            // Create and add the attachment states
+            for (uint32_t i = 0; i < attachmentCount; ++i)
+            {
+                VkPipelineColorBlendAttachmentState blendAttachState = {};
+                blendAttachState.blendEnable = enable_blend ? VK_TRUE : VK_FALSE;
+                blendAttachState.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;  // Default valid value
+                blendAttachState.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO; // Default valid value
+                blendAttachState.colorBlendOp = VK_BLEND_OP_ADD;            // Default valid value
+                blendAttachState.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;  // Default valid value
+                blendAttachState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO; // Default valid value
+                blendAttachState.alphaBlendOp = VK_BLEND_OP_ADD;             // Default valid value
+                blendAttachState.colorWriteMask =
+                    VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+                    VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 
-            m_colorBlendState = 
+                m_colorBlendAttachments.push_back(blendAttachState);
+            }
+
+            m_colorBlendState =
             {
                 .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
                 .logicOpEnable = VK_FALSE,
                 .logicOp = VK_LOGIC_OP_COPY,
-                .attachmentCount = 1,
-                .pAttachments = &BlendAttachState
+                .attachmentCount = attachmentCount,
+                .pAttachments = m_colorBlendAttachments.data()  // Use internal attachment states
             };
+
+            return *this;
+        }
+
+        VulkanGraphicsPipeline& VulkanGraphicsPipeline::AddDepthStencilState(bool depthTestEnable, bool depthWriteEnable)
+        {
+            m_depthStencilState = {};
+            m_depthStencilState.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+            m_depthStencilState.depthTestEnable = depthTestEnable ? VK_TRUE : VK_FALSE;
+            m_depthStencilState.depthWriteEnable = depthWriteEnable ? VK_TRUE : VK_FALSE;
+            m_depthStencilState.depthCompareOp = VK_COMPARE_OP_LESS;  // Standard depth testing
+            m_depthStencilState.depthBoundsTestEnable = VK_FALSE;
+            m_depthStencilState.stencilTestEnable = VK_FALSE;
+            m_depthStencilState.minDepthBounds = 0.0f;
+            m_depthStencilState.maxDepthBounds = 1.0f;
 
             return *this;
         }
@@ -217,6 +248,7 @@ namespace PIX3D
             pipelineCreateInfo.pViewportState = &m_viewportState;
             pipelineCreateInfo.pRasterizationState = &m_rasterizationState;
             pipelineCreateInfo.pMultisampleState = &m_multisampleState;
+            pipelineCreateInfo.pDepthStencilState = &m_depthStencilState;
             pipelineCreateInfo.pColorBlendState = &m_colorBlendState;
             pipelineCreateInfo.layout = m_pipelineLayout;
             pipelineCreateInfo.renderPass = m_renderPass;

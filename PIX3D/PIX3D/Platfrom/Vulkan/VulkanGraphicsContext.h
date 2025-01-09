@@ -3,6 +3,7 @@
 #include <Core/Core.h>
 #include <vector>
 #include <vulkan/vulkan.h>
+#include "VulkanTexture.h"
 
 namespace
 {
@@ -87,6 +88,22 @@ namespace
 		case VK_ERROR_TOO_MANY_OBJECTS: return "VK_ERROR_TOO_MANY_OBJECTS";
 		case VK_ERROR_FORMAT_NOT_SUPPORTED: return "VK_ERROR_FORMAT_NOT_SUPPORTED";
 		default: return "UNKNOWN_ERROR";
+		}
+	}
+
+	inline bool IsDepthFormat(VkFormat format)
+	{
+		switch (format)
+		{
+		case VK_FORMAT_D16_UNORM:
+		case VK_FORMAT_X8_D24_UNORM_PACK32:
+		case VK_FORMAT_D32_SFLOAT:
+		case VK_FORMAT_D24_UNORM_S8_UINT:
+		case VK_FORMAT_D32_SFLOAT_S8_UINT:
+			return true;
+
+		default:
+			return false;
 		}
 	}
 
@@ -198,6 +215,9 @@ namespace PIX3D
 			VkSwapchainKHR m_SwapChain;
 			std::vector<VkImage> m_SwapChainImages;
 			std::vector<VkImageView> m_SwapChainImageViews;
+			
+			VkFormat m_SupportedDepthFormat;
+			VulkanTexture* m_DepthAttachmentTexture;
 
 			VkCommandPool m_CommandPool = nullptr;
 

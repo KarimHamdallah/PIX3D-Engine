@@ -4,6 +4,7 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 #include <filesystem>
+#include <Platfrom/Vulkan/VulkanDescriptorSetLayout.h>
 #include <Platfrom/Vulkan/VulkanDescriptorSet.h>
 #include <Platfrom/Vulkan/VulkanIndexBuffer.h>
 
@@ -27,11 +28,11 @@ namespace PIX3D
 
         bool UseIBL = true;
 
-        VK::VulkanTexture AlbedoTexture;
-        VK::VulkanTexture NormalTexture;
-        VK::VulkanTexture MetalRoughnessTexture;
-        VK::VulkanTexture AoTexture;
-        VK::VulkanTexture EmissiveTexture;
+        VK::VulkanTexture* AlbedoTexture;
+        VK::VulkanTexture* NormalTexture;
+        VK::VulkanTexture* MetalRoughnessTexture;
+        VK::VulkanTexture* AoTexture;
+        VK::VulkanTexture* EmissiveTexture;
 
         std::string Name;
     };
@@ -129,7 +130,6 @@ namespace PIX3D
         VkBuffer GetIndexBuffer() { return m_IndexBuffer.GetBuffer(); }
         VkBuffer GetMaterialInfoBuffer() { return m_MaterialInfoBuffer.GetBuffer(); }
 
-        void CreateDescriptorSets(VkDescriptorSetLayout layout);
         VK::VulkanDescriptorSet& GetDescriptorSet(size_t index) { return m_DescriptorSets[index]; }
 
     private:
@@ -137,7 +137,7 @@ namespace PIX3D
         VulkanStaticSubMesh ProcessMesh(aiMesh* mesh, const aiScene* scene);
         void LoadGpuData();
 
-    private:
+    public:
         std::filesystem::path m_Path;
         float m_Scale = 1.0f;
 
@@ -155,5 +155,6 @@ namespace PIX3D
         VK::VulkanShaderStorageBuffer m_MaterialInfoBuffer; // holds array of info data structure each element for each submesh accroding to submesh index
 
         std::vector<VK::VulkanDescriptorSet> m_DescriptorSets;
+        VK::VulkanDescriptorSetLayout m_MaterialDescriptorSetLayout;
     };
 }

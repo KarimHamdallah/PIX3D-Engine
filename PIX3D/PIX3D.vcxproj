@@ -196,9 +196,12 @@
     <ClCompile Include="PIX3D\Platfrom\Vulkan\vulkanComputePipeline.cpp" />
     <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanDescriptorSet.cpp" />
     <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanDescriptorSetLayout.cpp" />
+    <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanFramebuffer.cpp" />
+    <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanFullScreenQuadRenderpass.cpp" />
     <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanGraphicsContext.cpp" />
     <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanGraphicsPipeline.cpp" />
     <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanIndexBuffer.cpp" />
+    <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanRenderpass.cpp" />
     <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanSceneRenderer.cpp" />
     <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanShader.cpp" />
     <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanShaderStorageBuffer.cpp" />
@@ -265,10 +268,13 @@
     <ClInclude Include="PIX3D\Platfrom\Vulkan\vulkanComputePipeline.h" />
     <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanDescriptorSet.h" />
     <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanDescriptorSetLayout.h" />
+    <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanFramebuffer.h" />
+    <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanFullScreenQuadRenderpass.h" />
     <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanGraphicsContext.h" />
     <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanGraphicsPipeline.h" />
     <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanHelper.h" />
     <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanIndexBuffer.h" />
+    <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanRenderpass.h" />
     <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanSceneRenderer.h" />
     <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanShader.h" />
     <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanShaderStorageBuffer.h" />
@@ -316,6 +322,8 @@
     <None Include="res\gl shaders\skybox.vert" />
     <None Include="res\gl shaders\smooth_rounded_quad.frag" />
     <None Include="res\gl shaders\smooth_rounded_quad.vert" />
+    <None Include="res\vk shaders\full_screen_quad.frag" />
+    <None Include="res\vk shaders\full_screen_quad.vert" />
     <None Include="res\vk shaders\triangle.frag" />
     <None Include="res\vk shaders\triangle.vert" />
   </ItemGroup>

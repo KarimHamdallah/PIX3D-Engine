@@ -144,6 +144,10 @@ namespace PIX3D
 				GL::IBLCubemapsGenerator::Destroy();
 				ImGuiLayer::Destroy();
 			}
+			else if (s_EngineSpecs.API == GraphicsAPI::VULKAN)
+			{
+				VK::VulkanSceneRenderer::Destroy();
+			}
 
 			delete s_Platform;
 			delete s_Application;

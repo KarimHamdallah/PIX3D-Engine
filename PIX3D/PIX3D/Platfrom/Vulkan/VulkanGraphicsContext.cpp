@@ -1,6 +1,7 @@
 #include "VulkanGraphicsContext.h"
 #include "VulkanHelper.h"
 #include <GLFW/glfw3.h>
+#include <Engine/Engine.hpp>
 
 namespace
 {
@@ -124,6 +125,41 @@ namespace
 		}
 
 		return SurfaceFormats[0];
+	}
+
+	VkFormat GetSupportedDepthFormat(VkPhysicalDevice physDevice)
+	{
+		// Ordered from optimal to acceptable depth formats
+		std::vector<VkFormat> depthFormats = {
+			VK_FORMAT_D32_SFLOAT,
+			VK_FORMAT_D32_SFLOAT_S8_UINT,
+			VK_FORMAT_D24_UNORM_S8_UINT,
+			VK_FORMAT_D16_UNORM,
+			VK_FORMAT_D16_UNORM_S8_UINT
+		};
+
+		for (VkFormat format : depthFormats)
+		{
+			VkFormatProperties formatProps;
+			vkGetPhysicalDeviceFormatProperties(physDevice, format, &formatProps);
+
+			// Check if format supports depth stencil attachment
+			if (formatProps.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
+			{
+				return format;
+			}
+		}
+
+		PIX_ASSERT_MSG(false, "Failed to find supported depth format!");
+		return VK_FORMAT_UNDEFINED;
+	}
+
+	// Helper function to check if a format has a stencil component
+	bool HasStencilComponent(VkFormat format)
+	{
+		return format == VK_FORMAT_D32_SFLOAT_S8_UINT ||
+			format == VK_FORMAT_D24_UNORM_S8_UINT ||
+			format == VK_FORMAT_D16_UNORM_S8_UINT;
 	}
 }
 
@@ -386,6 +422,47 @@ namespace PIX3D
 
 			PIX_DEBUG_INFO("Swap chain images and views created");
 
+			//////////////////////////////////////////////////////
+			////////////////// Supported Depth Format ////////////
+			//////////////////////////////////////////////////////
+
+
+			m_SupportedDepthFormat = GetSupportedDepthFormat(m_PhysDevice.GetSelected().m_physDevice);
+			//PIX_DEBUG_INFO_FORMAT("Selected depth format: {}", m_SupportedDepthFormat);
+
+			//////////////////////////////////////////////////////
+			////////////////// Depth Texture /////////////////////
+			//////////////////////////////////////////////////////
+			
+
+			auto GetTextureFormatFromVulkanFormat = [](VkFormat format) -> TextureFormat {
+				switch (format)
+				{
+				case VK_FORMAT_R8_UNORM: return TextureFormat::R8;
+				case VK_FORMAT_R8G8_UNORM: return TextureFormat::RG8;
+				case VK_FORMAT_R8G8B8_UNORM: return TextureFormat::RGB8;
+				case VK_FORMAT_R8G8B8A8_UNORM: return TextureFormat::RGBA8;
+				case VK_FORMAT_R16G16B16_SFLOAT: return TextureFormat::RGB16F;
+				case VK_FORMAT_R16G16B16A16_SFLOAT: return TextureFormat::RGBA16F;
+				case VK_FORMAT_R32G32B32A32_SFLOAT: return TextureFormat::RGBA32F;
+
+					// Depth formats
+				case VK_FORMAT_D16_UNORM: return TextureFormat::DEPTH16;
+				case VK_FORMAT_X8_D24_UNORM_PACK32: return TextureFormat::DEPTH24;
+				case VK_FORMAT_D32_SFLOAT: return TextureFormat::DEPTH32;
+				case VK_FORMAT_D24_UNORM_S8_UINT: return TextureFormat::DEPTH24_STENCIL8;
+				case VK_FORMAT_D32_SFLOAT_S8_UINT: return TextureFormat::DEPTH32_STENCIL8;
+
+				default:
+					PIX_ASSERT_MSG(false, "Unsupported Vulkan format!");
+				}
+			};
+
+			auto specs = Engine::GetApplicationSpecs();
+
+			m_DepthAttachmentTexture = new VK::VulkanTexture();
+			m_DepthAttachmentTexture->Create();
+			m_DepthAttachmentTexture->CreateColorAttachment(specs.Width, specs.Height, GetTextureFormatFromVulkanFormat(m_SupportedDepthFormat));
 
 			//////////////////////////////////////////////////////
 			////////////////// Command Pool //////////////////////

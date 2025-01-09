@@ -7,6 +7,9 @@
 #include <Platfrom/Vulkan/VulkanDescriptorSetLayout.h>
 #include <Platfrom/Vulkan/VulkanDescriptorSet.h>
 #include <Platfrom/Vulkan/VulkanVertexInputLayout.h>
+#include <Platfrom/Vulkan/VulkanRenderpass.h>
+#include <Platfrom/Vulkan/VulkanFramebuffer.h>
+#include <Platfrom/Vulkan/VulkanFullScreenQuadRenderpass.h>
 
 using namespace PIX3D;
 
@@ -30,8 +33,6 @@ public:
 private:
 	int m_NumImages = 0;
 	std::vector<VkCommandBuffer> m_CommandBuffers;
-	VkRenderPass m_Renderpass;
-	std::vector<VkFramebuffer> m_FrameBuffers;
 
 	VK::VulkanShaderStorageBuffer m_ShaderStorageBuffer;
 
@@ -41,11 +42,20 @@ private:
 	VK::VulkanVertexBuffer m_VertexBuffer;
 	VK::VulkanVertexInputLayout m_VertexInputLayout;
 	VK::VulkanIndexBuffer m_IndexBuffer;
-	VK::VulkanTexture m_Texture;
-	VK::VulkanDescriptorSetLayout m_DescriptorSetLayout;
-
-	std::vector<VK::VulkanDescriptorSet> m_DescriptorSets;
+	
+	VK::VulkanTexture* m_ColorAttachmentTexture;
+	VK::VulkanTexture* m_BloomBrightnessAttachmentTexture;
+	
+	VK::VulkanDescriptorSetLayout m_CameraDescriptorSetLayout;
+	VK::VulkanRenderPass m_Renderpass;
+	std::vector<VK::VulkanFramebuffer> m_Framebuffers;
+	
+	std::vector<VK::VulkanDescriptorSet> m_CameraDescriptorSets;
 	std::vector<VK::VulkanUniformBuffer> m_CameraUniformBuffers;
 
 	PIX3D::Camera3D Cam;
+
+	PIX3D::VulkanStaticMesh m_Mesh;
+
+	PIX3D::VK::VulkanFullScreenQuadRenderpass m_FullScreenQuadRenderpass;
 };

@@ -19,6 +19,25 @@ namespace PIX3D
             m_CmdPool = Context->m_CommandPool;
         }
 
+        bool VulkanTexture::CreateColorAttachment(uint32_t Width, uint32_t Height, TextureFormat Format)
+        {
+            m_Width = Width;
+            m_Height = Height;
+            m_Format = Format;
+
+            // Create the image
+            CreateImage(Width, Height, GetVulkanFormat(Format),
+                VK_IMAGE_TILING_OPTIMAL,
+                IsDepthFormat(GetVulkanFormat(Format)) ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+            // Create image view and sampler
+            CreateImageView(GetVulkanFormat(Format));
+            CreateSampler();
+
+            return true;
+        }
+
         bool VulkanTexture::LoadFromFile(const std::filesystem::path& FilePath, bool IsSRGB)
         {
             int texWidth, texHeight, texChannels;
@@ -260,7 +279,7 @@ namespace PIX3D
             viewInfo.image = m_Image;
             viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
             viewInfo.format = Format;
-            viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            viewInfo.subresourceRange.aspectMask = IsDepthFormat(GetVKormat()) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
             viewInfo.subresourceRange.baseMipLevel = 0;
             viewInfo.subresourceRange.levelCount = 1;
             viewInfo.subresourceRange.baseArrayLayer = 0;
@@ -366,7 +385,7 @@ namespace PIX3D
             VulkanHelper::EndSingleTimeCommands(m_Device, m_Queue, m_CmdPool, CommandBuffer);
         }
 
-        VkFormat VulkanTexture::GetVulkanFormat(TextureFormat Format)
+        VkFormat VulkanTexture::GetVulkanFormat(TextureFormat Format) const
         {
             switch (Format)
             {
@@ -374,9 +393,19 @@ namespace PIX3D
             case TextureFormat::RG8: return VK_FORMAT_R8G8_UNORM;
             case TextureFormat::RGB8: return VK_FORMAT_R8G8B8_UNORM;
             case TextureFormat::RGBA8: return VK_FORMAT_R8G8B8A8_UNORM;
+            case TextureFormat::RGB16F: return VK_FORMAT_R16G16B16_SFLOAT;
             case TextureFormat::RGBA16F: return VK_FORMAT_R16G16B16A16_SFLOAT;
             case TextureFormat::RGBA32F: return VK_FORMAT_R32G32B32A32_SFLOAT;
-            default: throw std::runtime_error("Unsupported texture format!");
+
+            // Depth formats
+            case TextureFormat::DEPTH16: return VK_FORMAT_D16_UNORM;
+            case TextureFormat::DEPTH24: return VK_FORMAT_X8_D24_UNORM_PACK32; // Depth24 with 8 unused bits
+            case TextureFormat::DEPTH32: return VK_FORMAT_D32_SFLOAT;
+            case TextureFormat::DEPTH24_STENCIL8: return VK_FORMAT_D24_UNORM_S8_UINT;
+            case TextureFormat::DEPTH32_STENCIL8: return VK_FORMAT_D32_SFLOAT_S8_UINT;
+
+            default:
+                PIX_ASSERT_MSG(false, "Unsupported texture format!");
             }
         }
 

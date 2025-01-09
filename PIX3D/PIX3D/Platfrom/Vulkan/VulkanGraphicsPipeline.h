@@ -25,7 +25,8 @@ namespace PIX3D
             VulkanGraphicsPipeline& AddInputAssemblyState(VkPrimitiveTopology topology, VkBool32 primitiveRestartEnable);
             VulkanGraphicsPipeline& AddRasterizationState(VkPolygonMode polygonMode, VkCullModeFlags cullMode, VkFrontFace frontFace);
             VulkanGraphicsPipeline& AddMultisampleState(VkSampleCountFlagBits rasterizationSamples);
-            VulkanGraphicsPipeline& AddColorBlendState(bool enable_blend);
+            VulkanGraphicsPipeline& AddColorBlendState(bool enable_blend, uint32_t attachmentCount);
+            VulkanGraphicsPipeline& AddDepthStencilState(bool depthTestEnable = true, bool depthWriteEnable = true);
             VulkanGraphicsPipeline& SetPipelineLayout(VkPipelineLayout layout);
 
             void Build();
@@ -47,6 +48,10 @@ namespace PIX3D
             VkPipelineRasterizationStateCreateInfo m_rasterizationState;
             VkPipelineMultisampleStateCreateInfo m_multisampleState;
             VkPipelineColorBlendStateCreateInfo m_colorBlendState;
+            VkPipelineDepthStencilStateCreateInfo m_depthStencilState;
+
+            std::vector<VkPipelineColorBlendAttachmentState> m_colorBlendAttachments;
+
         };
     }
 }

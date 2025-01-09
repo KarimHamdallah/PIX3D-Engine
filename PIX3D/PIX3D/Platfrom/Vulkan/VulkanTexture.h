@@ -12,8 +12,15 @@ namespace PIX3D
             RG8,
             RGB8,
             RGBA8,
+            RGB16F,
             RGBA16F,
-            RGBA32F
+            RGBA32F,
+
+            DEPTH16,
+            DEPTH24,
+            DEPTH32,
+            DEPTH24_STENCIL8,
+            DEPTH32_STENCIL8
         };
 
         class VulkanTexture
@@ -25,12 +32,15 @@ namespace PIX3D
             void Create();
             bool LoadFromFile(const std::filesystem::path& FilePath, bool IsSRGB = false);
             bool LoadFromData(void* Data, uint32_t Width, uint32_t Height, TextureFormat Format);
+            bool CreateColorAttachment(uint32_t Width, uint32_t Height, TextureFormat Format);
             void Destroy();
 
             VkImageView GetImageView() const { return m_ImageView; }
             VkSampler GetSampler() const { return m_Sampler; }
             uint32_t GetWidth() const { return m_Width; }
             uint32_t GetHeight() const { return m_Height; }
+            VkFormat GetVKormat() const { return GetVulkanFormat(m_Format); }
+            VkImage GetVKImage() const { return m_Image; }
 
         private:
             void CreateImage(uint32_t Width, uint32_t Height, VkFormat Format,
@@ -43,7 +53,7 @@ namespace PIX3D
                 VkImageLayout OldLayout, VkImageLayout NewLayout);
 
             void CopyBufferToImage(VkBuffer Buffer, uint32_t Width, uint32_t Height);
-            VkFormat GetVulkanFormat(TextureFormat Format);
+            VkFormat GetVulkanFormat(TextureFormat Format) const;
             uint32_t GetBytesPerPixel(TextureFormat Format);
 
             BufferAndMemory CreateBuffer(VkDeviceSize Size,
