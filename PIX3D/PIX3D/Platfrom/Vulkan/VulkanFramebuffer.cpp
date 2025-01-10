@@ -26,7 +26,9 @@ namespace PIX3D
         VulkanFramebuffer& VulkanFramebuffer::Init(VkDevice device, VkRenderPass renderPass, uint32_t width, uint32_t height)
         {
             if (m_Framebuffer != VK_NULL_HANDLE)
-                vkDestroyFramebuffer(device, m_Framebuffer, nullptr);
+            {
+                Destroy();
+            }
 
             m_attachments.clear();
 

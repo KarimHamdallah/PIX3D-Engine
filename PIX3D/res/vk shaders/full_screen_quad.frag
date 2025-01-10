@@ -14,7 +14,7 @@ layout(set = 0, binding = 1) uniform sampler2D BloomAttachment;
 
 const bool BloomEnabled = true;
 const float BloomIntensity = 1.0;
-const bool TonemappingEnabled = true;
+const bool TonemappingEnabled = false;
 const float GammaCorrectionFactor = 2.2;
 
 void main()
