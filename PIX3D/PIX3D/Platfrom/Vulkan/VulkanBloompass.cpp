@@ -42,15 +42,13 @@ namespace PIX3D
 
             // Descriptor layout
             m_DescriptorSetLayout
-                .AddBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)  // Input Brightness texture
-                .AddBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)  // other buffer color attachment
+                .AddBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)  // other buffer color attachment
                 .Build();
 
             {
                 m_DescriptorSets[HORIZONTAL_BLUR_BUFFER_INDEX]
                     .Init(m_DescriptorSetLayout)
-                    .AddTexture(0, *m_InputBrightnessTexture)
-                    .AddTexture(1, *m_ColorAttachments[VERTICAL_BLUR_BUFFER_INDEX])
+                    .AddTexture(0, *m_ColorAttachments[VERTICAL_BLUR_BUFFER_INDEX])
                     .Build();
             }
 
@@ -58,8 +56,7 @@ namespace PIX3D
             {
                 m_DescriptorSets[VERTICAL_BLUR_BUFFER_INDEX]
                     .Init(m_DescriptorSetLayout)
-                    .AddTexture(0, *m_InputBrightnessTexture)
-                    .AddTexture(1, *m_ColorAttachments[HORIZONTAL_BLUR_BUFFER_INDEX])
+                    .AddTexture(0, *m_ColorAttachments[HORIZONTAL_BLUR_BUFFER_INDEX])
                     .Build();
             }
 
@@ -177,7 +174,9 @@ namespace PIX3D
 
         void VulkanBloomPass::RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t numIterations)
         {
-            // First generate mipmaps for input brightness texture (down sampling)            
+            m_FinalResultBufferIndex = (numIterations % 2 == 0) ? 1 : 0;
+
+            // First generate mipmaps for input brightness texture (down sampling)
             {
                 m_InputBrightnessTexture->TransitionImageLayout(
                     m_InputBrightnessTexture->GetVKormat(),
@@ -189,123 +188,113 @@ namespace PIX3D
                 m_InputBrightnessTexture->GenerateMipmaps(commandBuffer);
             }
 
+            // Copy Data To Vertical Pass Color Attachment For Ping - Pong Blur
+            m_ColorAttachments[VERTICAL_BLUR_BUFFER_INDEX]->CopyFromTexture(m_InputBrightnessTexture, commandBuffer);
+
             for (int mipLevel = 0; mipLevel < BLUR_DOWN_SAMPLES; mipLevel++)
             {
                 uint32_t mipWidth = m_Width / std::pow(2, mipLevel);
                 uint32_t mipHeight = m_Height / std::pow(2, mipLevel);
 
-                SetupFramebuffers(mipLevel);
+                SetupFramebuffers(mipLevel); // draw to specific mip map
 
-                // Initial Horizontal Blur Of Input Brightness Texture
+                for (size_t i = 0; i < numIterations; i++)
                 {
-                    VkClearValue clearValue = { 0.0f, 0.0f, 0.0f, 1.0f };
-
-                    VkRenderPassBeginInfo renderPassInfo = {};
-                    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-                    renderPassInfo.renderPass = m_Renderpasses[HORIZONTAL_BLUR_BUFFER_INDEX].GetVKRenderpass();
-                    renderPassInfo.framebuffer = m_Framebuffers[HORIZONTAL_BLUR_BUFFER_INDEX][mipLevel].GetVKFramebuffer();
-                    renderPassInfo.renderArea = { {0, 0}, {mipWidth, mipHeight} };
-                    renderPassInfo.clearValueCount = 1;
-                    renderPassInfo.pClearValues = &clearValue;
-
-                    BloomPushConstant pushData = { glm::vec2(1.0f, 0.0f), 0, 1 };
-                    vkCmdPushConstants(commandBuffer, m_PipelineLayouts[0],
-                        VK_SHADER_STAGE_FRAGMENT_BIT,
-                        0, sizeof(BloomPushConstant), &pushData);
-
-                    vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-                    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipelines[HORIZONTAL_BLUR_BUFFER_INDEX].GetVkPipeline());
-
-                    VkViewport viewport{};
-                    viewport.x = 0.0f;
-                    viewport.y = (float)mipHeight;
-                    viewport.width = (float)mipWidth;
-                    viewport.height = -(float)mipHeight;
-                    viewport.minDepth = 0.0f;
-                    viewport.maxDepth = 1.0f;
-
-                    VkRect2D scissor{};
-                    scissor.offset = { 0, 0 };
-                    scissor.extent = { mipWidth, mipHeight };
-
-                    vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-                    vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-
-                    VkBuffer vertexBuffers[] = { m_QuadMesh.VertexBuffer.GetBuffer() };
-                    VkDeviceSize offsets[] = { 0 };
-                    vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-                    vkCmdBindIndexBuffer(commandBuffer, m_QuadMesh.IndexBuffer.GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
-
-                    auto descriptorSet = m_DescriptorSets[0].GetVkDescriptorSet();
-                    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                        m_PipelineLayouts[HORIZONTAL_BLUR_BUFFER_INDEX], 0, 1, &descriptorSet, 0, nullptr);
-
-                    vkCmdDrawIndexed(commandBuffer, m_QuadMesh.IndicesCount, 1, 0, 0, 0);
-                    vkCmdEndRenderPass(commandBuffer);
-                }
-
-                // Ping-pong between buffers for remaining iterations
-                int currentBuffer = 0;
-                for (uint32_t i = 1; i < numIterations; i++)
-                {
-                    int targetBuffer = 1 - currentBuffer;
-
-                    uint32_t w = m_Width / std::pow(2, mipLevel);
-                    uint32_t h = m_Height / std::pow(2, mipLevel);
-
-                    VkClearValue clearValue = { 0.0f, 0.0f, 0.0f, 1.0f };
-
-                    VkRenderPassBeginInfo renderPassInfo = {};
-                    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-                    renderPassInfo.renderPass = m_Renderpasses[targetBuffer].GetVKRenderpass();
-                    renderPassInfo.framebuffer = m_Framebuffers[targetBuffer][mipLevel].GetVKFramebuffer();
-                    renderPassInfo.renderArea = { {0, 0}, {mipWidth, mipHeight} };
-                    renderPassInfo.clearValueCount = 1;
-                    renderPassInfo.pClearValues = &clearValue;
-
-                    BloomPushConstant pushData = 
+                    // Horizontal Blur Pass
                     {
-                        (targetBuffer == 1) ? glm::vec2(0.0f, 1.0f) : glm::vec2(1.0f, 0.0f),
-                        mipLevel, 0
-                    };
-                    vkCmdPushConstants(commandBuffer, m_PipelineLayouts[0],
-                        VK_SHADER_STAGE_FRAGMENT_BIT,
-                        0, sizeof(BloomPushConstant), &pushData);
+                        VkClearValue clearValue = { 0.0f, 0.0f, 0.0f, 1.0f };
 
+                        VkRenderPassBeginInfo renderPassInfo = {};
+                        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+                        renderPassInfo.renderPass = m_Renderpasses[HORIZONTAL_BLUR_BUFFER_INDEX].GetVKRenderpass();
+                        renderPassInfo.framebuffer = m_Framebuffers[HORIZONTAL_BLUR_BUFFER_INDEX][mipLevel].GetVKFramebuffer();
+                        renderPassInfo.renderArea = { {0, 0}, {mipWidth, mipHeight} };
+                        renderPassInfo.clearValueCount = 1;
+                        renderPassInfo.pClearValues = &clearValue;
 
-                    vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-                    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipelines[targetBuffer].GetVkPipeline());
+                        BloomPushConstant pushData = { glm::vec2(1.0f, 0.0f), mipLevel, 1 };
+                        vkCmdPushConstants(commandBuffer, m_PipelineLayouts[HORIZONTAL_BLUR_BUFFER_INDEX],
+                            VK_SHADER_STAGE_FRAGMENT_BIT,
+                            0, sizeof(BloomPushConstant), &pushData);
 
-                    VkViewport viewport{};
-                    viewport.x = 0.0f;
-                    viewport.y = (float)h;
-                    viewport.width = (float)w;
-                    viewport.height = -(float)h;
-                    viewport.minDepth = 0.0f;
-                    viewport.maxDepth = 1.0f;
+                        vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+                        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipelines[HORIZONTAL_BLUR_BUFFER_INDEX].GetVkPipeline());
 
-                    VkRect2D scissor{};
-                    scissor.offset = { 0, 0 };
-                    scissor.extent = { w, h };
+                        VkViewport viewport{};
+                        viewport.x = 0.0f;
+                        viewport.y = (float)mipHeight;
+                        viewport.width = (float)mipWidth;
+                        viewport.height = -(float)mipHeight;
+                        viewport.minDepth = 0.0f;
+                        viewport.maxDepth = 1.0f;
 
-                    vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-                    vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+                        VkRect2D scissor{};
+                        scissor.offset = { 0, 0 };
+                        scissor.extent = { mipWidth, mipHeight };
 
+                        vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+                        vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-                    VkBuffer vertexBuffers[] = { m_QuadMesh.VertexBuffer.GetBuffer() };
-                    VkDeviceSize offsets[] = { 0 };
-                    vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-                    vkCmdBindIndexBuffer(commandBuffer, m_QuadMesh.IndexBuffer.GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
+                        VkBuffer vertexBuffers[] = { m_QuadMesh.VertexBuffer.GetBuffer() };
+                        VkDeviceSize offsets[] = { 0 };
+                        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+                        vkCmdBindIndexBuffer(commandBuffer, m_QuadMesh.IndexBuffer.GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
-                    auto descriptorSet = m_DescriptorSets[targetBuffer].GetVkDescriptorSet();
-                    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                        m_PipelineLayouts[targetBuffer], 0, 1, &descriptorSet, 0, nullptr);
+                        auto descriptorSet = m_DescriptorSets[HORIZONTAL_BLUR_BUFFER_INDEX].GetVkDescriptorSet();
+                        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            m_PipelineLayouts[HORIZONTAL_BLUR_BUFFER_INDEX], 0, 1, &descriptorSet, 0, nullptr);
 
-                    vkCmdDrawIndexed(commandBuffer, m_QuadMesh.IndicesCount, 1, 0, 0, 0);
-                    vkCmdEndRenderPass(commandBuffer);
+                        vkCmdDrawIndexed(commandBuffer, m_QuadMesh.IndicesCount, 1, 0, 0, 0);
+                        vkCmdEndRenderPass(commandBuffer);
+                    }
 
-                    currentBuffer = targetBuffer;
-                    m_FinalResultBufferIndex = currentBuffer;
+                    // Vertical Blur Pass
+                    {
+                        VkClearValue clearValue = { 0.0f, 0.0f, 0.0f, 1.0f };
+
+                        VkRenderPassBeginInfo renderPassInfo = {};
+                        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+                        renderPassInfo.renderPass = m_Renderpasses[VERTICAL_BLUR_BUFFER_INDEX].GetVKRenderpass();
+                        renderPassInfo.framebuffer = m_Framebuffers[VERTICAL_BLUR_BUFFER_INDEX][mipLevel].GetVKFramebuffer();
+                        renderPassInfo.renderArea = { {0, 0}, {mipWidth, mipHeight} };
+                        renderPassInfo.clearValueCount = 1;
+                        renderPassInfo.pClearValues = &clearValue;
+
+                        BloomPushConstant pushData = { glm::vec2(0.0f, 1.0f), mipLevel, 1 };
+                        vkCmdPushConstants(commandBuffer, m_PipelineLayouts[VERTICAL_BLUR_BUFFER_INDEX],
+                            VK_SHADER_STAGE_FRAGMENT_BIT,
+                            0, sizeof(BloomPushConstant), &pushData);
+
+                        vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+                        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipelines[VERTICAL_BLUR_BUFFER_INDEX].GetVkPipeline());
+
+                        VkViewport viewport{};
+                        viewport.x = 0.0f;
+                        viewport.y = (float)mipHeight;
+                        viewport.width = (float)mipWidth;
+                        viewport.height = -(float)mipHeight;
+                        viewport.minDepth = 0.0f;
+                        viewport.maxDepth = 1.0f;
+
+                        VkRect2D scissor{};
+                        scissor.offset = { 0, 0 };
+                        scissor.extent = { mipWidth, mipHeight };
+
+                        vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+                        vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+
+                        VkBuffer vertexBuffers[] = { m_QuadMesh.VertexBuffer.GetBuffer() };
+                        VkDeviceSize offsets[] = { 0 };
+                        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+                        vkCmdBindIndexBuffer(commandBuffer, m_QuadMesh.IndexBuffer.GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
+
+                        auto descriptorSet = m_DescriptorSets[VERTICAL_BLUR_BUFFER_INDEX].GetVkDescriptorSet();
+                        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            m_PipelineLayouts[VERTICAL_BLUR_BUFFER_INDEX], 0, 1, &descriptorSet, 0, nullptr);
+
+                        vkCmdDrawIndexed(commandBuffer, m_QuadMesh.IndicesCount, 1, 0, 0, 0);
+                        vkCmdEndRenderPass(commandBuffer);
+                    }
                 }
             }
         }

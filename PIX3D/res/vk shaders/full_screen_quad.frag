@@ -14,6 +14,8 @@ layout(set = 0, binding = 1) uniform sampler2D BloomAttachment;
 
 const bool BloomEnabled = true;
 const float BloomIntensity = 1.0;
+const bool TonemappingEnabled = true;
+const float GammaCorrectionFactor = 2.2;
 
 void main()
 {
@@ -30,6 +32,16 @@ void main()
 
 		color += bloomColor * BloomIntensity;
 	}
+
+	// tonemapping
+	if (TonemappingEnabled)
+	{
+		// apply Reinhard tonemapping C = C / (1 + C)
+		color = color / (color + vec3(1.0));
+	}
+
+	// gamma correction
+	color = pow(color, vec3(1.0 / GammaCorrectionFactor)); // gamma correction to account for monitor, raise to the (1 / 2.2)
 
 	outColor = vec4(color, 1.0);
 }

@@ -177,8 +177,8 @@ namespace PIX3D
                     
                     mat.AlbedoTexture = new VK::VulkanTexture();
 
-                    mat.AlbedoTexture->Create(6);
-                    mat.AlbedoTexture->LoadFromFile(FullPath.string(), true);
+                    mat.AlbedoTexture->Create();
+                    mat.AlbedoTexture->LoadFromFile(FullPath.string(), 6, true);
                 }
                 else // Default Albedo
                 {
@@ -260,8 +260,7 @@ namespace PIX3D
 
                     mat.AoTexture = new VK::VulkanTexture();
                     mat.AoTexture->Create();
-
-                    mat.AoTexture->LoadFromFile(FullPath.string());
+                    mat.AoTexture->LoadFromFile(FullPath.string(), 6);
                 }
                 else
                 {

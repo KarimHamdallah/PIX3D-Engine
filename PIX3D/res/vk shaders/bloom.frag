@@ -2,6 +2,7 @@
 #extension GL_KHR_vulkan_glsl : enable
 
 layout (location = 0) out vec4 FragColor;
+
 layout (location = 0) in vec2 in_TextureCoords;
 
 layout(push_constant) uniform PushConstants {
@@ -10,8 +11,7 @@ layout(push_constant) uniform PushConstants {
     int useInputTexture;
 } push;
 
-layout(set = 0, binding = 0) uniform sampler2D brightnessTex;
-layout(set = 0, binding = 1) uniform sampler2D otherBufferTex;
+layout(set = 0, binding = 0) uniform sampler2D otherBufferTex;
 
 // Gaussian blur weights for 9x9 kernel
 const float gaussianBlurWeights[5] = float[] (0.227027, 0.1945946, 0.1216216, 0.054054, 0.016216);
@@ -19,45 +19,23 @@ const float gaussianBlurWeights[5] = float[] (0.227027, 0.1945946, 0.1216216, 0.
 void main()
 {
     // size of 1 pixel in [0-1] coordinates
-    vec2 texelSize = vec2(0.0, 0.0);
-    if(push.useInputTexture > 0)
-    {
-        texelSize = 1.0 / textureSize(brightnessTex, push.mipLevel);
-    }
-    else
-    {
-        texelSize = 1.0 / textureSize(otherBufferTex, push.mipLevel);
-    }
-    vec3 result = vec3(0.0, 0.0, 0.0);
-    
-    // center pixel
-
-    if(push.useInputTexture > 0)
-    {
-        result += textureLod(brightnessTex, in_TextureCoords, push.mipLevel).rgb * gaussianBlurWeights[0];
-    }
-    else
-    {
-        result += textureLod(otherBufferTex, in_TextureCoords, push.mipLevel).rgb * gaussianBlurWeights[0];
-    }
-    
-    // sample neighboring pixels
-    for (int i = 1; i < 5; i++) {
-        vec2 sampleOffset = vec2(
-            texelSize.x * i * push.direction.x,
-            texelSize.y * i * push.direction.y
-        );
+     vec2 texelSize = vec2(0.0, 0.0);
+     texelSize = 1.0 / textureSize(otherBufferTex, push.mipLevel);
+     vec3 result = vec3(0.0, 0.0, 0.0);
+     
+     // center pixel
+     result += textureLod(otherBufferTex, in_TextureCoords, push.mipLevel).rgb * gaussianBlurWeights[0];
+     
+     // sample neighboring pixels
+     for (int i = 1; i < 5; i++) {
+         vec2 sampleOffset = vec2(
+             texelSize.x * i * push.direction.x,
+             texelSize.y * i * push.direction.y
+         );
         
-        if(push.useInputTexture > 0)
-        {
-           result += texture(brightnessTex, in_TextureCoords + sampleOffset).rgb * gaussianBlurWeights[i];
-           result += texture(brightnessTex, in_TextureCoords - sampleOffset).rgb * gaussianBlurWeights[i];
-        }
-        else
-        {
-           result += texture(otherBufferTex, in_TextureCoords + sampleOffset).rgb * gaussianBlurWeights[i];
-           result += texture(otherBufferTex, in_TextureCoords - sampleOffset).rgb * gaussianBlurWeights[i];
-        }
+    
+     result += texture(otherBufferTex, in_TextureCoords + sampleOffset).rgb * gaussianBlurWeights[i];
+     result += texture(otherBufferTex, in_TextureCoords - sampleOffset).rgb * gaussianBlurWeights[i];
     }
     
     FragColor = vec4(result, 1.0);

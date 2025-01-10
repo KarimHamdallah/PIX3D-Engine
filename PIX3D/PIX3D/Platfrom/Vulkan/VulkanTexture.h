@@ -30,10 +30,10 @@ namespace PIX3D
             VulkanTexture() = default;
             ~VulkanTexture() { Destroy(); }
 
-            void Create(uint32_t miplevels = 1);
-            bool LoadFromFile(const std::filesystem::path& FilePath, bool IsSRGB = false);
+            void Create();
+            bool LoadFromFile(const std::filesystem::path& FilePath, uint32_t miplevels = 1, bool IsSRGB = false);
             bool LoadFromData(void* Data, uint32_t Width, uint32_t Height, TextureFormat Format);
-            bool CreateColorAttachment(uint32_t Width, uint32_t Height, TextureFormat Format, uint32_t MipLevels = 1);
+            bool CreateColorAttachment(uint32_t Width, uint32_t Height, TextureFormat Format, uint32_t MipLevels = 1, bool ClampToEdge = true);
             void GenerateMipmaps(VkCommandBuffer commandBuffer);
             void Destroy();
 
@@ -43,10 +43,12 @@ namespace PIX3D
             uint32_t GetHeight() const { return m_Height; }
             VkFormat GetVKormat() const { return GetVulkanFormat(m_Format); }
             VkImage GetVKImage() const { return m_Image; }
+            uint32_t GetMipLevels() { return m_MipLevels; }
 
             void TransitionImageLayout(VkFormat Format,
                 VkImageLayout OldLayout, VkImageLayout NewLayout, VkCommandBuffer ExistingCommandBuffer = VK_NULL_HANDLE);
 
+            void CopyFromTexture(VulkanTexture* sourceTexture, VkCommandBuffer existingCommandBuffer);
         private:
             void CreateImage(uint32_t Width, uint32_t Height, VkFormat Format, VkImageTiling Tiling,
                 VkImageUsageFlags Usage, VkMemoryPropertyFlags Properties);
@@ -82,6 +84,7 @@ namespace PIX3D
             uint32_t m_Height = 0;
             TextureFormat m_Format = TextureFormat::RGBA8;
             uint32_t m_MipLevels = 1;
+            bool m_SamplerClampToEdge = false;
         };
     }
 }
