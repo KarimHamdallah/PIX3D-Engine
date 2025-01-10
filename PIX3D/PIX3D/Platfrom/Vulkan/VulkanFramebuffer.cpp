@@ -25,6 +25,11 @@ namespace PIX3D
 
         VulkanFramebuffer& VulkanFramebuffer::Init(VkDevice device, VkRenderPass renderPass, uint32_t width, uint32_t height)
         {
+            if (m_Framebuffer != VK_NULL_HANDLE)
+                vkDestroyFramebuffer(device, m_Framebuffer, nullptr);
+
+            m_attachments.clear();
+
             m_device = device;
             m_renderPass = renderPass;
             m_width = width;
@@ -32,9 +37,9 @@ namespace PIX3D
             return *this;
         }
 
-        VulkanFramebuffer& VulkanFramebuffer::AddAttachment(VulkanTexture* texture)
+        VulkanFramebuffer& VulkanFramebuffer::AddAttachment(VulkanTexture* texture, uint32_t mipLevel)
         {
-            auto CreateImageView = [](VkDevice device, VulkanTexture* texture, VkImageView* imageview) -> void
+            auto CreateImageView = [](VkDevice device, VulkanTexture* texture, uint32_t mipLevel, VkImageView* imageview) -> void
             {
                 VkImageViewCreateInfo viewInfo{};
                 viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -42,7 +47,7 @@ namespace PIX3D
                 viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
                 viewInfo.format = texture->GetVKormat();
                 viewInfo.subresourceRange.aspectMask = IsDepthFormat(texture->GetVKormat()) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
-                viewInfo.subresourceRange.baseMipLevel = 0;
+                viewInfo.subresourceRange.baseMipLevel = mipLevel;
                 viewInfo.subresourceRange.levelCount = 1;
                 viewInfo.subresourceRange.baseArrayLayer = 0;
                 viewInfo.subresourceRange.layerCount = 1;
@@ -52,7 +57,7 @@ namespace PIX3D
             };
 
             VkImageView view;
-            CreateImageView(m_device, texture, &view);
+            CreateImageView(m_device, texture, mipLevel, &view);
 
             m_attachments.push_back(view);
             return *this;

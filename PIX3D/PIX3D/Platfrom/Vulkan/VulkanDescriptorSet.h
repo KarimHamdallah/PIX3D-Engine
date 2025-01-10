@@ -2,6 +2,7 @@
 #include "VulkanTexture.h"
 #include "VulkanUniformBuffer.h"
 #include "VulkanShaderStorageBuffer.h"
+#include <unordered_map>
 
 namespace PIX3D
 {
@@ -15,15 +16,13 @@ namespace PIX3D
             VulkanDescriptorSet& AddUniformBuffer(uint32_t binding, const VulkanUniformBuffer& uniformBuffer);
             VulkanDescriptorSet& AddShaderStorageBuffer(uint32_t binding, const VulkanShaderStorageBuffer& storageBuffer);
             void Build();
-
             VkDescriptorSet GetVkDescriptorSet() const { return m_DescriptorSet; }
-
+            void UpdateTexture(uint32_t binding, const VulkanTexture& texture);
         private:
             VkDescriptorSetLayout m_DescriptorSetLayout;
             VkDescriptorSet m_DescriptorSet;
-
-            std::vector<VkDescriptorBufferInfo> m_BufferInfos; // Stores buffer infos
-            std::vector<VkDescriptorImageInfo> m_ImageInfos;   // Stores image infos
+            std::unordered_map<uint32_t, VkDescriptorBufferInfo> m_BufferBindings;
+            std::unordered_map<uint32_t, VkDescriptorImageInfo> m_ImageBindings;
         };
     }
 }

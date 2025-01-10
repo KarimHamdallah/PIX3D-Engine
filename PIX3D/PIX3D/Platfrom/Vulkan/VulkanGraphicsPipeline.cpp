@@ -189,8 +189,8 @@ namespace PIX3D
             {
                 VkPipelineColorBlendAttachmentState blendAttachState = {};
                 blendAttachState.blendEnable = enable_blend ? VK_TRUE : VK_FALSE;
-                blendAttachState.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;  // Default valid value
-                blendAttachState.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO; // Default valid value
+                blendAttachState.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;  // Default valid value
+                blendAttachState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA; // Default valid value
                 blendAttachState.colorBlendOp = VK_BLEND_OP_ADD;            // Default valid value
                 blendAttachState.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;  // Default valid value
                 blendAttachState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO; // Default valid value

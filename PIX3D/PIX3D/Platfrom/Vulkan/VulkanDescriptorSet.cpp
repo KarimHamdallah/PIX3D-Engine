@@ -24,40 +24,38 @@ namespace PIX3D
         void VulkanDescriptorSet::Build()
         {
             auto* Context = (VK::VulkanGraphicsContext*)Engine::GetGraphicsContext();
-
             std::vector<VkWriteDescriptorSet> descriptorWrites;
 
-            // Construct buffer descriptor writes
-            for (size_t i = 0; i < m_BufferInfos.size(); ++i)
+            // Add buffer descriptors
+            for (const auto& [binding, bufferInfo] : m_BufferBindings)
             {
                 VkWriteDescriptorSet descriptorWrite{};
                 descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
                 descriptorWrite.dstSet = m_DescriptorSet;
-                descriptorWrite.dstBinding = static_cast<uint32_t>(i); // Use appropriate binding logic here
+                descriptorWrite.dstBinding = binding;
                 descriptorWrite.dstArrayElement = 0;
                 descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
                 descriptorWrite.descriptorCount = 1;
-                descriptorWrite.pBufferInfo = &m_BufferInfos[i];
+                descriptorWrite.pBufferInfo = &bufferInfo;
 
                 descriptorWrites.push_back(descriptorWrite);
             }
 
-            // Construct image descriptor writes
-            for (size_t i = 0; i < m_ImageInfos.size(); ++i)
+            // Add image descriptors
+            for (const auto& [binding, imageInfo] : m_ImageBindings)
             {
                 VkWriteDescriptorSet descriptorWrite{};
                 descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
                 descriptorWrite.dstSet = m_DescriptorSet;
-                descriptorWrite.dstBinding = static_cast<uint32_t>(m_BufferInfos.size() + i); // Use appropriate binding logic here
+                descriptorWrite.dstBinding = binding;
                 descriptorWrite.dstArrayElement = 0;
                 descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
                 descriptorWrite.descriptorCount = 1;
-                descriptorWrite.pImageInfo = &m_ImageInfos[i];
+                descriptorWrite.pImageInfo = &imageInfo;
 
                 descriptorWrites.push_back(descriptorWrite);
             }
 
-            // Update descriptor sets
             vkUpdateDescriptorSets(Context->m_Device,
                 static_cast<uint32_t>(descriptorWrites.size()),
                 descriptorWrites.data(),
@@ -67,41 +65,58 @@ namespace PIX3D
 
         VulkanDescriptorSet& VulkanDescriptorSet::AddTexture(uint32_t binding, const VulkanTexture& texture)
         {
-            // Add image info to persistent storage
-
-            m_ImageInfos.emplace_back(VkDescriptorImageInfo{});
-            VkDescriptorImageInfo& imageInfo = m_ImageInfos.back();
+            VkDescriptorImageInfo imageInfo{};
             imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             imageInfo.imageView = texture.GetImageView();
             imageInfo.sampler = texture.GetSampler();
 
+            m_ImageBindings[binding] = imageInfo;
             return *this;
         }
 
         VulkanDescriptorSet& VulkanDescriptorSet::AddUniformBuffer(uint32_t binding, const VulkanUniformBuffer& uniformBuffer)
         {
-            // Add buffer info to persistent storage
-
-            m_BufferInfos.emplace_back(VkDescriptorBufferInfo{});
-            VkDescriptorBufferInfo& bufferInfo = m_BufferInfos.back();
+            VkDescriptorBufferInfo bufferInfo{};
             bufferInfo.buffer = uniformBuffer.GetBuffer();
             bufferInfo.offset = 0;
             bufferInfo.range = uniformBuffer.GetSize();
 
+            m_BufferBindings[binding] = bufferInfo;
             return *this;
         }
 
         VulkanDescriptorSet& VulkanDescriptorSet::AddShaderStorageBuffer(uint32_t binding, const VulkanShaderStorageBuffer& storageBuffer)
         {
-            // Add buffer info to persistent storage
-
-            m_BufferInfos.emplace_back(VkDescriptorBufferInfo{});
-            VkDescriptorBufferInfo& bufferInfo = m_BufferInfos.back();
+            VkDescriptorBufferInfo bufferInfo{};
             bufferInfo.buffer = storageBuffer.GetBuffer();
             bufferInfo.offset = 0;
             bufferInfo.range = storageBuffer.GetSize();
 
+            m_BufferBindings[binding] = bufferInfo;
             return *this;
+        }
+
+        void VulkanDescriptorSet::UpdateTexture(uint32_t binding, const VulkanTexture& texture)
+        {
+            auto* Context = (VK::VulkanGraphicsContext*)Engine::GetGraphicsContext();
+
+            VkDescriptorImageInfo imageInfo{};
+            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            imageInfo.imageView = texture.GetImageView();
+            imageInfo.sampler = texture.GetSampler();
+
+            m_ImageBindings[binding] = imageInfo;
+
+            VkWriteDescriptorSet descriptorWrite{};
+            descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrite.dstSet = m_DescriptorSet;
+            descriptorWrite.dstBinding = binding;
+            descriptorWrite.dstArrayElement = 0;
+            descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            descriptorWrite.descriptorCount = 1;
+            descriptorWrite.pImageInfo = &m_ImageBindings[binding];
+
+            vkUpdateDescriptorSets(Context->m_Device, 1, &descriptorWrite, 0, nullptr);
         }
     }
 }

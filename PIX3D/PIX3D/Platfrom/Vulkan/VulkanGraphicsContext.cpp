@@ -57,22 +57,6 @@ namespace
 		const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
 		void* pUserData)
 	{
-		/*
-		PIX_DEBUG_INFO_FORMAT("Debug callback: {}", pCallbackData->pMessage);
-		PIX_DEBUG_INFO_FORMAT("  Severity {}", GetDebugSeverityStr(Severity));
-		PIX_DEBUG_INFO_FORMAT("  Type {}", GetDebugType(Type));
-		PIX_DEBUG_INFO_FORMAT("  Objects ");
-
-		for (uint32_t i = 0; i < pCallbackData->objectCount; i++)
-		{
-#ifdef _WIN32
-			PIX_DEBUG_INFO_FORMAT("{}llux ", pCallbackData->pObjects[i].objectHandle);
-#else
-			printf("%lux ", pCallbackData->pObjects[i].objectHandle);
-#endif
-		}
-		*/
-
 		if (Severity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
 		{
 			PIX_DEBUG_INFO_FORMAT("Debug callback: {}", pCallbackData->pMessage);
@@ -117,7 +101,7 @@ namespace
 	{
 		for (int i = 0; i < SurfaceFormats.size(); i++)
 		{
-			if ((SurfaceFormats[i].format == VK_FORMAT_B8G8R8A8_SRGB) &&
+			if ((SurfaceFormats[i].format == VK_FORMAT_R8G8B8A8_SRGB) &&
 				(SurfaceFormats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR))
 			{
 				return SurfaceFormats[i];
@@ -442,6 +426,7 @@ namespace PIX3D
 				case VK_FORMAT_R8G8_UNORM: return TextureFormat::RG8;
 				case VK_FORMAT_R8G8B8_UNORM: return TextureFormat::RGB8;
 				case VK_FORMAT_R8G8B8A8_UNORM: return TextureFormat::RGBA8;
+				case VK_FORMAT_R8G8B8A8_SRGB: return TextureFormat::RGBA8_SRGB;
 				case VK_FORMAT_R16G16B16_SFLOAT: return TextureFormat::RGB16F;
 				case VK_FORMAT_R16G16B16A16_SFLOAT: return TextureFormat::RGBA16F;
 				case VK_FORMAT_R32G32B32A32_SFLOAT: return TextureFormat::RGBA32F;

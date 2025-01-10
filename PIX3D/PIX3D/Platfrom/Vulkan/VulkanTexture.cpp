@@ -9,7 +9,7 @@ namespace PIX3D
 {
     namespace VK
     {
-        void VulkanTexture::Create()
+        void VulkanTexture::Create(uint32_t miplevels)
         {
             auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
 
@@ -17,25 +17,30 @@ namespace PIX3D
             m_PhysicalDevice = Context->m_PhysDevice.GetSelected().m_physDevice;
             m_Queue = Context->m_Queue.GetVkQueue();
             m_CmdPool = Context->m_CommandPool;
+
+            m_MipLevels = miplevels;
         }
 
-        bool VulkanTexture::CreateColorAttachment(uint32_t Width, uint32_t Height, TextureFormat Format)
+        bool VulkanTexture::CreateColorAttachment(uint32_t Width, uint32_t Height, TextureFormat Format, uint32_t MipLevels)
         {
             m_Width = Width;
             m_Height = Height;
             m_Format = Format;
+            m_MipLevels = MipLevels;
 
-            auto usage = IsDepthFormat(GetVulkanFormat(Format)) ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+            auto usage = IsDepthFormat(GetVulkanFormat(Format))
+                ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
+                : (VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
-            // Create the image
+            // Create the image with mip levels
             CreateImage(Width, Height, GetVulkanFormat(Format),
                 VK_IMAGE_TILING_OPTIMAL,
                 usage | VK_IMAGE_USAGE_SAMPLED_BIT,
                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-            // Create image view and sampler
+            // Create image view with mip levels
             CreateImageView(GetVulkanFormat(Format));
-            CreateSampler();
+            CreateSampler(static_cast<float>(m_MipLevels - 1));
 
             return true;
         }
@@ -76,8 +81,14 @@ namespace PIX3D
             stbi_image_free(pixels);
 
             // Create the image
+
+            VkImageUsageFlags usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+
+            if (m_MipLevels > 1)
+                usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+
             CreateImage(m_Width, m_Height, vulkanFormat, VK_IMAGE_TILING_OPTIMAL,
-                VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                usage,
                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
             // Transition image layout for copy
@@ -86,12 +97,20 @@ namespace PIX3D
             // Copy data from staging buffer to image
             CopyBufferToImage(stagingBuffer.m_Buffer, m_Width, m_Height);
 
-            // Transition to shader read layout
-            TransitionImageLayout(vulkanFormat, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+            if (m_MipLevels > 1)
+            {
+                auto* Context = (VK::VulkanGraphicsContext*)Engine::GetGraphicsContext();
+
+                VkCommandBuffer Commandbuffer = VulkanHelper::BeginSingleTimeCommands(Context->m_Device, Context->m_CommandPool);
+                GenerateMipmaps(Commandbuffer);
+                VulkanHelper::EndSingleTimeCommands(Context->m_Device, Context->m_Queue.m_Queue, Context->m_CommandPool, Commandbuffer);
+            }
+            else
+                TransitionImageLayout(vulkanFormat, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
             // Create image view and sampler
             CreateImageView(vulkanFormat);
-            CreateSampler();
+            CreateSampler(static_cast<float>(m_MipLevels - 1));
 
             // Cleanup staging buffer
             stagingBuffer.Destroy(m_Device);
@@ -244,7 +263,7 @@ namespace PIX3D
             imageInfo.extent.width = Width;
             imageInfo.extent.height = Height;
             imageInfo.extent.depth = 1;
-            imageInfo.mipLevels = 1;
+            imageInfo.mipLevels = m_MipLevels;
             imageInfo.arrayLayers = 1;
             imageInfo.format = Format;
             imageInfo.tiling = Tiling;
@@ -283,7 +302,7 @@ namespace PIX3D
             viewInfo.format = Format;
             viewInfo.subresourceRange.aspectMask = IsDepthFormat(GetVKormat()) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
             viewInfo.subresourceRange.baseMipLevel = 0;
-            viewInfo.subresourceRange.levelCount = 1;
+            viewInfo.subresourceRange.levelCount = m_MipLevels;
             viewInfo.subresourceRange.baseArrayLayer = 0;
             viewInfo.subresourceRange.layerCount = 1;
 
@@ -293,7 +312,7 @@ namespace PIX3D
             }
         }
 
-        void VulkanTexture::CreateSampler()
+        void VulkanTexture::CreateSampler(float MaxLod)
         {
             VkSamplerCreateInfo samplerInfo{};
             samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -311,12 +330,96 @@ namespace PIX3D
             samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
             samplerInfo.mipLodBias = 0.0f;
             samplerInfo.minLod = 0.0f;
-            samplerInfo.maxLod = 0.0f;
+            samplerInfo.maxLod = MaxLod;
 
             if (vkCreateSampler(m_Device, &samplerInfo, nullptr, &m_Sampler) != VK_SUCCESS)
             {
                 throw std::runtime_error("Failed to create texture sampler!");
             }
+        }
+
+        void VulkanTexture::GenerateMipmaps(VkCommandBuffer commandBuffer)
+        {
+            // Check if image format supports linear blitting
+            VkFormatProperties formatProperties;
+            vkGetPhysicalDeviceFormatProperties(m_PhysicalDevice, GetVKormat(), &formatProperties);
+
+            if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT))
+                PIX_ASSERT_MSG(false, "Texture image format does not support linear blitting!");
+
+            VkImageMemoryBarrier barrier{};
+            barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            barrier.image = m_Image;
+            barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            barrier.subresourceRange.baseArrayLayer = 0;
+            barrier.subresourceRange.layerCount = 1;
+            barrier.subresourceRange.levelCount = 1;
+
+            int32_t mipWidth = m_Width;
+            int32_t mipHeight = m_Height;
+
+            for (uint32_t i = 1; i < m_MipLevels; i++)
+            {
+                barrier.subresourceRange.baseMipLevel = i - 1;
+                barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+                barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+                barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+                barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+
+                vkCmdPipelineBarrier(commandBuffer,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
+                    0, nullptr,
+                    0, nullptr,
+                    1, &barrier);
+
+                VkImageBlit blit{};
+                blit.srcOffsets[0] = { 0, 0, 0 };
+                blit.srcOffsets[1] = { mipWidth, mipHeight, 1 };
+                blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                blit.srcSubresource.mipLevel = i - 1;
+                blit.srcSubresource.baseArrayLayer = 0;
+                blit.srcSubresource.layerCount = 1;
+                blit.dstOffsets[0] = { 0, 0, 0 };
+                blit.dstOffsets[1] = { mipWidth > 1 ? mipWidth / 2 : 1, mipHeight > 1 ? mipHeight / 2 : 1, 1 };
+                blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                blit.dstSubresource.mipLevel = i;
+                blit.dstSubresource.baseArrayLayer = 0;
+                blit.dstSubresource.layerCount = 1;
+
+                vkCmdBlitImage(commandBuffer,
+                    m_Image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                    m_Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                    1, &blit,
+                    VK_FILTER_LINEAR);
+
+                barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+                barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+                barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+                vkCmdPipelineBarrier(commandBuffer,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
+                    0, nullptr,
+                    0, nullptr,
+                    1, &barrier);
+
+                if (mipWidth > 1) mipWidth /= 2;
+                if (mipHeight > 1) mipHeight /= 2;
+            }
+
+            barrier.subresourceRange.baseMipLevel = m_MipLevels - 1;
+            barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+            vkCmdPipelineBarrier(commandBuffer,
+                VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
+                0, nullptr,
+                0, nullptr,
+                1, &barrier);
         }
 
         void VulkanTexture::TransitionImageLayout(VkFormat Format, VkImageLayout OldLayout, VkImageLayout NewLayout, VkCommandBuffer ExistingCommandBuffer)
@@ -338,7 +441,7 @@ namespace PIX3D
             barrier.image = m_Image;
             barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
             barrier.subresourceRange.baseMipLevel = 0;
-            barrier.subresourceRange.levelCount = 1;
+            barrier.subresourceRange.levelCount = m_MipLevels;
             barrier.subresourceRange.baseArrayLayer = 0;
             barrier.subresourceRange.layerCount = 1;
 
@@ -387,6 +490,13 @@ namespace PIX3D
                 sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
                 destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
             }
+            else if (OldLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL && NewLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+            {
+                barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+                barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+                sourceStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+                destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+            }
             else
             {
                 throw std::runtime_error("Unsupported layout transition!");
@@ -430,6 +540,7 @@ namespace PIX3D
             case TextureFormat::RG8: return VK_FORMAT_R8G8_UNORM;
             case TextureFormat::RGB8: return VK_FORMAT_R8G8B8_UNORM;
             case TextureFormat::RGBA8: return VK_FORMAT_R8G8B8A8_UNORM;
+            case TextureFormat::RGBA8_SRGB: return VK_FORMAT_R8G8B8A8_SRGB;
             case TextureFormat::RGB16F: return VK_FORMAT_R16G16B16_SFLOAT;
             case TextureFormat::RGBA16F: return VK_FORMAT_R16G16B16A16_SFLOAT;
             case TextureFormat::RGBA32F: return VK_FORMAT_R32G32B32A32_SFLOAT;

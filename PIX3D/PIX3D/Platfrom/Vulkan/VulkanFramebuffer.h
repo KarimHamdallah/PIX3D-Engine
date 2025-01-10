@@ -24,7 +24,7 @@ namespace PIX3D
             void Destroy();
 
             VulkanFramebuffer& Init(VkDevice device, VkRenderPass renderPass, uint32_t width, uint32_t height);
-            VulkanFramebuffer& AddAttachment(VulkanTexture* texture);
+            VulkanFramebuffer& AddAttachment(VulkanTexture* texture, uint32_t mipLevel = 0);
             VulkanFramebuffer& AddSwapChainAttachment(uint32_t index);
             VulkanFramebuffer& SetLayers(uint32_t layers);
             void Build();

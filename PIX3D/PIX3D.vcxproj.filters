@@ -195,6 +195,12 @@
     <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanFullScreenQuadRenderpass.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanStaticMeshFactory.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanBloompass.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="PIX3D\Platfrom\Platform.h">
@@ -437,6 +443,12 @@
     <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanFullScreenQuadRenderpass.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanBloompass.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanStaticMeshFactory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="res\gl shaders\pos_vertex.vert" />
@@ -468,5 +480,7 @@
     <None Include="res\vk shaders\triangle.frag" />
     <None Include="res\vk shaders\full_screen_quad.vert" />
     <None Include="res\vk shaders\full_screen_quad.frag" />
+    <None Include="res\vk shaders\bloom.vert" />
+    <None Include="res\vk shaders\bloom.frag" />
   </ItemGroup>
 </Project>

@@ -1,52 +1,6 @@
 #include "PixEditor.h"
 #include <Platfrom/Vulkan/VulkanHelper.h>
 
-namespace
-{
-	void TransitionSwapChainImageLayout(VkImage swapChainImage, VkImageLayout oldLayout, VkImageLayout newLayout)
-	{
-		auto* Context = (VK::VulkanGraphicsContext*)PIX3D::Engine::GetGraphicsContext();
-
-		VkCommandBuffer CommandBuffer = PIX3D::VK::VulkanHelper::BeginSingleTimeCommands(Context->m_Device, Context->m_CommandPool);
-
-		VkImageMemoryBarrier barrier{};
-		barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-		barrier.oldLayout = oldLayout;
-		barrier.newLayout = newLayout;
-		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		barrier.image = swapChainImage;
-		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		barrier.subresourceRange.baseMipLevel = 0;
-		barrier.subresourceRange.levelCount = 1;
-		barrier.subresourceRange.baseArrayLayer = 0;
-		barrier.subresourceRange.layerCount = 1;
-
-		VkPipelineStageFlags sourceStage;
-		VkPipelineStageFlags destinationStage;
-
-		if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
-			newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
-			barrier.srcAccessMask = 0;
-			barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-			sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-			destinationStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		}
-
-		vkCmdPipelineBarrier(
-			CommandBuffer,
-			sourceStage, destinationStage,
-			0,
-			0, nullptr,
-			0, nullptr,
-			1, &barrier
-		);
-
-		VK::VulkanHelper::EndSingleTimeCommands(Context->m_Device, Context->m_Queue.m_Queue, Context->m_CommandPool, CommandBuffer);
-	}
-}
-
-
 void PixEditor::OnStart()
 {
 	auto* Context = (VK::VulkanGraphicsContext*)Engine::GetGraphicsContext();
@@ -57,18 +11,6 @@ void PixEditor::OnStart()
 
 	// Shader
 	m_TriangleShader.LoadFromFile("../PIX3D/res/vk shaders/triangle.vert", "../PIX3D/res/vk shaders/triangle.frag");
-
-	// index buffer
-	{
-		m_IndexBuffer.Create();
-		const std::vector<uint32_t> indices = 
-		{
-			0, 1, 2,  // first triangle
-			2, 3, 0   // second triangle
-		};
-		
-		m_IndexBuffer.FillData(indices.data(), sizeof(uint32_t) * indices.size());
-	}
 
 	// camera uniform buffer
 	{
@@ -99,40 +41,33 @@ void PixEditor::OnStart()
 		}
 	}
 
-	// texture loading
-	{
+
+	/////////////// Color Attachments //////////////////////
+
+
+
 		m_ColorAttachmentTexture = new VK::VulkanTexture();
 		m_ColorAttachmentTexture->Create();
 		m_ColorAttachmentTexture->CreateColorAttachment(specs.Width, specs.Height, VK::TextureFormat::RGBA16F);
 
-		m_ColorAttachmentTexture->TransitionImageLayout(
-			m_ColorAttachmentTexture->GetVKormat(),
-			VK_IMAGE_LAYOUT_UNDEFINED,
-			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-		);
-
 
 		m_BloomBrightnessAttachmentTexture = new VK::VulkanTexture();
 		m_BloomBrightnessAttachmentTexture->Create();
-		m_BloomBrightnessAttachmentTexture->CreateColorAttachment(specs.Width, specs.Height, VK::TextureFormat::RGBA16F);
-	}
+		m_BloomBrightnessAttachmentTexture->CreateColorAttachment(specs.Width, specs.Height, VK::TextureFormat::RGBA16F, 6);
 
-	// renderpass and framebuffers
-	{
+
+	/////////////// Renderpass //////////////////////
+
 		m_Renderpass
 			.Init(Context->m_Device)
-
-			// firts color attachment (for bloom brightness texture)
 
 			.AddColorAttachment(
 				m_ColorAttachmentTexture->GetVKormat(),
 				VK_SAMPLE_COUNT_1_BIT,
 				VK_ATTACHMENT_LOAD_OP_CLEAR,
 				VK_ATTACHMENT_STORE_OP_STORE,
-				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
-
-			// Second color attachment (for bloom brightness texture)
+				VK_IMAGE_LAYOUT_UNDEFINED,
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
 
 			.AddColorAttachment(
 				m_BloomBrightnessAttachmentTexture->GetVKormat(),
@@ -142,8 +77,6 @@ void PixEditor::OnStart()
 				VK_IMAGE_LAYOUT_UNDEFINED,
 				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
 
-			// Depth attachment
-
 			.AddDepthAttachment(
 				Context->m_SupportedDepthFormat,
 				VK_SAMPLE_COUNT_1_BIT,
@@ -152,35 +85,45 @@ void PixEditor::OnStart()
 				VK_IMAGE_LAYOUT_UNDEFINED,
 				VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
 
-			// Subpass with 2 color attachments and 1 depth attachment
-
 			.AddSubpass(VK_PIPELINE_BIND_POINT_GRAPHICS)
+
+			// Initial synchronization dependency
 			.AddDependency(
 				VK_SUBPASS_EXTERNAL,                            // srcSubpass
 				0,                                              // dstSubpass
-				VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,          // srcStageMask
-				VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,  // dstStageMask
-				VK_ACCESS_SHADER_READ_BIT,                      // srcAccessMask
-				VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,           // dstAccessMask
-				0                                               // dependencyFlags
+				VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,          // srcStageMask
+				VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+				VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,    // dstStageMask
+				VK_ACCESS_MEMORY_READ_BIT,                     // srcAccessMask
+				VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+				VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,  // dstAccessMask
+				VK_DEPENDENCY_BY_REGION_BIT                    // dependencyFlags
+			)
+			// Final synchronization dependency for shader read transition
+			.AddDependency(
+				0,                                              // srcSubpass
+				VK_SUBPASS_EXTERNAL,                           // dstSubpass
+				VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, // srcStageMask
+				VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,         // dstStageMask
+				VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,          // srcAccessMask
+				VK_ACCESS_SHADER_READ_BIT,                     // dstAccessMask
+				VK_DEPENDENCY_BY_REGION_BIT                    // dependencyFlags
 			)
 			.Build();
 
-		m_Framebuffers.resize(Context->m_SwapChainImages.size());
 
-		for (uint32_t i = 0; i < Context->m_SwapChainImages.size(); i++)
-		{
-			m_Framebuffers[i]
+
+	/////////////// Framebuffer //////////////////////
+
+		m_Framebuffer
 				.Init(Context->m_Device, m_Renderpass.GetVKRenderpass(), specs.Width, specs.Height)
 				.AddAttachment(m_ColorAttachmentTexture)
 				.AddAttachment(m_BloomBrightnessAttachmentTexture)
 				.AddAttachment(Context->m_DepthAttachmentTexture)
 				.Build();
-		}
-	}
 
-	// pipeline layout (descriptor sets or push constants)
-	{
+	/////////////// Pipeline Layout //////////////////////
+
 		VkDescriptorSetLayout layouts[] =
 		{
 			m_CameraDescriptorSetLayout.GetVkDescriptorSetLayout(),
@@ -191,13 +134,15 @@ void PixEditor::OnStart()
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
 		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 		pipelineLayoutInfo.setLayoutCount = 2; // No descriptor sets
-		pipelineLayoutInfo.pSetLayouts = &layouts[0]; // Descriptor set layouts
+		pipelineLayoutInfo.pSetLayouts = layouts; // Descriptor set layouts
 		pipelineLayoutInfo.pushConstantRangeCount = 0; // No push constants
 		pipelineLayoutInfo.pPushConstantRanges = nullptr; // Push constant ranges
 
 		if (vkCreatePipelineLayout(Context->m_Device, &pipelineLayoutInfo, nullptr, &m_PipelineLayout) != VK_SUCCESS)
 			PIX_ASSERT_MSG(false, "Failed to create pipeline layout!");
-	}
+
+
+	/////////////// Graphics Pipeline //////////////////////
 
 	auto VertexBindingDescription = VulkanStaticMeshVertex::GetBindingDescription();
 	auto VertexAttributeDescriptions = VulkanStaticMeshVertex::GetAttributeDescriptions();
@@ -216,15 +161,15 @@ void PixEditor::OnStart()
 		.Build();
 
 
-	{ // Create Command Buffers
+	/////////////// Command Buffers //////////////////////
 
-		m_NumImages = Context->m_SwapChainImages.size();
-		m_CommandBuffers.resize(m_NumImages);
-		VK::VulkanHelper::CreateCommandBuffers(Context->m_Device, Context->m_CommandPool, m_NumImages, m_CommandBuffers.data());
-	}
+	m_CommandBuffers.resize(Context->m_SwapChainImages.size());
+	VK::VulkanHelper::CreateCommandBuffers(Context->m_Device, Context->m_CommandPool, Context->m_SwapChainImages.size(), m_CommandBuffers.data());
 
+	
 	Cam.Init({0.0f, 0.0f, 5.0f});
 
+	
 	m_FullScreenQuadRenderpass.Init(specs.Width, specs.Height, m_ColorAttachmentTexture);
 }
 
@@ -239,8 +184,6 @@ void PixEditor::OnUpdate(float dt)
 	{
 		Cam.Update(dt);
 
-
-
 		// Update Camera Uniform Buffer
 		_CameraUniformBuffer cameraData = {};
 		cameraData.proj = Cam.GetProjectionMatrix();
@@ -249,9 +192,10 @@ void PixEditor::OnUpdate(float dt)
 		m_CameraUniformBuffers[ImageIndex].UpdateData(&cameraData, sizeof(_CameraUniformBuffer));
 	}
 
+
+
 	// render
 
-	// Record Command Buffers
 	{
 		VK::VulkanHelper::BeginCommandBuffer(m_CommandBuffers[ImageIndex], VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
 		
@@ -287,7 +231,7 @@ void PixEditor::OnUpdate(float dt)
 			};
 
 
-			RenderPassBeginInfo.framebuffer = m_Framebuffers[ImageIndex].GetVKFramebuffer();
+			RenderPassBeginInfo.framebuffer = m_Framebuffer.GetVKFramebuffer();
 			vkCmdBeginRenderPass(m_CommandBuffers[ImageIndex], &RenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 			vkCmdBindPipeline(m_CommandBuffers[ImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline.GetVkPipeline());
@@ -319,17 +263,7 @@ void PixEditor::OnUpdate(float dt)
 			vkCmdEndRenderPass(m_CommandBuffers[ImageIndex]);
 		}
 
-		m_ColorAttachmentTexture->TransitionImageLayout(
-			m_ColorAttachmentTexture->GetVKormat(),
-			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-			m_CommandBuffers[ImageIndex]
-		);
-
-		// fullscreen quadpass record command buffers
-		{
-			m_FullScreenQuadRenderpass.RecordCommandBuffer(m_CommandBuffers[ImageIndex], ImageIndex);
-		}
+		m_FullScreenQuadRenderpass.RecordCommandBuffer(m_CommandBuffers[ImageIndex], ImageIndex);
 
 		VkResult res = vkEndCommandBuffer(m_CommandBuffers[ImageIndex]);
 		VK_CHECK_RESULT(res, "vkEndCommandBuffer");
@@ -337,13 +271,6 @@ void PixEditor::OnUpdate(float dt)
 	
 	Context->m_Queue.SubmitAsync(m_CommandBuffers[ImageIndex]);
 	Context->m_Queue.Present(ImageIndex);
-
-
-	m_ColorAttachmentTexture->TransitionImageLayout(
-		m_ColorAttachmentTexture->GetVKormat(),
-		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-		VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-	);
 }
 
 void PixEditor::OnDestroy()

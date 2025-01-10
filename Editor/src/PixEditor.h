@@ -10,6 +10,7 @@
 #include <Platfrom/Vulkan/VulkanRenderpass.h>
 #include <Platfrom/Vulkan/VulkanFramebuffer.h>
 #include <Platfrom/Vulkan/VulkanFullScreenQuadRenderpass.h>
+#include <Platfrom/Vulkan/VulkanBloomPass.h>
 
 using namespace PIX3D;
 
@@ -49,7 +50,7 @@ private:
 	
 	VK::VulkanDescriptorSetLayout m_CameraDescriptorSetLayout;
 	VK::VulkanRenderPass m_Renderpass;
-	std::vector<VK::VulkanFramebuffer> m_Framebuffers;
+	VK::VulkanFramebuffer m_Framebuffer;
 	
 	std::vector<VK::VulkanDescriptorSet> m_CameraDescriptorSets;
 	std::vector<VK::VulkanUniformBuffer> m_CameraUniformBuffers;
@@ -59,4 +60,5 @@ private:
 	PIX3D::VulkanStaticMesh m_Mesh;
 
 	PIX3D::VK::VulkanFullScreenQuadRenderpass m_FullScreenQuadRenderpass;
+	PIX3D::VK::VulkanBloomPass m_BloomPass;
 };

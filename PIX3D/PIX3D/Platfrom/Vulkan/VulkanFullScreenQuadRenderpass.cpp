@@ -74,6 +74,26 @@ namespace PIX3D
 					VK_IMAGE_LAYOUT_UNDEFINED,
 					VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
 				.AddSubpass(VK_PIPELINE_BIND_POINT_GRAPHICS)
+				// Add initial dependency to wait for previous pass
+				.AddDependency(
+					VK_SUBPASS_EXTERNAL,
+					0,
+					VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,          // Previous pass reading
+					VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,  // Our writing
+					VK_ACCESS_SHADER_READ_BIT,                      // Previous shader reads
+					VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,           // Our writes
+					VK_DEPENDENCY_BY_REGION_BIT
+				)
+				// Add final dependency for presentation
+				.AddDependency(
+					0,
+					VK_SUBPASS_EXTERNAL,
+					VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,  // Our writes
+					VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,          // Present
+					VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+					VK_ACCESS_MEMORY_READ_BIT,
+					VK_DEPENDENCY_BY_REGION_BIT
+				)
 				.Build();
 
 			// renderpass framebuffers

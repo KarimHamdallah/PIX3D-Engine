@@ -176,8 +176,8 @@ namespace PIX3D
                     mat.UseAlbedoTexture = true;
                     
                     mat.AlbedoTexture = new VK::VulkanTexture();
-                    mat.AlbedoTexture->Create();
-                    
+
+                    mat.AlbedoTexture->Create(6);
                     mat.AlbedoTexture->LoadFromFile(FullPath.string(), true);
                 }
                 else // Default Albedo
@@ -325,6 +325,7 @@ namespace PIX3D
         // create descriptor layout (set = 1) -- material set
         m_MaterialDescriptorSetLayout
             .AddBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+            .AddBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
             .Build();
 
         // create descriptor sets for each material
@@ -336,6 +337,7 @@ namespace PIX3D
 
             m_DescriptorSets[i].Init(m_MaterialDescriptorSetLayout)
                 .AddTexture(0, *material.AlbedoTexture)
+                .AddTexture(1, *material.EmissiveTexture)
                 .Build();
         }
     }

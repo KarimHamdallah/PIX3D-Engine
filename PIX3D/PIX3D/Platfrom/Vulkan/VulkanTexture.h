@@ -12,6 +12,7 @@ namespace PIX3D
             RG8,
             RGB8,
             RGBA8,
+            RGBA8_SRGB,
             RGB16F,
             RGBA16F,
             RGBA32F,
@@ -29,10 +30,11 @@ namespace PIX3D
             VulkanTexture() = default;
             ~VulkanTexture() { Destroy(); }
 
-            void Create();
+            void Create(uint32_t miplevels = 1);
             bool LoadFromFile(const std::filesystem::path& FilePath, bool IsSRGB = false);
             bool LoadFromData(void* Data, uint32_t Width, uint32_t Height, TextureFormat Format);
-            bool CreateColorAttachment(uint32_t Width, uint32_t Height, TextureFormat Format);
+            bool CreateColorAttachment(uint32_t Width, uint32_t Height, TextureFormat Format, uint32_t MipLevels = 1);
+            void GenerateMipmaps(VkCommandBuffer commandBuffer);
             void Destroy();
 
             VkImageView GetImageView() const { return m_ImageView; }
@@ -46,12 +48,11 @@ namespace PIX3D
                 VkImageLayout OldLayout, VkImageLayout NewLayout, VkCommandBuffer ExistingCommandBuffer = VK_NULL_HANDLE);
 
         private:
-            void CreateImage(uint32_t Width, uint32_t Height, VkFormat Format,
-                VkImageTiling Tiling, VkImageUsageFlags Usage,
-                VkMemoryPropertyFlags Properties);
-
+            void CreateImage(uint32_t Width, uint32_t Height, VkFormat Format, VkImageTiling Tiling,
+                VkImageUsageFlags Usage, VkMemoryPropertyFlags Properties);
+            
             void CreateImageView(VkFormat Format);
-            void CreateSampler();
+            void CreateSampler(float MaxLod = 0.0f);
 
             void CopyBufferToImage(VkBuffer Buffer, uint32_t Width, uint32_t Height);
             VkFormat GetVulkanFormat(TextureFormat Format) const;
@@ -80,6 +81,7 @@ namespace PIX3D
             uint32_t m_Width = 0;
             uint32_t m_Height = 0;
             TextureFormat m_Format = TextureFormat::RGBA8;
+            uint32_t m_MipLevels = 1;
         };
     }
 }
