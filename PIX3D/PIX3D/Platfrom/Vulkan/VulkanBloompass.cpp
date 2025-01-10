@@ -9,31 +9,30 @@ namespace PIX3D
         {
             m_Width = width;
             m_Height = height;
-            m_InputTexture = bloom_brightness_texture;
+            m_InputBrightnessTexture = bloom_brightness_texture;
 
             auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
 
             // Create two textures for ping-pong blurring with mip levels
-            m_BloomTextures[0] = new VulkanTexture();
-            m_BloomTextures[0]->Create();
-            m_BloomTextures[0]->CreateColorAttachment(width, height, TextureFormat::RGBA16F, MAX_MIP_LEVELS);
-            m_BloomTextures[0]->TransitionImageLayout(
-                m_BloomTextures[0]->GetVKormat(),
+            m_ColorAttachments[HORIZONTAL_BLUR_BUFFER_INDEX] = new VulkanTexture();
+            m_ColorAttachments[HORIZONTAL_BLUR_BUFFER_INDEX]->Create();
+            m_ColorAttachments[HORIZONTAL_BLUR_BUFFER_INDEX]->CreateColorAttachment(width, height, TextureFormat::RGBA16F, BLUR_DOWN_SAMPLES);
+
+            m_ColorAttachments[HORIZONTAL_BLUR_BUFFER_INDEX]->TransitionImageLayout(
+                m_ColorAttachments[HORIZONTAL_BLUR_BUFFER_INDEX]->GetVKormat(),
                 VK_IMAGE_LAYOUT_UNDEFINED,
-                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
             );
 
-            m_BloomTextures[1] = new VulkanTexture();
-            m_BloomTextures[1]->Create();
-            m_BloomTextures[1]->CreateColorAttachment(width, height, TextureFormat::RGBA16F, MAX_MIP_LEVELS);
-            m_BloomTextures[1]->TransitionImageLayout(
-                m_BloomTextures[1]->GetVKormat(),
-                VK_IMAGE_LAYOUT_UNDEFINED,
-                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-            );
+            m_ColorAttachments[VERTICAL_BLUR_BUFFER_INDEX] = new VulkanTexture();
+            m_ColorAttachments[VERTICAL_BLUR_BUFFER_INDEX]->Create();
+            m_ColorAttachments[VERTICAL_BLUR_BUFFER_INDEX]->CreateColorAttachment(width, height, TextureFormat::RGBA16F, BLUR_DOWN_SAMPLES);
 
-            // Get quad mesh
-            m_QuadMesh = VulkanStaticMeshGenerator::GenerateQuad();
+            m_ColorAttachments[VERTICAL_BLUR_BUFFER_INDEX]->TransitionImageLayout(
+                m_ColorAttachments[VERTICAL_BLUR_BUFFER_INDEX]->GetVKormat(),
+                VK_IMAGE_LAYOUT_UNDEFINED,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+            );
 
             // Load bloom shader
             m_BloomShader.LoadFromFile("../PIX3D/res/vk shaders/bloom.vert", "../PIX3D/res/vk shaders/bloom.frag");
@@ -43,52 +42,70 @@ namespace PIX3D
 
             // Descriptor layout
             m_DescriptorSetLayout
-                .AddBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)  // Brightness texture
+                .AddBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)  // Input Brightness texture
                 .AddBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)  // other buffer color attachment
                 .Build();
 
-            // buffer 0 reads color attachment of buffer 1 as input color attachment
             {
-                m_DescriptorSets[0]
+                m_DescriptorSets[HORIZONTAL_BLUR_BUFFER_INDEX]
                     .Init(m_DescriptorSetLayout)
-                    .AddTexture(0, *m_InputTexture)
-                    .AddTexture(1, *m_BloomTextures[1])
+                    .AddTexture(0, *m_InputBrightnessTexture)
+                    .AddTexture(1, *m_ColorAttachments[VERTICAL_BLUR_BUFFER_INDEX])
                     .Build();
             }
 
             // buffer 1 reads color attachment of buffer 0 as input color attachment
             {
-                m_DescriptorSets[1]
+                m_DescriptorSets[VERTICAL_BLUR_BUFFER_INDEX]
                     .Init(m_DescriptorSetLayout)
-                    .AddTexture(0, *m_InputTexture)
-                    .AddTexture(1, *m_BloomTextures[0])
+                    .AddTexture(0, *m_InputBrightnessTexture)
+                    .AddTexture(1, *m_ColorAttachments[HORIZONTAL_BLUR_BUFFER_INDEX])
                     .Build();
             }
 
             // Create renderpasses
-            for (int i = 0; i < 2; i++)
+            for (int i = 0; i < BLUR_BUFFERS_COUNT; i++)
             {
                 m_Renderpasses[i]
                     .Init(Context->m_Device)
                     .AddColorAttachment(
-                        m_BloomTextures[i]->GetVKormat(),
+                        m_ColorAttachments[i]->GetVKormat(),
                         VK_SAMPLE_COUNT_1_BIT,
                         VK_ATTACHMENT_LOAD_OP_CLEAR,
                         VK_ATTACHMENT_STORE_OP_STORE,
                         VK_IMAGE_LAYOUT_UNDEFINED,
                         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
                     .AddSubpass(VK_PIPELINE_BIND_POINT_GRAPHICS)
+                    // Initial dependency to wait for previous fragment shader reads
+                    .AddDependency(
+                        VK_SUBPASS_EXTERNAL,
+                        0,
+                        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                        VK_ACCESS_SHADER_READ_BIT,
+                        VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                        VK_DEPENDENCY_BY_REGION_BIT
+                    )
+                    // Final dependency for shader reads
+                    .AddDependency(
+                        0,
+                        VK_SUBPASS_EXTERNAL,
+                        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                        VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                        VK_ACCESS_SHADER_READ_BIT,
+                        VK_DEPENDENCY_BY_REGION_BIT
+                    )
                     .Build();
             }
 
             // Create pipeline layouts
-            for (int i = 0; i < 2; i++)
+            for (int i = 0; i < BLUR_BUFFERS_COUNT; i++)
             {
                 VkPushConstantRange pushConstant{};
                 pushConstant.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
                 pushConstant.offset = 0;
                 pushConstant.size = sizeof(BloomPushConstant);
-
 
                 VkDescriptorSetLayout layouts[] = { m_DescriptorSetLayout.GetVkDescriptorSetLayout() };
 
@@ -104,10 +121,12 @@ namespace PIX3D
             }
 
             // Create graphics pipelines
+
+            m_QuadMesh = VulkanStaticMeshGenerator::GenerateQuad();
             auto bindingDesc = m_QuadMesh.VertexLayout.GetBindingDescription();
             auto attributeDesc = m_QuadMesh.VertexLayout.GetAttributeDescriptions();
 
-            for (int i = 0; i < 2; i++)
+            for (int i = 0; i < BLUR_BUFFERS_COUNT; i++)
             {
                 m_Pipelines[i]
                     .Init(Context->m_Device, m_Renderpasses[i].GetVKRenderpass())
@@ -124,134 +143,93 @@ namespace PIX3D
 
             // Setup initial framebuffers
             /* 
-            buffer 0 has 6 (MAX_MIP_LEVELS) frame buffers
-            each one hook into mip level of it's color attachment to renderer to it's mip
+            buffer HORIZONTAL BLUR has 6 frame buffers
+            each one hook into (DOWN SAMPLES (MIP_LEVEL)) of it's color attachment to renderer to it's mip
             */
-            /* 
-            buffer 1 has 6 (MAX_MIP_LEVELS) frame buffers
-            each one hook into mip level of it's color attachment to renderer to it's mip
+            /*
+            buffer VERTICAL BLUR has 6 frame buffers
+            each one hook into (DOWN SAMPLES (MIP_LEVEL)) of it's color attachment to renderer to it's mip
             */
-            m_Framebuffers[0].resize(MAX_MIP_LEVELS);
-            m_Framebuffers[1].resize(MAX_MIP_LEVELS);
+            m_Framebuffers[HORIZONTAL_BLUR_BUFFER_INDEX].resize(BLUR_DOWN_SAMPLES);
+            m_Framebuffers[VERTICAL_BLUR_BUFFER_INDEX].resize(BLUR_DOWN_SAMPLES);
+            
             SetupFramebuffers(0);
         }
 
-        /*
-           Recreate Frame Buffers For Buffer 0 and Buffer 1 And Hook Them To Specific Mip Level To Render To Them
-        */
         void VulkanBloomPass::SetupFramebuffers(int mipLevel)
         {
             auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
-            
+
             uint32_t mipWidth = m_Width >> mipLevel;
             uint32_t mipHeight = m_Height >> mipLevel;
 
-            {
-                m_Framebuffers[0][mipLevel]
-                    .Init(Context->m_Device, m_Renderpasses[0].GetVKRenderpass(), mipWidth, mipHeight)
-                    .AddAttachment(m_BloomTextures[0], mipLevel)
-                    .Build();
-            }
+            m_Framebuffers[HORIZONTAL_BLUR_BUFFER_INDEX][mipLevel]
+                .Init(Context->m_Device, m_Renderpasses[HORIZONTAL_BLUR_BUFFER_INDEX].GetVKRenderpass(), mipWidth, mipHeight)
+                .AddAttachment(m_ColorAttachments[HORIZONTAL_BLUR_BUFFER_INDEX], mipLevel)
+                .Build();
 
-            {
-                m_Framebuffers[1][mipLevel]
-                    .Init(Context->m_Device, m_Renderpasses[1].GetVKRenderpass(), mipWidth, mipHeight)
-                    .AddAttachment(m_BloomTextures[1], mipLevel)
-                    .Build();
-            }
+
+            m_Framebuffers[VERTICAL_BLUR_BUFFER_INDEX][mipLevel]
+                .Init(Context->m_Device, m_Renderpasses[VERTICAL_BLUR_BUFFER_INDEX].GetVKRenderpass(), mipWidth, mipHeight)
+                .AddAttachment(m_ColorAttachments[VERTICAL_BLUR_BUFFER_INDEX], mipLevel)
+                .Build();
         }
 
         void VulkanBloomPass::RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t numIterations)
         {
-
-            // First generate mipmaps for input texture (down sampling)
-            
+            // First generate mipmaps for input brightness texture (down sampling)            
             {
-                /////////////// Change Layout To Transfer Destination To Generate Mipmaps  ////////////////////
-                m_InputTexture->TransitionImageLayout(
-                    m_InputTexture->GetVKormat(),
-                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                m_InputBrightnessTexture->TransitionImageLayout(
+                    m_InputBrightnessTexture->GetVKormat(),
+                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                     commandBuffer
                 );
 
-                m_InputTexture->GenerateMipmaps(commandBuffer);
-                /////////////////////////// End As Shader Read ////////////////////////////////////////////////
+                m_InputBrightnessTexture->GenerateMipmaps(commandBuffer);
             }
 
-            uint32_t mipWidth = m_Width >> 0;
-            uint32_t mipHeight = m_Height >> 0;
-
-
-            // Redirect Framebuffers To Render To Specific Mip Map Level Of Color Attachment Of Ping - Pong buffers
-            SetupFramebuffers(0);
-
-            // Initial horizontal blur from input to first ping-pong buffer
+            for (int mipLevel = 0; mipLevel < BLUR_DOWN_SAMPLES; mipLevel++)
             {
-                VkClearValue clearValue = { 0.0f, 0.0f, 0.0f, 1.0f };
+                uint32_t mipWidth = m_Width / std::pow(2, mipLevel);
+                uint32_t mipHeight = m_Height / std::pow(2, mipLevel);
 
-                VkRenderPassBeginInfo renderPassInfo = {};
-                renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-                renderPassInfo.renderPass = m_Renderpasses[0].GetVKRenderpass();
-                renderPassInfo.framebuffer = m_Framebuffers[0][0].GetVKFramebuffer();
-                renderPassInfo.renderArea = { {0, 0}, {mipWidth, mipHeight} };
-                renderPassInfo.clearValueCount = 1;
-                renderPassInfo.pClearValues = &clearValue;
-
-                BloomPushConstant pushData = { glm::vec2(1.0f, 0.0f), 0, 1 };
-                vkCmdPushConstants(commandBuffer, m_PipelineLayouts[0],
-                    VK_SHADER_STAGE_FRAGMENT_BIT,
-                    0, sizeof(BloomPushConstant), &pushData);
-
-                vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-                vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipelines[0].GetVkPipeline());
-
-                VkBuffer vertexBuffers[] = { m_QuadMesh.VertexBuffer.GetBuffer() };
-                VkDeviceSize offsets[] = { 0 };
-                vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-                vkCmdBindIndexBuffer(commandBuffer, m_QuadMesh.IndexBuffer.GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
-
-                auto descriptorSet = m_DescriptorSets[0].GetVkDescriptorSet();
-                vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                    m_PipelineLayouts[0], 0, 1, &descriptorSet, 0, nullptr);
-
-                vkCmdDrawIndexed(commandBuffer, m_QuadMesh.IndicesCount, 1, 0, 0, 0);
-                vkCmdEndRenderPass(commandBuffer);
-            }
-
-
-            /*
-            // For each mip level
-            for (int mipLevel = 0; mipLevel < MAX_MIP_LEVELS; mipLevel++)
-            {
-
-
-                uint32_t mipWidth = m_Width >> mipLevel;
-                uint32_t mipHeight = m_Height >> mipLevel;
-
-
-                // Redirect Framebuffers To Render To Specific Mip Map Level Of Color Attachment Of Ping - Pong buffers
                 SetupFramebuffers(mipLevel);
 
-                // Initial horizontal blur from input to first ping-pong buffer
+                // Initial Horizontal Blur Of Input Brightness Texture
                 {
                     VkClearValue clearValue = { 0.0f, 0.0f, 0.0f, 1.0f };
 
                     VkRenderPassBeginInfo renderPassInfo = {};
                     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-                    renderPassInfo.renderPass = m_Renderpasses[0].GetVKRenderpass();
-                    renderPassInfo.framebuffer = m_Framebuffers[0][mipLevel].GetVKFramebuffer();
+                    renderPassInfo.renderPass = m_Renderpasses[HORIZONTAL_BLUR_BUFFER_INDEX].GetVKRenderpass();
+                    renderPassInfo.framebuffer = m_Framebuffers[HORIZONTAL_BLUR_BUFFER_INDEX][mipLevel].GetVKFramebuffer();
                     renderPassInfo.renderArea = { {0, 0}, {mipWidth, mipHeight} };
                     renderPassInfo.clearValueCount = 1;
                     renderPassInfo.pClearValues = &clearValue;
 
-                    BloomPushConstant pushData = { glm::vec2(1.0f, 0.0f), mipLevel, 1 };
+                    BloomPushConstant pushData = { glm::vec2(1.0f, 0.0f), 0, 1 };
                     vkCmdPushConstants(commandBuffer, m_PipelineLayouts[0],
                         VK_SHADER_STAGE_FRAGMENT_BIT,
                         0, sizeof(BloomPushConstant), &pushData);
 
                     vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-                    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipelines[0].GetVkPipeline());
+                    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipelines[HORIZONTAL_BLUR_BUFFER_INDEX].GetVkPipeline());
+
+                    VkViewport viewport{};
+                    viewport.x = 0.0f;
+                    viewport.y = (float)mipHeight;
+                    viewport.width = (float)mipWidth;
+                    viewport.height = -(float)mipHeight;
+                    viewport.minDepth = 0.0f;
+                    viewport.maxDepth = 1.0f;
+
+                    VkRect2D scissor{};
+                    scissor.offset = { 0, 0 };
+                    scissor.extent = { mipWidth, mipHeight };
+
+                    vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+                    vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
                     VkBuffer vertexBuffers[] = { m_QuadMesh.VertexBuffer.GetBuffer() };
                     VkDeviceSize offsets[] = { 0 };
@@ -260,7 +238,7 @@ namespace PIX3D
 
                     auto descriptorSet = m_DescriptorSets[0].GetVkDescriptorSet();
                     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                        m_PipelineLayouts[0], 0, 1, &descriptorSet, 0, nullptr);
+                        m_PipelineLayouts[HORIZONTAL_BLUR_BUFFER_INDEX], 0, 1, &descriptorSet, 0, nullptr);
 
                     vkCmdDrawIndexed(commandBuffer, m_QuadMesh.IndicesCount, 1, 0, 0, 0);
                     vkCmdEndRenderPass(commandBuffer);
@@ -271,6 +249,9 @@ namespace PIX3D
                 for (uint32_t i = 1; i < numIterations; i++)
                 {
                     int targetBuffer = 1 - currentBuffer;
+
+                    uint32_t w = m_Width / std::pow(2, mipLevel);
+                    uint32_t h = m_Height / std::pow(2, mipLevel);
 
                     VkClearValue clearValue = { 0.0f, 0.0f, 0.0f, 1.0f };
 
@@ -295,6 +276,22 @@ namespace PIX3D
                     vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
                     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipelines[targetBuffer].GetVkPipeline());
 
+                    VkViewport viewport{};
+                    viewport.x = 0.0f;
+                    viewport.y = (float)h;
+                    viewport.width = (float)w;
+                    viewport.height = -(float)h;
+                    viewport.minDepth = 0.0f;
+                    viewport.maxDepth = 1.0f;
+
+                    VkRect2D scissor{};
+                    scissor.offset = { 0, 0 };
+                    scissor.extent = { w, h };
+
+                    vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+                    vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+
+
                     VkBuffer vertexBuffers[] = { m_QuadMesh.VertexBuffer.GetBuffer() };
                     VkDeviceSize offsets[] = { 0 };
                     vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
@@ -311,7 +308,6 @@ namespace PIX3D
                     m_FinalResultBufferIndex = currentBuffer;
                 }
             }
-            */
         }
 
         void VulkanBloomPass::Resize(uint32_t width, uint32_t height)
@@ -336,28 +332,7 @@ namespace PIX3D
 
         void VulkanBloomPass::Destroy()
         {
-            auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
-
-            //m_BloomShader.Destroy();
-
-            for (int i = 0; i < 2; i++)
-            {
-                vkDestroyPipelineLayout(Context->m_Device, m_PipelineLayouts[i], nullptr);
-              //  m_Pipelines[i].Destroy();
-              //  m_Renderpasses[i].Destroy();
-
-                for (auto& framebuffer : m_Framebuffers[i])
-                {
-                    framebuffer.Destroy();
-                }
-
-                if (m_BloomTextures[i])
-                {
-                    m_BloomTextures[i]->Destroy();
-                    delete m_BloomTextures[i];
-                    m_BloomTextures[i] = nullptr;
-                }
-            }
+            // TODO:: Destroy Vulkan Objects
         }
     }
 }

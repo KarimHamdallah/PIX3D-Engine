@@ -7,7 +7,7 @@ namespace PIX3D
 {
 	namespace VK
 	{
-		void VulkanFullScreenQuadRenderpass::Init(uint32_t width, uint32_t height, VulkanTexture* color_attachment)
+		void VulkanFullScreenQuadRenderpass::Init(uint32_t width, uint32_t height, VulkanTexture* color_attachment, VulkanTexture* bloom_attachment)
 		{
 			m_Width = width;
 			m_Height = height;
@@ -17,50 +17,17 @@ namespace PIX3D
 			// load shader
 			m_Shader.LoadFromFile("../PIX3D/res/vk shaders/full_screen_quad.vert", "../PIX3D/res/vk shaders/full_screen_quad.frag");
 
-			// qud vertex and index buffers
-
-			const std::vector<float> vertices =
-			{
-				// positions          // tex coords
-				-1.0f, -1.0f, 0.0f,  0.0f, 1.0f,  // bottom left
-				 1.0f, -1.0f, 0.0f,  1.0f, 1.0f,  // bottom right
-				 1.0f,  1.0f, 0.0f,  1.0f, 0.0f,  // top right
-				-1.0f,  1.0f, 0.0f,  0.0f, 0.0f   // top left
-			};
-
-			m_VertexBuffer.Create();
-			m_VertexBuffer.FillData(vertices.data(), vertices.size() * sizeof(float));
-
-			const std::vector<uint32_t> indices =
-			{
-				0, 1, 2,  // first triangle
-				2, 3, 0   // second triangle
-			};
-
-			m_IndexBuffer.Create();
-			m_IndexBuffer.FillData(indices.data(), indices.size() * sizeof(uint32_t));
-
-			// vertex input
-			{
-				m_VertexInputLayout
-					.AddAttribute(VK::VertexAttributeFormat::Float3)  // position
-					.AddAttribute(VK::VertexAttributeFormat::Float2);  // texcoords
-			}
-
-			auto VertexBindingDescription = m_VertexInputLayout.GetBindingDescription();
-			auto VertexAttributeDescriptions = m_VertexInputLayout.GetAttributeDescriptions();
-
-
 			// descriptor layout -- descripe shader resources
 			m_DescriptorSetLayout
 				.AddBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+				.AddBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
 				.Build();
 
 			// descriptor set -- save resources at specific bindings -- matches shader layout
 			m_DescriptorSet.Init(m_DescriptorSetLayout)
 				.AddTexture(0, *color_attachment)
+				.AddTexture(1, *bloom_attachment)
 				.Build();
-
 
 			// renderpass -- descripe attachment format and layout
 			m_Renderpass
@@ -127,6 +94,11 @@ namespace PIX3D
 			}
 
 			// graphics pipeline
+
+			m_QuadMesh = VulkanStaticMeshGenerator::GenerateQuad();
+			auto VertexBindingDescription = m_QuadMesh.VertexLayout.GetBindingDescription();
+			auto VertexAttributeDescriptions = m_QuadMesh.VertexLayout.GetAttributeDescriptions();
+
 			m_GraphicsPipeline.Init(Context->m_Device, m_Renderpass.GetVKRenderpass())
 				.AddShaderStages(m_Shader.GetVertexShader(), m_Shader.GetFragmentShader())
 				.AddVertexInputState(&VertexBindingDescription, VertexAttributeDescriptions.data(), 1, VertexAttributeDescriptions.size())
@@ -171,13 +143,28 @@ namespace PIX3D
 
 			vkCmdBindPipeline(commandbuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline.GetVkPipeline());
 
+			VkViewport viewport{};
+			viewport.x = 0.0f;
+			viewport.y = (float)m_Height;
+			viewport.width = (float)m_Width;
+			viewport.height = -(float)m_Height;
+			viewport.minDepth = 0.0f;
+			viewport.maxDepth = 1.0f;
+
+			VkRect2D scissor{};
+			scissor.offset = { 0, 0 };
+			scissor.extent = { m_Width, m_Height };
+
+			vkCmdSetViewport(commandbuffer, 0, 1, &viewport);
+			vkCmdSetScissor(commandbuffer, 0, 1, &scissor);
+
 			auto descriptor_set = m_DescriptorSet.GetVkDescriptorSet();
 			vkCmdBindDescriptorSets(commandbuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 0, 1, &descriptor_set, 0, nullptr);
 
-			VkBuffer vertexBuffers[] = { m_VertexBuffer.GetBuffer() };
+			VkBuffer vertexBuffers[] = { m_QuadMesh.VertexBuffer.GetBuffer() };
 			VkDeviceSize offsets[] = { 0 };
 			vkCmdBindVertexBuffers(commandbuffer, 0, 1, vertexBuffers, offsets);
-			vkCmdBindIndexBuffer(commandbuffer, m_IndexBuffer.GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
+			vkCmdBindIndexBuffer(commandbuffer, m_QuadMesh.IndexBuffer.GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
 			// Draw the submesh using its base vertex and index offsets
 			vkCmdDrawIndexed(commandbuffer,

@@ -13,7 +13,7 @@ namespace PIX3D
 {
     namespace VK
     {
-        struct BloomPushConstant  // Replace BloomUBO
+        struct BloomPushConstant
         {
             glm::vec2 direction;
             int mipLevel;
@@ -25,7 +25,7 @@ namespace PIX3D
         public:
             void Init(uint32_t width, uint32_t height, VulkanTexture* bloom_brightness_texture);
             void RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t numIterations = 2);
-            VulkanTexture* GetFinalBloomTexture() { return m_BloomTextures[m_FinalResultBufferIndex]; }
+            VulkanTexture* GetFinalBloomTexture() { return m_ColorAttachments[m_FinalResultBufferIndex]; }
             void Destroy();
             void Resize(uint32_t width, uint32_t height);
 
@@ -37,22 +37,27 @@ namespace PIX3D
             
             enum
             {
-                MAX_MIP_LEVELS = 6
+                BLUR_DOWN_SAMPLES = 6,
+                BLUR_BUFFERS_COUNT = 2,
+                HORIZONTAL_BLUR_BUFFER_INDEX = 0,
+                VERTICAL_BLUR_BUFFER_INDEX = 1
             };
 
             VulkanShader m_BloomShader;
-            VulkanStaticMeshData m_QuadMesh;
 
             VulkanDescriptorSetLayout m_DescriptorSetLayout;
             VulkanDescriptorSet m_DescriptorSets[2];
 
-            VulkanRenderPass m_Renderpasses[2];
-            std::vector<VulkanFramebuffer> m_Framebuffers[2];  // One vector per ping-pong buffer
-            VkPipelineLayout m_PipelineLayouts[2];
-            VulkanGraphicsPipeline m_Pipelines[2];
+            VulkanTexture* m_InputBrightnessTexture = nullptr;
+            VulkanTexture* m_ColorAttachments[BLUR_BUFFERS_COUNT];
+            VulkanRenderPass m_Renderpasses[BLUR_BUFFERS_COUNT];
 
-            VulkanTexture* m_BloomTextures[2];  // For ping-pong blurring
-            VulkanTexture* m_InputTexture = nullptr;
+            std::vector<VulkanFramebuffer> m_Framebuffers[BLUR_BUFFERS_COUNT];
+            
+            VkPipelineLayout m_PipelineLayouts[BLUR_BUFFERS_COUNT];
+            VulkanGraphicsPipeline m_Pipelines[BLUR_BUFFERS_COUNT];
+
+            VulkanStaticMeshData m_QuadMesh;
 
             uint32_t m_FinalResultBufferIndex = 0;
         };

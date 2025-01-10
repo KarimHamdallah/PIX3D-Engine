@@ -52,6 +52,8 @@ namespace PIX3D
 
             std::vector<VkPipelineColorBlendAttachmentState> m_colorBlendAttachments;
 
+            VkPipelineDynamicStateCreateInfo m_dynamicState;
+            std::vector<VkDynamicState> m_dynamicStates;
         };
     }
 }

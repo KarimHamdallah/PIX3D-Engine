@@ -31,6 +31,9 @@ namespace PIX3D
 
             const VkFramebuffer& GetVKFramebuffer() const { return m_Framebuffer; }
 
+            uint32_t GetWidth() { return m_width; }
+            uint32_t GetHeight() { return m_height; }
+
         private:
             VkDevice m_device = VK_NULL_HANDLE;
             VkRenderPass m_renderPass = VK_NULL_HANDLE;

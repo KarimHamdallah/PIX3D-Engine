@@ -60,6 +60,13 @@ namespace PIX3D
 
             m_colorBlendState = {};
 
+            // Initialize dynamic state
+            m_dynamicStates = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+            m_dynamicState = {};
+            m_dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+            m_dynamicState.dynamicStateCount = static_cast<uint32_t>(m_dynamicStates.size());
+            m_dynamicState.pDynamicStates = m_dynamicStates.data();
+
             return *this;
         }
 
@@ -86,24 +93,13 @@ namespace PIX3D
         // Add viewport and scissor state
         VulkanGraphicsPipeline& VulkanGraphicsPipeline::AddViewportState(float width, float height)
         {
-            static VkViewport viewport = {};
-            viewport.x = 0.0f;
-            viewport.y = height;
-            viewport.width = width;
-            viewport.height = -height;
-            viewport.minDepth = 0.0f;
-            viewport.maxDepth = 1.0f;
-
-            static VkRect2D scissor = {};
-            scissor.offset = { 0, 0 };
-            scissor.extent = { static_cast<uint32_t>(width), static_cast<uint32_t>(height) };
-
+            // For dynamic viewport/scissor, we only need to specify count
             m_viewportState = {};
             m_viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
             m_viewportState.viewportCount = 1;
-            m_viewportState.pViewports = &viewport;
+            m_viewportState.pViewports = nullptr;  // Will be set dynamically
             m_viewportState.scissorCount = 1;
-            m_viewportState.pScissors = &scissor;
+            m_viewportState.pScissors = nullptr;   // Will be set dynamically
 
             return *this;
         }
@@ -250,6 +246,7 @@ namespace PIX3D
             pipelineCreateInfo.pMultisampleState = &m_multisampleState;
             pipelineCreateInfo.pDepthStencilState = &m_depthStencilState;
             pipelineCreateInfo.pColorBlendState = &m_colorBlendState;
+            pipelineCreateInfo.pDynamicState = &m_dynamicState;
             pipelineCreateInfo.layout = m_pipelineLayout;
             pipelineCreateInfo.renderPass = m_renderPass;
             pipelineCreateInfo.subpass = 0;

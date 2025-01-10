@@ -55,6 +55,12 @@ void PixEditor::OnStart()
 		m_BloomBrightnessAttachmentTexture->Create();
 		m_BloomBrightnessAttachmentTexture->CreateColorAttachment(specs.Width, specs.Height, VK::TextureFormat::RGBA16F, 6);
 
+		m_BloomBrightnessAttachmentTexture->TransitionImageLayout(
+			m_BloomBrightnessAttachmentTexture->GetVKormat(),
+			VK_IMAGE_LAYOUT_UNDEFINED,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+		);
+
 
 	/////////////// Renderpass //////////////////////
 
@@ -169,8 +175,8 @@ void PixEditor::OnStart()
 	
 	Cam.Init({0.0f, 0.0f, 5.0f});
 
-	
-	m_FullScreenQuadRenderpass.Init(specs.Width, specs.Height, m_ColorAttachmentTexture);
+	m_BloomPass.Init(specs.Width, specs.Height, m_BloomBrightnessAttachmentTexture);
+	m_FullScreenQuadRenderpass.Init(specs.Width, specs.Height, m_ColorAttachmentTexture, m_BloomPass.GetFinalBloomTexture());
 }
 
 void PixEditor::OnUpdate(float dt)
@@ -236,6 +242,21 @@ void PixEditor::OnUpdate(float dt)
 
 			vkCmdBindPipeline(m_CommandBuffers[ImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline.GetVkPipeline());
 
+			VkViewport viewport{};
+			viewport.x = 0.0f;
+			viewport.y = (float)specs.Height;
+			viewport.width = (float)specs.Width;
+			viewport.height = -(float)specs.Height;
+			viewport.minDepth = 0.0f;
+			viewport.maxDepth = 1.0f;
+
+			VkRect2D scissor{};
+			scissor.offset = { 0, 0 };
+			scissor.extent = { specs.Width, specs.Height };
+
+			vkCmdSetViewport(m_CommandBuffers[ImageIndex], 0, 1, &viewport);
+			vkCmdSetScissor(m_CommandBuffers[ImageIndex], 0, 1, &scissor);
+
 			auto camera_descriptor_set = m_CameraDescriptorSets[ImageIndex].GetVkDescriptorSet();
 			vkCmdBindDescriptorSets(m_CommandBuffers[ImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 0, 1, &camera_descriptor_set, 0, nullptr);
 
@@ -263,6 +284,7 @@ void PixEditor::OnUpdate(float dt)
 			vkCmdEndRenderPass(m_CommandBuffers[ImageIndex]);
 		}
 
+		m_BloomPass.RecordCommandBuffer(m_CommandBuffers[ImageIndex], 10);
 		m_FullScreenQuadRenderpass.RecordCommandBuffer(m_CommandBuffers[ImageIndex], ImageIndex);
 
 		VkResult res = vkEndCommandBuffer(m_CommandBuffers[ImageIndex]);

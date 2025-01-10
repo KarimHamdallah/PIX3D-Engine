@@ -101,7 +101,7 @@ namespace
 	{
 		for (int i = 0; i < SurfaceFormats.size(); i++)
 		{
-			if ((SurfaceFormats[i].format == VK_FORMAT_R8G8B8A8_SRGB) &&
+			if ((SurfaceFormats[i].format == VK_FORMAT_R8G8B8A8_UNORM) &&
 				(SurfaceFormats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR))
 			{
 				return SurfaceFormats[i];

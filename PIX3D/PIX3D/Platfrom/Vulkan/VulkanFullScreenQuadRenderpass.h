@@ -5,9 +5,9 @@
 #include <Platfrom/Vulkan/VulkanIndexBuffer.h>
 #include <Platfrom/Vulkan/VulkanDescriptorSetLayout.h>
 #include <Platfrom/Vulkan/VulkanDescriptorSet.h>
-#include <Platfrom/Vulkan/VulkanVertexInputLayout.h>
 #include <Platfrom/Vulkan/VulkanRenderpass.h>
 #include <Platfrom/Vulkan/VulkanFramebuffer.h>
+#include <Platfrom/Vulkan/VulkanStaticMeshFactory.h>
 
 
 namespace PIX3D
@@ -20,7 +20,7 @@ namespace PIX3D
 			VulkanFullScreenQuadRenderpass() = default;
 			~VulkanFullScreenQuadRenderpass() {}
 
-			void Init(uint32_t width, uint32_t height, VulkanTexture* color_attachment);
+			void Init(uint32_t width, uint32_t height, VulkanTexture* color_attachment, VulkanTexture* bloom_attachment);
 			void Destroy();
 
 			void RecordCommandBuffer(VkCommandBuffer commandbuffer, uint32_t ImageIndex);
@@ -31,10 +31,6 @@ namespace PIX3D
 
 			VulkanShader m_Shader;
 
-			VulkanVertexBuffer m_VertexBuffer;
-			VulkanVertexInputLayout m_VertexInputLayout;
-			VulkanIndexBuffer m_IndexBuffer;
-
 			VulkanDescriptorSetLayout m_DescriptorSetLayout;
 			VulkanDescriptorSet m_DescriptorSet;
 
@@ -43,6 +39,8 @@ namespace PIX3D
 
 			VulkanGraphicsPipeline m_GraphicsPipeline;
 			VkPipelineLayout m_PipelineLayout = nullptr;
+
+			VulkanStaticMeshData m_QuadMesh;
 		};
 	}
 }
