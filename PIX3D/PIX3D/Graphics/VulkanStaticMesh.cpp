@@ -3,6 +3,7 @@
 #include <fstream>
 #include <Engine/Engine.hpp>
 #include <Platfrom/Vulkan/VulkanHelper.h>
+#include <Platfrom/Vulkan/VulkanSceneRenderer.h>
 
 namespace PIX3D
 {
@@ -321,12 +322,6 @@ namespace PIX3D
         m_MaterialInfoBuffer.Create(m_Materials.size() * sizeof(MaterialGPUShader_InfoBufferData));
         FillMaterialBuffer();
 
-        // create descriptor layout (set = 1) -- material set
-        m_MaterialDescriptorSetLayout
-            .AddBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
-            .AddBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
-            .Build();
-
         // create descriptor sets for each material
         m_DescriptorSets.resize(m_Materials.size());
 
@@ -334,7 +329,7 @@ namespace PIX3D
         {
             auto& material = m_Materials[i];
 
-            m_DescriptorSets[i].Init(m_MaterialDescriptorSetLayout)
+            m_DescriptorSets[i].Init(VK::VulkanSceneRenderer::GetVulkanStaticMeshMaterialDescriptorSetLayout())
                 .AddTexture(0, *material.AlbedoTexture)
                 .AddTexture(1, *material.EmissiveTexture)
                 .Build();

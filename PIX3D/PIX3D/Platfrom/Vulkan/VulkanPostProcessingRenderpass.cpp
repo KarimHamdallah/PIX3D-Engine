@@ -1,4 +1,4 @@
-#include "VulkanFullScreenQuadRenderpass.h"
+#include "VulkanPostProcessingRenderpass.h"
 #include <Engine/Engine.hpp>
 #include "VulkanHelper.h"
 
@@ -7,7 +7,7 @@ namespace PIX3D
 {
 	namespace VK
 	{
-		void VulkanFullScreenQuadRenderpass::Init(uint32_t width, uint32_t height, VulkanTexture* color_attachment, VulkanTexture* bloom_attachment)
+		void VulkanPostProcessingRenderpass::Init(uint32_t width, uint32_t height, VulkanTexture* color_attachment, VulkanTexture* bloom_attachment)
 		{
 			m_Width = width;
 			m_Height = height;
@@ -15,7 +15,7 @@ namespace PIX3D
 			auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
 
 			// load shader
-			m_Shader.LoadFromFile("../PIX3D/res/vk shaders/full_screen_quad.vert", "../PIX3D/res/vk shaders/full_screen_quad.frag");
+			m_Shader.LoadFromFile("../PIX3D/res/vk shaders/post.vert", "../PIX3D/res/vk shaders/post.frag");
 
 			// descriptor layout -- descripe shader resources
 			m_DescriptorSetLayout
@@ -112,7 +112,7 @@ namespace PIX3D
 				.Build();
 		}
 
-		void VulkanFullScreenQuadRenderpass::RecordCommandBuffer(VkCommandBuffer commandbuffer, uint32_t ImageIndex)
+		void VulkanPostProcessingRenderpass::RecordCommandBuffer(VkCommandBuffer commandbuffer, uint32_t ImageIndex)
 		{
 			VkClearColorValue ClearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
 
@@ -177,7 +177,7 @@ namespace PIX3D
 			vkCmdEndRenderPass(commandbuffer);
 		}
 
-		void VulkanFullScreenQuadRenderpass::Destroy()
+		void VulkanPostProcessingRenderpass::Destroy()
 		{
 			// TODO:: Destroy Vulkan Objects
 		}

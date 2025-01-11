@@ -246,9 +246,9 @@ namespace PIX3D
 
                     printf("Compiled and saved shaders successfully\n");
 
-                    glslang_finalize_process();
-                    return true;
                 }
+                glslang_finalize_process();
+                return true;
             }
             catch (const std::exception& e) {
                 fprintf(stderr, "Error loading shaders: %s\n", e.what());
@@ -257,7 +257,7 @@ namespace PIX3D
             }
         }
 
-        bool VulkanShader::LoadComputeShaderFromFile(const std::string& computePath)
+        bool VulkanShader::LoadComputeShaderFromFile(const std::string& computePath, bool always_compile, bool dont_save_binary)
         {
             if (!m_device)
             {
@@ -278,7 +278,7 @@ namespace PIX3D
             std::filesystem::path path = computePath;
             std::string computeSpvPath = m_CachePath + path.filename().string() + ".spv";
 
-            if (FileExists(computeSpvPath))
+            if (FileExists(computeSpvPath) && !always_compile)
             {
                 // Load pre-compiled shader
                 m_computeShader = LoadBinaryShader(computeSpvPath);
@@ -302,15 +302,17 @@ namespace PIX3D
                 m_computeShader = computeShader.shaderModule;
 
                 // Save compiled SPIR-V
-                FILE* file;
-                fopen_s(&file, computeSpvPath.c_str(), "wb");
-                if (file) {
-                    fwrite(computeShader.SPIRV.data(), sizeof(uint32_t), computeShader.SPIRV.size(), file);
-                    fclose(file);
+                if (!dont_save_binary)
+                {
+                    FILE* file;
+                    fopen_s(&file, computeSpvPath.c_str(), "wb");
+                    if (file) {
+                        fwrite(computeShader.SPIRV.data(), sizeof(uint32_t), computeShader.SPIRV.size(), file);
+                        fclose(file);
+                    }
+
+                    printf("Compiled and saved compute shader successfully\n");
                 }
-
-                printf("Compiled and saved compute shader successfully\n");
-
                 glslang_finalize_process();
                 return true;
 

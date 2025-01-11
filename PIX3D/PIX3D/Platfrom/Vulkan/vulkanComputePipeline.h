@@ -1,56 +1,64 @@
 #pragma once
 #include <vulkan/vulkan.h>
 #include <vector>
-#include <map>
 
 namespace PIX3D
 {
     namespace VK
     {
-        struct ComputeDescriptorSetBinding
-        {
-            uint32_t binding;
-            VkDescriptorType type;
-            uint32_t count;
-        };
-
-        class VulkanCompute
+        class VulkanComputePipeline
         {
         public:
-            VulkanCompute(VkDevice device, uint32_t computeQueueFamilyIndex);
-            ~VulkanCompute() = default;
+            VulkanComputePipeline() = default;
+            ~VulkanComputePipeline();
 
-            void Init();
+            // Initialize with device
+            VulkanComputePipeline& Init(VkDevice device);
 
-            VulkanCompute(const VulkanCompute&) = delete;
-            VulkanCompute& operator=(const VulkanCompute&) = delete;
+            // Add compute shader stage
+            VulkanComputePipeline& AddComputeShader(VkShaderModule computeShader);
 
-            void AddDescriptorSetLayout(const std::vector<ComputeDescriptorSetBinding>& bindings);
-            void CreatePipeline(const std::vector<uint32_t>& shaderCode);
-            void UpdateDescriptorSet(uint32_t setIndex, const std::vector<std::pair<uint32_t, VkBuffer>>& bufferBindings);
-            void Dispatch(uint32_t x, uint32_t y, uint32_t z);
+            // Set pipeline layout (for descriptor sets and push constants)
+            VulkanComputePipeline& SetPipelineLayout(VkPipelineLayout layout);
+
+            // Set workgroup size for the compute shader
+            VulkanComputePipeline& SetWorkGroupSize(uint32_t x, uint32_t y, uint32_t z);
+
+            // Build the pipeline
+            void Build();
+
+            // Get the pipeline handle
+            VkPipeline GetPipeline() const { return m_Pipeline; }
+
+            // Get the optimal work group size
+            void GetWorkGroupSize(uint32_t& x, uint32_t& y, uint32_t& z) const
+            {
+                x = m_workGroupSizeX;
+                y = m_workGroupSizeY;
+                z = m_workGroupSizeZ;
+            }
+
+            void Run(VkDescriptorSet set, uint32_t work_groups_x, uint32_t work_groups_y, uint32_t work_groups_z);
+
+            void RunWithBarrier(VkDescriptorSet set,
+                uint32_t work_groups_x,
+                uint32_t work_groups_y,
+                uint32_t work_groups_z,
+                const VkBufferMemoryBarrier& barrier);
 
         private:
-            VkDevice m_Device;
-            VkPipeline m_ComputePipeline;
-            VkPipelineLayout m_PipelineLayout;
-            std::vector<VkDescriptorSetLayout> m_DescriptorSetLayouts;
-            VkDescriptorPool m_DescriptorPool;
-            std::vector<VkDescriptorSet> m_DescriptorSets;
-            VkCommandPool m_CommandPool;
-            VkQueue m_ComputeQueue;
-            uint32_t m_ComputeQueueFamilyIndex;
+            VkDevice m_device = VK_NULL_HANDLE;
+            VkPipeline m_Pipeline = VK_NULL_HANDLE;
+            VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
 
-            std::vector<std::vector<ComputeDescriptorSetBinding>> m_DescriptorSetBindings;
+            // Shader stage
+            VkPipelineShaderStageCreateInfo m_shaderStage{};
 
-        private:
-            void CreateCommandPool();
-            void CreatePipelineLayout();
-            void CreateDescriptorPool();
-            void AllocateDescriptorSets();
-            void CreateComputePipeline(const std::vector<uint32_t>& shaderCode);
-            VkCommandBuffer BeginSingleTimeCommands();
-            void EndSingleTimeCommands(VkCommandBuffer commandBuffer);
+            // Work group sizes
+            uint32_t m_workGroupSizeX = 1;
+            uint32_t m_workGroupSizeY = 1;
+            uint32_t m_workGroupSizeZ = 1;
+
             void Cleanup();
         };
     }

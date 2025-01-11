@@ -14,7 +14,7 @@ namespace PIX3D
             ~VulkanShader();
 
             bool LoadFromFile(const std::string& vertPath, const std::string& fragPath, bool always_compile = true, bool dont_save_binary = true);
-            bool LoadComputeShaderFromFile(const std::string& computePath);
+            bool LoadComputeShaderFromFile(const std::string& computePath, bool always_compile = true, bool dont_save_binary = true);
             
             VkShaderModule GetVertexShader() const;
             VkShaderModule GetFragmentShader() const;

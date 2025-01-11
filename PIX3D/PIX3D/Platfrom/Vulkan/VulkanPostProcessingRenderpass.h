@@ -14,11 +14,11 @@ namespace PIX3D
 {
 	namespace VK
 	{
-		class VulkanFullScreenQuadRenderpass
+		class VulkanPostProcessingRenderpass
 		{
 		public:
-			VulkanFullScreenQuadRenderpass() = default;
-			~VulkanFullScreenQuadRenderpass() {}
+			VulkanPostProcessingRenderpass() = default;
+			~VulkanPostProcessingRenderpass() {}
 
 			void Init(uint32_t width, uint32_t height, VulkanTexture* color_attachment, VulkanTexture* bloom_attachment);
 			void Destroy();

@@ -155,6 +155,5 @@ namespace PIX3D
         VK::VulkanShaderStorageBuffer m_MaterialInfoBuffer; // holds array of info data structure each element for each submesh accroding to submesh index
 
         std::vector<VK::VulkanDescriptorSet> m_DescriptorSets;
-        VK::VulkanDescriptorSetLayout m_MaterialDescriptorSetLayout;
     };
 }

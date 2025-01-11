@@ -1,28 +1,16 @@
 #pragma once
 
 #include <PIX3D.h>
-#include <Platfrom/Vulkan/VulkanGraphicsPipeline.h>
-#include <Platfrom/Vulkan/VulkanShader.h>
-#include <Platfrom/Vulkan/VulkanIndexBuffer.h>
-#include <Platfrom/Vulkan/VulkanDescriptorSetLayout.h>
-#include <Platfrom/Vulkan/VulkanDescriptorSet.h>
-#include <Platfrom/Vulkan/VulkanVertexInputLayout.h>
-#include <Platfrom/Vulkan/VulkanRenderpass.h>
-#include <Platfrom/Vulkan/VulkanFramebuffer.h>
-#include <Platfrom/Vulkan/VulkanFullScreenQuadRenderpass.h>
+#include <Platfrom/Vulkan/VulkanMainRenderpass.h>
+#include <Platfrom/Vulkan/VulkanPostProcessingRenderpass.h>
 #include <Platfrom/Vulkan/VulkanBloomPass.h>
+#include <Platfrom/Vulkan/VulkanComputePipeline.h>
 
 using namespace PIX3D;
 
 class PixEditor : public PIX3D::Application
 {
 public:
-	struct _CameraUniformBuffer
-	{
-		glm::mat4 view;
-		glm::mat4 proj;
-	};
-
 
 public:
 	virtual void OnStart() override;
@@ -33,32 +21,21 @@ public:
 
 private:
 	int m_NumImages = 0;
-	std::vector<VkCommandBuffer> m_CommandBuffers;
-
-	VK::VulkanShaderStorageBuffer m_ShaderStorageBuffer;
-
-	VK::VulkanShader m_TriangleShader;
-	VK::VulkanGraphicsPipeline m_GraphicsPipeline;
-	VkPipelineLayout m_PipelineLayout = nullptr;
-
-	VK::VulkanVertexBuffer m_VertexBuffer;
-	VK::VulkanVertexInputLayout m_VertexInputLayout;
-	VK::VulkanIndexBuffer m_IndexBuffer;
-	
-	VK::VulkanTexture* m_ColorAttachmentTexture;
-	VK::VulkanTexture* m_BloomBrightnessAttachmentTexture;
-	
-	VK::VulkanDescriptorSetLayout m_CameraDescriptorSetLayout;
-	VK::VulkanRenderPass m_Renderpass;
-	VK::VulkanFramebuffer m_Framebuffer;
-	
-	std::vector<VK::VulkanDescriptorSet> m_CameraDescriptorSets;
-	std::vector<VK::VulkanUniformBuffer> m_CameraUniformBuffers;
 
 	PIX3D::Camera3D Cam;
 
 	PIX3D::VulkanStaticMesh m_Mesh;
 
-	PIX3D::VK::VulkanFullScreenQuadRenderpass m_FullScreenQuadRenderpass;
+	PIX3D::VK::VulkanMainRenderpass m_MainRenderpass;
+	PIX3D::VK::VulkanPostProcessingRenderpass m_FullScreenQuadRenderpass;
 	PIX3D::VK::VulkanBloomPass m_BloomPass;
+
+
+	VK::VulkanShader m_ComputeShader;
+
+	VK::VulkanShaderStorageBuffer m_ComputeStorageBuffer;
+	VK::VulkanDescriptorSetLayout m_ComputeDescriptorSetLayout;
+	VK::VulkanDescriptorSet m_ComputeDescriptorSet;
+
+	VK::VulkanComputePipeline m_ComputePipeline;
 };

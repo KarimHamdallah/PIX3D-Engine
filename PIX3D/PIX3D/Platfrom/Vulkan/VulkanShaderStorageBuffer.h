@@ -19,6 +19,8 @@ namespace PIX3D
             VkBuffer GetBuffer() const { return m_StorageBuffer.m_Buffer; }
             size_t GetSize() const { return m_Size; }
 
+            void* GetMappedData() { return m_MappedData; }
+
         private:
             BufferAndMemory CreateBuffer(VkDeviceSize Size,
                 VkBufferUsageFlags Usage,

@@ -21,7 +21,8 @@ namespace PIX3D
         private:
             VkDescriptorSetLayout m_DescriptorSetLayout;
             VkDescriptorSet m_DescriptorSet;
-            std::unordered_map<uint32_t, VkDescriptorBufferInfo> m_BufferBindings;
+            std::unordered_map<uint32_t, VkDescriptorBufferInfo> m_ShaderStorageBufferBindings;
+            std::unordered_map<uint32_t, VkDescriptorBufferInfo> m_UniformBufferBindings;
             std::unordered_map<uint32_t, VkDescriptorImageInfo> m_ImageBindings;
         };
     }

@@ -153,7 +153,7 @@
     <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanShader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="PIX3D\Platfrom\Vulkan\vulkanComputePipeline.cpp">
+    <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanComputePipeline.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanVertexBuffer.cpp">
@@ -192,13 +192,16 @@
     <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanFramebuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanFullScreenQuadRenderpass.cpp">
+    <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanPostProcessingRenderpass.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanStaticMeshFactory.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanBloompass.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanMainRenderpass.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -401,7 +404,7 @@
     <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanShader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="PIX3D\Platfrom\Vulkan\vulkanComputePipeline.h">
+    <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanComputePipeline.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanVertexBuffer.h">
@@ -440,13 +443,16 @@
     <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanFramebuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanFullScreenQuadRenderpass.h">
+    <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanPostProcessingRenderpass.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanBloompass.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanStaticMeshFactory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanMainRenderpass.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -476,11 +482,12 @@
     <None Include="res\gl shaders\shadowmapping_depth.vert" />
     <None Include="res\gl shaders\shadowmapping_depth.frag" />
     <None Include="res\gl shaders\shadowmapping_depth.geom" />
-    <None Include="res\vk shaders\triangle.vert" />
-    <None Include="res\vk shaders\triangle.frag" />
-    <None Include="res\vk shaders\full_screen_quad.vert" />
-    <None Include="res\vk shaders\full_screen_quad.frag" />
+    <None Include="res\vk shaders\3d_model.vert" />
+    <None Include="res\vk shaders\3d_model.frag" />
+    <None Include="res\vk shaders\post.vert" />
+    <None Include="res\vk shaders\post.frag" />
     <None Include="res\vk shaders\bloom.vert" />
     <None Include="res\vk shaders\bloom.frag" />
+    <None Include="res\vk shaders\square.comp" />
   </ItemGroup>
 </Project>

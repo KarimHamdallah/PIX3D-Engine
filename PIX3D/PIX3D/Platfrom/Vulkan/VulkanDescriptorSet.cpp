@@ -26,8 +26,23 @@ namespace PIX3D
             auto* Context = (VK::VulkanGraphicsContext*)Engine::GetGraphicsContext();
             std::vector<VkWriteDescriptorSet> descriptorWrites;
 
-            // Add buffer descriptors
-            for (const auto& [binding, bufferInfo] : m_BufferBindings)
+            // Add shader storage buffer descriptors
+            for (const auto& [binding, bufferInfo] : m_ShaderStorageBufferBindings)
+            {
+                VkWriteDescriptorSet descriptorWrite{};
+                descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                descriptorWrite.dstSet = m_DescriptorSet;
+                descriptorWrite.dstBinding = binding;
+                descriptorWrite.dstArrayElement = 0;
+                descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+                descriptorWrite.descriptorCount = 1;
+                descriptorWrite.pBufferInfo = &bufferInfo;
+
+                descriptorWrites.push_back(descriptorWrite);
+            }
+
+            // Add uniform buffer descriptors
+            for (const auto& [binding, bufferInfo] : m_UniformBufferBindings)
             {
                 VkWriteDescriptorSet descriptorWrite{};
                 descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -81,7 +96,7 @@ namespace PIX3D
             bufferInfo.offset = 0;
             bufferInfo.range = uniformBuffer.GetSize();
 
-            m_BufferBindings[binding] = bufferInfo;
+            m_UniformBufferBindings[binding] = bufferInfo;
             return *this;
         }
 
@@ -92,7 +107,7 @@ namespace PIX3D
             bufferInfo.offset = 0;
             bufferInfo.range = storageBuffer.GetSize();
 
-            m_BufferBindings[binding] = bufferInfo;
+            m_ShaderStorageBufferBindings[binding] = bufferInfo;
             return *this;
         }
 

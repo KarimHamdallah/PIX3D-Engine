@@ -74,6 +74,12 @@ namespace PIX3D
 				s_DefaultBlackTexture->Create();
 				s_DefaultBlackTexture->LoadFromData(data.data(), 2, 2, TextureFormat::RGBA8);
 			}
+
+			////////////////// Vulkan Static Mesh Material Descriptor Set Layout ///////////////////////
+			s_VulkanStaticMeshMaterialDescriptorSetLayout
+				.AddBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+				.AddBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+				.Build();
 		}
 
 		void VulkanSceneRenderer::Destroy()
