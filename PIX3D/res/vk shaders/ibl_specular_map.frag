@@ -1,10 +1,16 @@
 #version 460 core
 
+#extension GL_KHR_vulkan_glsl : enable
+
 layout (location = 0) out vec4 FragColor;
 layout (location = 0) in vec3 in_ModelCoordinates;
 
-layout (location = 3) uniform float roughness;
-layout (location = 4) uniform samplerCube environmentCubemap;
+layout(push_constant) uniform PushConstants {
+    mat4 view_projection;
+	float roughness;
+} push;
+
+layout (set = 0, binding = 0) uniform samplerCube environmentCubemap;
 
 const float PI = 3.14159265359;
 const uint SAMPLE_COUNT = 1024u;
@@ -101,12 +107,12 @@ void main() {
 
 	for(uint i = 0u; i < SAMPLE_COUNT; i++) {
 		vec2 unitSquareSample = hammersley(i, SAMPLE_COUNT);
-		vec3 H = importanceSampleGGX(unitSquareSample, N, roughness); // halfway
+		vec3 H = importanceSampleGGX(unitSquareSample, N, push.roughness); // halfway
 		vec3 L = normalize(2.0 * dot(V, H) * H - V); // light sample direction
 
 		float NdotL = max(dot(N, L), 0.0); // don't forget from the integral
 		if(NdotL > 0.0) { // stuff with negative dot product is behind our hemisphere
-			float mipLevel = getSampleMipLevel(V, N, H, roughness);
+			float mipLevel = getSampleMipLevel(V, N, H, push.roughness);
 			outputColor += textureLod(environmentCubemap, L, mipLevel).rgb * NdotL;
 			totalWeight += NdotL;
 		}

@@ -10,13 +10,7 @@ void PixEditor::OnStart()
 	
 	Cam.Init({0.0f, 0.0f, 5.0f});
 
-
-
-
-
-
-
-
+    /*
 
 	uint32_t Count = 200000000;
 
@@ -148,39 +142,24 @@ void PixEditor::OnStart()
 	{
 		std::cout << "square " << i << ": " << data[i] << std::endl;
 	}
-
-
-
-
-
-
-
-
-
-
-
-	m_MainRenderpass.Init(specs.Width, specs.Height);
-	m_BloomPass.Init(specs.Width, specs.Height, m_MainRenderpass.m_BloomBrightnessAttachmentTexture);
-	m_FullScreenQuadRenderpass.Init(specs.Width, specs.Height, m_MainRenderpass.m_ColorAttachmentTexture, m_BloomPass.GetFinalBloomTexture());
+    */
 }
 
 void PixEditor::OnUpdate(float dt)
 {
-	auto* Context = (VK::VulkanGraphicsContext*)Engine::GetGraphicsContext();
+    if (Input::IsKeyPressed(KeyCode::RightShift))
+        Engine::GetPlatformLayer()->ShowCursor(false);
+    else if (Input::IsKeyPressed(KeyCode::Escape))
+        Engine::GetPlatformLayer()->ShowCursor(true);
+
 	Cam.Update(dt);
 
-	uint32_t ImageIndex = Context->m_Queue.AcquireNextImage();
+    VK::VulkanSceneRenderer::Begin(Cam);
 
-	m_MainRenderpass.BeginRender(Cam, ImageIndex);
+    VK::VulkanSceneRenderer::RenderSkyBox();
+    VK::VulkanSceneRenderer::RenderMesh(m_Mesh);
 
-	m_MainRenderpass.RenderMesh(m_Mesh, ImageIndex);
-	m_BloomPass.RecordCommandBuffer(m_MainRenderpass.m_CommandBuffers[ImageIndex], 10);
-	m_FullScreenQuadRenderpass.RecordCommandBuffer(m_MainRenderpass.m_CommandBuffers[ImageIndex], ImageIndex);
-	
-	m_MainRenderpass.EndRender(ImageIndex);
-
-	Context->m_Queue.SubmitAsync(m_MainRenderpass.m_CommandBuffers[ImageIndex]);
-	Context->m_Queue.Present(ImageIndex);
+    VK::VulkanSceneRenderer::End();
 }
 
 void PixEditor::OnDestroy()

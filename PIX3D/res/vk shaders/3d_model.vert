@@ -15,12 +15,17 @@ layout (location = 0) out vec2 out_TexCoords;
 // camera uniform buffer
 layout(set = 0, binding = 0) uniform CameraUniformBuffer
 {
-    mat4 view;
     mat4 proj;
+    mat4 view;
+    mat4 skybox_view;
 }cam;
+
+layout(push_constant) uniform PushConstants {
+   mat4 model;
+}push;
 
 void main()
 {
-    gl_Position = cam.proj * cam.view * vec4(in_Position, 1.0);
+    gl_Position = cam.proj * cam.view * push.model * vec4(in_Position, 1.0);
     out_TexCoords = in_TexCoords;
 }

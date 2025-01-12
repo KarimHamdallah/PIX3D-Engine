@@ -1,5 +1,6 @@
 #pragma once
 #include "VulkanTexture.h"
+#include "VulkanHdrCubemap.h"
 #include "VulkanUniformBuffer.h"
 #include "VulkanShaderStorageBuffer.h"
 #include <unordered_map>
@@ -13,6 +14,9 @@ namespace PIX3D
         public:
             VulkanDescriptorSet& Init(VkDescriptorSetLayout layout);
             VulkanDescriptorSet& AddTexture(uint32_t binding, const VulkanTexture& texture);
+            VulkanDescriptorSet& AddTexture(uint32_t binding, VkImageView ImageView, VkSampler Sampler);
+            VulkanDescriptorSet& AddCubemap(uint32_t binding, const VulkanHdrCubemap& cubemap);
+            VulkanDescriptorSet& AddCubemap(uint32_t binding, VkImageView ImageView, VkSampler Sampler);
             VulkanDescriptorSet& AddUniformBuffer(uint32_t binding, const VulkanUniformBuffer& uniformBuffer);
             VulkanDescriptorSet& AddShaderStorageBuffer(uint32_t binding, const VulkanShaderStorageBuffer& storageBuffer);
             void Build();

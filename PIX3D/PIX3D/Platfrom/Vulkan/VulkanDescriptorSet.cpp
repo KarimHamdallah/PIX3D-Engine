@@ -89,6 +89,39 @@ namespace PIX3D
             return *this;
         }
 
+        VulkanDescriptorSet& VulkanDescriptorSet::AddTexture(uint32_t binding, VkImageView ImageView, VkSampler Sampler)
+        {
+            VkDescriptorImageInfo imageInfo{};
+            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            imageInfo.imageView = ImageView;
+            imageInfo.sampler = Sampler;
+
+            m_ImageBindings[binding] = imageInfo;
+            return *this;
+        }
+
+        VulkanDescriptorSet& VulkanDescriptorSet::AddCubemap(uint32_t binding, const VulkanHdrCubemap& cubemap)
+        {
+            VkDescriptorImageInfo imageInfo{};
+            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            imageInfo.imageView = cubemap.m_ImageView;
+            imageInfo.sampler = cubemap.m_Sampler;
+
+            m_ImageBindings[binding] = imageInfo;
+            return *this;
+        }
+
+        VulkanDescriptorSet& VulkanDescriptorSet::AddCubemap(uint32_t binding, VkImageView ImageView, VkSampler Sampler)
+        {
+            VkDescriptorImageInfo imageInfo{};
+            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            imageInfo.imageView = ImageView;
+            imageInfo.sampler = Sampler;
+
+            m_ImageBindings[binding] = imageInfo;
+            return *this;
+        }
+
         VulkanDescriptorSet& VulkanDescriptorSet::AddUniformBuffer(uint32_t binding, const VulkanUniformBuffer& uniformBuffer)
         {
             VkDescriptorBufferInfo bufferInfo{};

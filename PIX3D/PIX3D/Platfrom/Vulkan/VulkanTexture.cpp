@@ -119,6 +119,81 @@ namespace PIX3D
             return true;
         }
 
+        bool VulkanTexture::LoadFromHDRFile(const std::filesystem::path& FilePath, TextureFormat format, uint32_t miplevels)
+        {
+            m_MipLevels = miplevels;
+
+            int texWidth, texHeight, texChannels;
+            PIX_ASSERT_MSG((FilePath.extension().string() == ".hdr"), "file is not .hdr file!");
+
+            float* pixels = stbi_loadf(FilePath.string().c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+
+            PIX_ASSERT_MSG(pixels, "failed to load hdr file!");
+
+            m_Width = static_cast<uint32_t>(texWidth);
+            m_Height = static_cast<uint32_t>(texHeight);
+
+            // Always use RGBA8 format for loaded images, but handle SRGB if requested
+            m_Format = format;
+            VkFormat vulkanFormat = GetVulkanFormat(format);
+
+            VkDeviceSize imageSize = m_Width * m_Height * GetBytesPerPixel(format); // 4 bytes per RGBA pixel for example
+
+            // Create staging buffer
+            BufferAndMemory stagingBuffer = CreateBuffer(
+                imageSize,
+                VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                m_PhysicalDevice
+            );
+
+            // Copy pixel data to staging buffer
+            void* data;
+            vkMapMemory(m_Device, stagingBuffer.m_Memory, 0, imageSize, 0, &data);
+            memcpy(data, pixels, static_cast<size_t>(imageSize));
+            vkUnmapMemory(m_Device, stagingBuffer.m_Memory);
+
+            // Free original pixel data
+            stbi_image_free(pixels);
+
+            // Create the image
+
+            VkImageUsageFlags usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+
+            if (m_MipLevels > 1)
+                usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+
+            CreateImage(m_Width, m_Height, vulkanFormat, VK_IMAGE_TILING_OPTIMAL,
+                usage,
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+            // Transition image layout for copy
+            TransitionImageLayout(vulkanFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+            // Copy data from staging buffer to image
+            CopyBufferToImage(stagingBuffer.m_Buffer, m_Width, m_Height);
+
+            if (m_MipLevels > 1)
+            {
+                auto* Context = (VK::VulkanGraphicsContext*)Engine::GetGraphicsContext();
+
+                VkCommandBuffer Commandbuffer = VulkanHelper::BeginSingleTimeCommands(Context->m_Device, Context->m_CommandPool);
+                GenerateMipmaps(Commandbuffer);
+                VulkanHelper::EndSingleTimeCommands(Context->m_Device, Context->m_Queue.m_Queue, Context->m_CommandPool, Commandbuffer);
+            }
+            else
+                TransitionImageLayout(vulkanFormat, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+            // Create image view and sampler
+            CreateImageView(vulkanFormat);
+            CreateSampler(static_cast<float>(m_MipLevels - 1));
+
+            // Cleanup staging buffer
+            stagingBuffer.Destroy(m_Device);
+
+            return true;
+        }
+
         bool VulkanTexture::LoadFromData(void* Data, uint32_t Width, uint32_t Height, TextureFormat Format)
         {
             if (!Data || Width == 0 || Height == 0)

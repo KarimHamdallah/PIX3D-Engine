@@ -32,6 +32,7 @@ namespace PIX3D
 
             void Create();
             bool LoadFromFile(const std::filesystem::path& FilePath, uint32_t miplevels = 1, bool IsSRGB = false);
+            bool LoadFromHDRFile(const std::filesystem::path& FilePath, TextureFormat format = TextureFormat::RGBA32F,uint32_t miplevels = 1);
             bool LoadFromData(void* Data, uint32_t Width, uint32_t Height, TextureFormat Format);
             bool CreateColorAttachment(uint32_t Width, uint32_t Height, TextureFormat Format, uint32_t MipLevels = 1, bool ClampToEdge = true);
             void GenerateMipmaps(VkCommandBuffer commandBuffer);

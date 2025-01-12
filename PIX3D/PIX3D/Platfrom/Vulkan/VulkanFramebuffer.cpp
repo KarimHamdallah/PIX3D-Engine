@@ -39,6 +39,27 @@ namespace PIX3D
             return *this;
         }
 
+        VulkanFramebuffer& VulkanFramebuffer::AddAttachment(VkImage image, VkFormat format, uint32_t layer, uint32_t mipLevel)
+        {
+            VkImageViewCreateInfo viewInfo{};
+            viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+            viewInfo.image = image;
+            viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+            viewInfo.format = format;
+            viewInfo.subresourceRange.aspectMask = IsDepthFormat(format) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+            viewInfo.subresourceRange.baseMipLevel = mipLevel;
+            viewInfo.subresourceRange.levelCount = 1;
+            viewInfo.subresourceRange.baseArrayLayer = layer;
+            viewInfo.subresourceRange.layerCount = 1;
+
+            VkImageView view;
+            if (vkCreateImageView(m_device, &viewInfo, nullptr, &view) != VK_SUCCESS)
+                PIX_ASSERT_MSG(false, "Failed to create texture image view!");
+
+            m_attachments.push_back(view);
+            return *this;
+        }
+
         VulkanFramebuffer& VulkanFramebuffer::AddAttachment(VulkanTexture* texture, uint32_t mipLevel)
         {
             auto CreateImageView = [](VkDevice device, VulkanTexture* texture, uint32_t mipLevel, VkImageView* imageview) -> void

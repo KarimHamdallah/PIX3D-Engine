@@ -201,7 +201,16 @@
     <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanBloompass.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanMainRenderpass.cpp">
+    <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanHdrCubemap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PIX3D\Platfrom\Vulkan\IBL\VulkanIrradianceCubemap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PIX3D\Platfrom\Vulkan\IBL\VulkanPrefilteredCubeMap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PIX3D\Platfrom\Vulkan\IBL\VulkanBrdfLutTexture.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -452,7 +461,16 @@
     <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanStaticMeshFactory.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanMainRenderpass.h">
+    <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanHdrCubemap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PIX3D\Platfrom\Vulkan\IBL\VulkanIrradianceCubemap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PIX3D\Platfrom\Vulkan\IBL\VulkanPrefilteredCubeMap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PIX3D\Platfrom\Vulkan\IBL\VulkanBrdfLutTexture.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -489,5 +507,15 @@
     <None Include="res\vk shaders\bloom.vert" />
     <None Include="res\vk shaders\bloom.frag" />
     <None Include="res\vk shaders\square.comp" />
+    <None Include="res\vk shaders\equirectangluarmap_to_cube.vert" />
+    <None Include="res\vk shaders\equirectangluarmap_to_cube.frag" />
+    <None Include="res\vk shaders\skybox.vert" />
+    <None Include="res\vk shaders\skybox.frag" />
+    <None Include="res\vk shaders\diffuse_irradiance.vert" />
+    <None Include="res\vk shaders\diffuse_irradiance.frag" />
+    <None Include="res\vk shaders\ibl_specular_map.vert" />
+    <None Include="res\vk shaders\ibl_specular_map.frag" />
+    <None Include="res\vk shaders\brdf_lut.frag" />
+    <None Include="res\vk shaders\brdf_lut.vert" />
   </ItemGroup>
 </Project>

@@ -1,9 +1,7 @@
 #pragma once
 
 #include <PIX3D.h>
-#include <Platfrom/Vulkan/VulkanMainRenderpass.h>
-#include <Platfrom/Vulkan/VulkanPostProcessingRenderpass.h>
-#include <Platfrom/Vulkan/VulkanBloomPass.h>
+#include <Platfrom/Vulkan/VulkanSceneRenderer.h>
 #include <Platfrom/Vulkan/VulkanComputePipeline.h>
 
 using namespace PIX3D;
@@ -25,11 +23,6 @@ private:
 	PIX3D::Camera3D Cam;
 
 	PIX3D::VulkanStaticMesh m_Mesh;
-
-	PIX3D::VK::VulkanMainRenderpass m_MainRenderpass;
-	PIX3D::VK::VulkanPostProcessingRenderpass m_FullScreenQuadRenderpass;
-	PIX3D::VK::VulkanBloomPass m_BloomPass;
-
 
 	VK::VulkanShader m_ComputeShader;
 

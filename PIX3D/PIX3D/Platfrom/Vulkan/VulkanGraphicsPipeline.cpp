@@ -210,13 +210,13 @@ namespace PIX3D
             return *this;
         }
 
-        VulkanGraphicsPipeline& VulkanGraphicsPipeline::AddDepthStencilState(bool depthTestEnable, bool depthWriteEnable)
+        VulkanGraphicsPipeline& VulkanGraphicsPipeline::AddDepthStencilState(bool depthTestEnable, bool depthWriteEnable, VkCompareOp compareOperation)
         {
             m_depthStencilState = {};
             m_depthStencilState.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
             m_depthStencilState.depthTestEnable = depthTestEnable ? VK_TRUE : VK_FALSE;
             m_depthStencilState.depthWriteEnable = depthWriteEnable ? VK_TRUE : VK_FALSE;
-            m_depthStencilState.depthCompareOp = VK_COMPARE_OP_LESS;  // Standard depth testing
+            m_depthStencilState.depthCompareOp = compareOperation;  // Standard depth testing
             m_depthStencilState.depthBoundsTestEnable = VK_FALSE;
             m_depthStencilState.stencilTestEnable = VK_FALSE;
             m_depthStencilState.minDepthBounds = 0.0f;

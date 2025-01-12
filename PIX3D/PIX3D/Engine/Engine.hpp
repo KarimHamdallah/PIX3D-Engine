@@ -85,7 +85,7 @@ namespace PIX3D
 					s_GraphicsContext = new VK::VulkanGraphicsContext();
 					s_GraphicsContext->Init(s_Platform->GetNativeWindowHandel());
 
-					VK::VulkanSceneRenderer::Init();
+					VK::VulkanSceneRenderer::Init(s_AppSpecs.Width, s_AppSpecs.Height);
 			    }break;
 			    
 			    case GraphicsAPI::NONE:

@@ -26,7 +26,7 @@ namespace PIX3D
             VulkanGraphicsPipeline& AddRasterizationState(VkPolygonMode polygonMode, VkCullModeFlags cullMode, VkFrontFace frontFace);
             VulkanGraphicsPipeline& AddMultisampleState(VkSampleCountFlagBits rasterizationSamples);
             VulkanGraphicsPipeline& AddColorBlendState(bool enable_blend, uint32_t attachmentCount);
-            VulkanGraphicsPipeline& AddDepthStencilState(bool depthTestEnable = true, bool depthWriteEnable = true);
+            VulkanGraphicsPipeline& AddDepthStencilState(bool depthTestEnable = true, bool depthWriteEnable = true, VkCompareOp compareOperation = VK_COMPARE_OP_LESS);
             VulkanGraphicsPipeline& SetPipelineLayout(VkPipelineLayout layout);
 
             void Build();

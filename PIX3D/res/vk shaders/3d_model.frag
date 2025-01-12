@@ -15,6 +15,12 @@ layout (location = 0) in vec2 in_TexCoords;
 layout(set = 1, binding = 0) uniform sampler2D AlbedoTexture;
 layout(set = 1, binding = 1) uniform sampler2D EmissiveTexture;
 
+
+// Environment Mapping Set
+layout(set = 2, binding = 0) uniform samplerCube DiffuseIrradianceMap;
+layout(set = 2, binding = 1) uniform samplerCube PrefilteredEnvMap;
+layout(set = 2, binding = 2) uniform samplerCube BrdfConvolutionMap;
+
 const float BloomBrightnessCutoff = 1.0;
 
 void main()
