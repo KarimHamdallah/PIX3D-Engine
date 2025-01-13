@@ -371,7 +371,8 @@ namespace PIX3D
             VkImage Image,
             VkFormat format,
             VkImageView& ImageView,
-            uint32_t mipcount
+            uint32_t base_mip,
+            uint32_t mip_count
         )
         {
             auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
@@ -383,8 +384,8 @@ namespace PIX3D
             viewInfo.format = format;
             viewInfo.subresourceRange.aspectMask = IsDepthFormat(format) ?
                 VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
-            viewInfo.subresourceRange.baseMipLevel = 0;
-            viewInfo.subresourceRange.levelCount = mipcount;
+            viewInfo.subresourceRange.baseMipLevel = base_mip;
+            viewInfo.subresourceRange.levelCount = mip_count;
             viewInfo.subresourceRange.baseArrayLayer = 0;
             viewInfo.subresourceRange.layerCount = 6;  // All 6 faces
 

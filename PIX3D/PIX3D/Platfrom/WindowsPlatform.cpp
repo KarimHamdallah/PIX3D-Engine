@@ -8,6 +8,7 @@
 #include <Windows.h>
 #include <shlobj.h>
 #include <commdlg.h>
+#include <Engine/Engine.hpp>
 
 #pragma comment(lib, "Shell32.lib")
 
@@ -22,11 +23,11 @@ namespace
         PIX3D::Engine::SetWindowWidth(width);
         PIX3D::Engine::SetWindowHeight(height);
 
+        auto* Context = (PIX3D::VK::VulkanGraphicsContext*)PIX3D::Engine::GetGraphicsContext();
+        Context->Resize(width, height);
+
         auto App = PIX3D::Engine::GetApplication();
         App->OnResize(width, height);
-
-        PIX3D::GL::GLCommands::SetViewPort(width, height);
-        PIX3D::GL::GLRenderer::Resize(width, height);
 
         auto func = PIX3D::Engine::GetWindowSizeCallBackFunc();
         if(func)

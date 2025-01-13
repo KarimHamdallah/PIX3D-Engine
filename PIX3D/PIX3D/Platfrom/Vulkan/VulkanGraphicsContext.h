@@ -212,6 +212,11 @@ namespace PIX3D
 			virtual void SwapBuffers(void* window_handle) override;
 			void Destroy();
 
+			void Resize(uint32_t width, uint32_t height);
+
+		private:
+			void RecreateSwapChain(uint32_t width, uint32_t height);
+
 		public:
 			void* m_NativeWindowHandle = nullptr;
 

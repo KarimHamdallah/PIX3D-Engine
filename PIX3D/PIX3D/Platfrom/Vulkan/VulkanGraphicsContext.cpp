@@ -145,6 +145,31 @@ namespace
 			format == VK_FORMAT_D24_UNORM_S8_UINT ||
 			format == VK_FORMAT_D16_UNORM_S8_UINT;
 	}
+
+	PIX3D::VK::TextureFormat GetTextureFormatFromVulkanFormat(VkFormat format)
+	{
+		switch (format)
+		{
+		case VK_FORMAT_R8_UNORM: return            PIX3D::VK::TextureFormat::R8;
+		case VK_FORMAT_R8G8_UNORM: return          PIX3D::VK::TextureFormat::RG8;
+		case VK_FORMAT_R8G8B8_UNORM: return        PIX3D::VK::TextureFormat::RGB8;
+		case VK_FORMAT_R8G8B8A8_UNORM: return      PIX3D::VK::TextureFormat::RGBA8;
+		case VK_FORMAT_R8G8B8A8_SRGB: return       PIX3D::VK::TextureFormat::RGBA8_SRGB;
+		case VK_FORMAT_R16G16B16_SFLOAT: return    PIX3D::VK::TextureFormat::RGB16F;
+		case VK_FORMAT_R16G16B16A16_SFLOAT: return PIX3D::VK::TextureFormat::RGBA16F;
+		case VK_FORMAT_R32G32B32A32_SFLOAT: return PIX3D::VK::TextureFormat::RGBA32F;
+
+			// Depth formats
+		case VK_FORMAT_D16_UNORM: return              PIX3D::VK::TextureFormat::DEPTH16;
+		case VK_FORMAT_X8_D24_UNORM_PACK32: return    PIX3D::VK::TextureFormat::DEPTH24;
+		case VK_FORMAT_D32_SFLOAT: return             PIX3D::VK::TextureFormat::DEPTH32;
+		case VK_FORMAT_D24_UNORM_S8_UINT: return      PIX3D::VK::TextureFormat::DEPTH24_STENCIL8;
+		case VK_FORMAT_D32_SFLOAT_S8_UINT: return     PIX3D::VK::TextureFormat::DEPTH32_STENCIL8;
+
+		default:
+			PIX_ASSERT_MSG(false, "Unsupported Vulkan format!");
+		}
+	};
 }
 
 namespace PIX3D
@@ -417,31 +442,6 @@ namespace PIX3D
 			//////////////////////////////////////////////////////
 			////////////////// Depth Texture /////////////////////
 			//////////////////////////////////////////////////////
-			
-
-			auto GetTextureFormatFromVulkanFormat = [](VkFormat format) -> TextureFormat {
-				switch (format)
-				{
-				case VK_FORMAT_R8_UNORM: return TextureFormat::R8;
-				case VK_FORMAT_R8G8_UNORM: return TextureFormat::RG8;
-				case VK_FORMAT_R8G8B8_UNORM: return TextureFormat::RGB8;
-				case VK_FORMAT_R8G8B8A8_UNORM: return TextureFormat::RGBA8;
-				case VK_FORMAT_R8G8B8A8_SRGB: return TextureFormat::RGBA8_SRGB;
-				case VK_FORMAT_R16G16B16_SFLOAT: return TextureFormat::RGB16F;
-				case VK_FORMAT_R16G16B16A16_SFLOAT: return TextureFormat::RGBA16F;
-				case VK_FORMAT_R32G32B32A32_SFLOAT: return TextureFormat::RGBA32F;
-
-					// Depth formats
-				case VK_FORMAT_D16_UNORM: return TextureFormat::DEPTH16;
-				case VK_FORMAT_X8_D24_UNORM_PACK32: return TextureFormat::DEPTH24;
-				case VK_FORMAT_D32_SFLOAT: return TextureFormat::DEPTH32;
-				case VK_FORMAT_D24_UNORM_S8_UINT: return TextureFormat::DEPTH24_STENCIL8;
-				case VK_FORMAT_D32_SFLOAT_S8_UINT: return TextureFormat::DEPTH32_STENCIL8;
-
-				default:
-					PIX_ASSERT_MSG(false, "Unsupported Vulkan format!");
-				}
-			};
 
 			auto specs = Engine::GetApplicationSpecs();
 
@@ -553,9 +553,112 @@ namespace PIX3D
 		}
 
 
+		void VulkanGraphicsContext::RecreateSwapChain(uint32_t width, uint32_t height)
+		{
+			// Wait for device to finish all operations
+			vkDeviceWaitIdle(m_Device);
 
+			// Clean up old swapchain resources
+			for (auto imageView : m_SwapChainImageViews)
+			{
+				vkDestroyImageView(m_Device, imageView, nullptr);
+			}
 
+			if (m_SwapChain != nullptr)
+				vkDestroySwapchainKHR(m_Device, m_SwapChain, nullptr);
 
+			m_SwapChainImageViews.clear();
+			m_SwapChainImages.clear();
+
+			// Get new surface capabilities
+			VkSurfaceCapabilitiesKHR surfaceCaps;
+			VkResult res = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
+				m_PhysDevice.GetSelected().m_physDevice,
+				m_Surface,
+				&surfaceCaps);
+			VK_CHECK_RESULT(res);
+
+			// Create new swapchain
+			uint32_t numImages = ChooseNumImages(surfaceCaps);
+			VkPresentModeKHR presentMode = ChoosePresentMode(m_PhysDevice.GetSelected().m_presentModes);
+
+			VkSwapchainCreateInfoKHR createInfo = {};
+			createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+			createInfo.surface = m_Surface;
+			createInfo.minImageCount = numImages;
+			createInfo.imageFormat = m_SwapChainSurfaceFormat.format;
+			createInfo.imageColorSpace = m_SwapChainSurfaceFormat.colorSpace;
+			createInfo.imageExtent = surfaceCaps.currentExtent;
+			createInfo.imageArrayLayers = 1;
+			createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+			createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+			createInfo.queueFamilyIndexCount = 1;
+			createInfo.pQueueFamilyIndices = &m_QueueFamily;
+			createInfo.preTransform = surfaceCaps.currentTransform;
+			createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+			createInfo.presentMode = presentMode;
+			createInfo.clipped = VK_TRUE;
+			createInfo.oldSwapchain = m_SwapChain;
+
+			VkSwapchainKHR newSwapChain;
+			res = vkCreateSwapchainKHR(m_Device, &createInfo, nullptr, &newSwapChain);
+			VK_CHECK_RESULT(res);
+
+			m_SwapChain = newSwapChain;
+
+			// Get new swapchain images
+			uint32_t imageCount;
+			res = vkGetSwapchainImagesKHR(m_Device, m_SwapChain, &imageCount, nullptr);
+			VK_CHECK_RESULT(res);
+
+			m_SwapChainImages.resize(imageCount);
+			res = vkGetSwapchainImagesKHR(m_Device, m_SwapChain, &imageCount, m_SwapChainImages.data());
+			VK_CHECK_RESULT(res);
+
+			// Create new image views
+			m_SwapChainImageViews.resize(imageCount);
+			for (uint32_t i = 0; i < imageCount; i++) {
+				m_SwapChainImageViews[i] = VulkanHelper::CreateImageView(
+					m_Device,
+					m_SwapChainImages[i],
+					m_SwapChainSurfaceFormat.format,
+					VK_IMAGE_ASPECT_COLOR_BIT,
+					VK_IMAGE_VIEW_TYPE_2D,
+					1,  // layerCount
+					1   // mipLevels
+				);
+			}
+
+			// Recreate depth buffer if it exists
+			if (m_DepthAttachmentTexture)
+			{
+				m_DepthAttachmentTexture->Destroy();
+				delete m_DepthAttachmentTexture;
+				
+				m_DepthAttachmentTexture = new VK::VulkanTexture();
+				m_DepthAttachmentTexture->Create();
+				m_DepthAttachmentTexture->CreateColorAttachment(
+					surfaceCaps.currentExtent.width,
+					surfaceCaps.currentExtent.height,
+					GetTextureFormatFromVulkanFormat(m_SupportedDepthFormat)
+				);
+			}
+
+			PIX_DEBUG_SUCCESS("Swapchain recreated successfully");
+		}
+
+		void VulkanGraphicsContext::Resize(uint32_t width, uint32_t height)
+		{
+			// Skip if window is minimized
+			if (width == 0 || height == 0)
+				return;
+
+			// Wait for the device to finish all operations
+			vkDeviceWaitIdle(m_Device);
+
+			// Recreate the swapchain with new dimensions
+			RecreateSwapChain(width, height);
+		}
 
 
 

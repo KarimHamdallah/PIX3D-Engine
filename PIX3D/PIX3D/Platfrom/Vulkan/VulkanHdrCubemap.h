@@ -26,7 +26,8 @@ namespace PIX3D
                 VkImage Image,
                 VkFormat format,
                 VkImageView& ImageView,
-                uint32_t mipcount = 1
+                uint32_t base_mip = 0,
+                uint32_t mip_count = 1
             );
 
             static void CreateSampler

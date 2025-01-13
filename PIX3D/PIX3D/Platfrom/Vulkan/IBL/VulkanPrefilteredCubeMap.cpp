@@ -28,7 +28,7 @@ namespace PIX3D
                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_Image, m_ImageMemory);
 
                 // Create image view with mip levels
-                VulkanCubemapHelper::CreateImageView(m_Image, m_Format, m_ImageView, m_MipLevels);
+                VulkanCubemapHelper::CreateImageView(m_Image, m_Format, m_ImageView, 0, m_MipLevels);
                 VulkanCubemapHelper::CreateSampler(m_MipLevels - 1, m_Sampler);
             }
 

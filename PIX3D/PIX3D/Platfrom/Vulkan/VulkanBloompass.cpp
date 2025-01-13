@@ -150,7 +150,9 @@ namespace PIX3D
             m_Framebuffers[HORIZONTAL_BLUR_BUFFER_INDEX].resize(BLUR_DOWN_SAMPLES);
             m_Framebuffers[VERTICAL_BLUR_BUFFER_INDEX].resize(BLUR_DOWN_SAMPLES);
             
-            SetupFramebuffers(0);
+            // Recreate framebuffers for all mip levels
+            for (int mipLevel = 0; mipLevel < BLUR_DOWN_SAMPLES; mipLevel++)
+                SetupFramebuffers(mipLevel);
         }
 
         void VulkanBloomPass::SetupFramebuffers(int mipLevel)
@@ -196,7 +198,7 @@ namespace PIX3D
                 uint32_t mipWidth = m_Width / std::pow(2, mipLevel);
                 uint32_t mipHeight = m_Height / std::pow(2, mipLevel);
 
-                SetupFramebuffers(mipLevel); // draw to specific mip map
+                // SetupFramebuffers(mipLevel); // draw to specific mip map
 
                 for (size_t i = 0; i < numIterations; i++)
                 {
@@ -301,22 +303,73 @@ namespace PIX3D
 
         void VulkanBloomPass::Resize(uint32_t width, uint32_t height)
         {
-            /*
             m_Width = width;
             m_Height = height;
 
-            // Recreate textures with new size
-            for (int i = 0; i < 2; i++)
+            // Destroy existing color attachments
+            for (int i = 0; i < BLUR_BUFFERS_COUNT; i++)
             {
-                m_BloomTextures[i]->Resize(width, height);
+                if (m_ColorAttachments[i])
+                {
+                    m_ColorAttachments[i]->Destroy();
+                    delete m_ColorAttachments[i];
+                    m_ColorAttachments[i] = nullptr;
+                }
             }
 
+            // Destroy existing framebuffers
+            for (int i = 0; i < BLUR_BUFFERS_COUNT; i++)
+            {
+                for (auto& framebuffer : m_Framebuffers[i])
+                {
+                    framebuffer.Destroy();
+                }
+                m_Framebuffers[i].clear();
+            }
+
+            // Recreate color attachments with new size
+            auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
+
+            // Recreate horizontal blur buffer
+            m_ColorAttachments[HORIZONTAL_BLUR_BUFFER_INDEX] = new VulkanTexture();
+            m_ColorAttachments[HORIZONTAL_BLUR_BUFFER_INDEX]->Create();
+            m_ColorAttachments[HORIZONTAL_BLUR_BUFFER_INDEX]->CreateColorAttachment(width, height, TextureFormat::RGBA16F, BLUR_DOWN_SAMPLES);
+            m_ColorAttachments[HORIZONTAL_BLUR_BUFFER_INDEX]->TransitionImageLayout(
+                m_ColorAttachments[HORIZONTAL_BLUR_BUFFER_INDEX]->GetVKormat(),
+                VK_IMAGE_LAYOUT_UNDEFINED,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+            );
+
+            // Recreate vertical blur buffer
+            m_ColorAttachments[VERTICAL_BLUR_BUFFER_INDEX] = new VulkanTexture();
+            m_ColorAttachments[VERTICAL_BLUR_BUFFER_INDEX]->Create();
+            m_ColorAttachments[VERTICAL_BLUR_BUFFER_INDEX]->CreateColorAttachment(width, height, TextureFormat::RGBA16F, BLUR_DOWN_SAMPLES);
+            m_ColorAttachments[VERTICAL_BLUR_BUFFER_INDEX]->TransitionImageLayout(
+                m_ColorAttachments[VERTICAL_BLUR_BUFFER_INDEX]->GetVKormat(),
+                VK_IMAGE_LAYOUT_UNDEFINED,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+            );
+
+            // Resize framebuffer arrays
+            m_Framebuffers[HORIZONTAL_BLUR_BUFFER_INDEX].resize(BLUR_DOWN_SAMPLES);
+            m_Framebuffers[VERTICAL_BLUR_BUFFER_INDEX].resize(BLUR_DOWN_SAMPLES);
+
+            // Update descriptor sets with new textures
+            m_DescriptorSets[HORIZONTAL_BLUR_BUFFER_INDEX]
+                .Init(m_DescriptorSetLayout)
+                .AddTexture(0, *m_ColorAttachments[VERTICAL_BLUR_BUFFER_INDEX])
+                .Build();
+
+            m_DescriptorSets[VERTICAL_BLUR_BUFFER_INDEX]
+                .Init(m_DescriptorSetLayout)
+                .AddTexture(0, *m_ColorAttachments[HORIZONTAL_BLUR_BUFFER_INDEX])
+                .Build();
+
             // Recreate framebuffers for all mip levels
-            for (int mipLevel = 0; mipLevel < MAX_MIP_LEVELS; mipLevel++)
+            for (int mipLevel = 0; mipLevel < BLUR_DOWN_SAMPLES; mipLevel++)
             {
                 SetupFramebuffers(mipLevel);
             }
-            */
         }
 
         void VulkanBloomPass::Destroy()
