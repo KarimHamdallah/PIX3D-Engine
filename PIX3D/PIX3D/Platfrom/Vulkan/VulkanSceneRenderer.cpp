@@ -83,10 +83,13 @@ namespace PIX3D
 			////////////////// Vulkan Static Mesh Material Descriptor Set Layout ///////////////////////
 
 			s_VulkanStaticMeshMaterialDescriptorSetLayout
-				.AddBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+				.AddBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT)
 				.AddBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+				.AddBinding(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+				.AddBinding(3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+				.AddBinding(4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+				.AddBinding(5, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
 				.Build();
-
 
 
 			/////////////// Environment Maps //////////////////
@@ -238,7 +241,7 @@ namespace PIX3D
 				/////////////// Pipeline Layout //////////////////////
 
 				VkPushConstantRange pushConstant{};
-				pushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+				pushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 				pushConstant.offset = 0;
 				pushConstant.size = sizeof(_ModelMatrixPushConstant);
 
@@ -468,6 +471,8 @@ namespace PIX3D
 			////////////////// Begin Record CommandBuffer ////////////////
 
 			VK::VulkanHelper::BeginCommandBuffer(s_MainRenderpass.CommandBuffers[s_ImageIndex], VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
+
+			s_CameraPosition = cam.GetPosition();
 		}
 
 		void VulkanSceneRenderer::End()
@@ -527,12 +532,6 @@ namespace PIX3D
 
 				RenderPassBeginInfo.framebuffer = s_MainRenderpass.Framebuffer.GetVKFramebuffer();
 
-				_ModelMatrixPushConstant pushData = { glm::mat4(1.0f) };
-				vkCmdPushConstants(s_MainRenderpass.CommandBuffers[s_ImageIndex], s_MainRenderpass.PipelineLayout,
-					VK_SHADER_STAGE_VERTEX_BIT,
-					0, sizeof(_ModelMatrixPushConstant), &pushData);
-
-
 				vkCmdBeginRenderPass(s_MainRenderpass.CommandBuffers[s_ImageIndex], &RenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 				vkCmdBindPipeline(s_MainRenderpass.CommandBuffers[s_ImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, s_MainRenderpass.GraphicsPipeline.GetVkPipeline());
@@ -560,6 +559,7 @@ namespace PIX3D
 				vkCmdBindVertexBuffers(s_MainRenderpass.CommandBuffers[s_ImageIndex], 0, 1, vertexBuffers, offsets);
 				vkCmdBindIndexBuffer(s_MainRenderpass.CommandBuffers[s_ImageIndex], mesh.GetIndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
+				int SubMeshIndex = 0;
 				for (const auto& subMesh : mesh.m_SubMeshes)
 				{
 					if (subMesh.MaterialIndex >= 0)
@@ -568,6 +568,10 @@ namespace PIX3D
 						vkCmdBindDescriptorSets(s_MainRenderpass.CommandBuffers[s_ImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, s_MainRenderpass.PipelineLayout, 1, 1, &material_descriptor_set, 0, nullptr);
 					}
 
+					_ModelMatrixPushConstant pushData = { glm::mat4(1.0f), s_CameraPosition, (float)SubMeshIndex };
+					vkCmdPushConstants(s_MainRenderpass.CommandBuffers[s_ImageIndex], s_MainRenderpass.PipelineLayout,
+						VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+						0, sizeof(_ModelMatrixPushConstant), &pushData);
 
 					auto environment_descriptor_set = s_EnvironmetDescriptorSet.GetVkDescriptorSet();
 					vkCmdBindDescriptorSets(s_MainRenderpass.CommandBuffers[s_ImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, s_MainRenderpass.PipelineLayout, 2, 1, &environment_descriptor_set, 0, nullptr);
@@ -579,6 +583,8 @@ namespace PIX3D
 						subMesh.BaseIndex,      // First index
 						subMesh.BaseVertex,     // Vertex offset
 						0);                     // First instance
+
+					SubMeshIndex++;
 				}
 
 				vkCmdEndRenderPass(s_MainRenderpass.CommandBuffers[s_ImageIndex]);
@@ -621,7 +627,7 @@ namespace PIX3D
 					.pClearValues = ClearValue
 				};
 
-				_ModelMatrixPushConstant pushData = { glm::mat4(1.0f) };
+				_ModelMatrixPushConstant pushData = { glm::mat4(1.0f), s_CameraPosition, 0.0f };
 				vkCmdPushConstants(s_MainRenderpass.CommandBuffers[s_ImageIndex], s_SkyBoxPass.PipelineLayout,
 					VK_SHADER_STAGE_VERTEX_BIT,
 					0, sizeof(_ModelMatrixPushConstant), &pushData);

@@ -126,7 +126,9 @@ namespace PIX3D
             int texWidth, texHeight, texChannels;
             PIX_ASSERT_MSG((FilePath.extension().string() == ".hdr"), "file is not .hdr file!");
 
+            stbi_set_flip_vertically_on_load(true);
             float* pixels = stbi_loadf(FilePath.string().c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+            stbi_set_flip_vertically_on_load(false);
 
             PIX_ASSERT_MSG(pixels, "failed to load hdr file!");
 

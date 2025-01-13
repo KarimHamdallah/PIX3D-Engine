@@ -17,7 +17,9 @@ layout(set = 0, binding = 0) uniform CameraUniformBuffer
 }cam;
 
 layout(push_constant) uniform PushConstants {
-   mat4 model;
+    mat4 model;
+   vec3 CameraPosition;
+   float MeshIndex;
 }push;
 
 void main()

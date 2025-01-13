@@ -330,8 +330,12 @@ namespace PIX3D
             auto& material = m_Materials[i];
 
             m_DescriptorSets[i].Init(VK::VulkanSceneRenderer::GetVulkanStaticMeshMaterialDescriptorSetLayout())
-                .AddTexture(0, *material.AlbedoTexture)
-                .AddTexture(1, *material.EmissiveTexture)
+                .AddShaderStorageBuffer(0, m_MaterialInfoBuffer)
+                .AddTexture(1, *material.AlbedoTexture)
+                .AddTexture(2, *material.NormalTexture)
+                .AddTexture(3, *material.MetalRoughnessTexture)
+                .AddTexture(4, *material.AoTexture)
+                .AddTexture(5, *material.EmissiveTexture)
                 .Build();
         }
     }

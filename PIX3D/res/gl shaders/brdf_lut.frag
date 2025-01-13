@@ -1,6 +1,6 @@
 #version 460 core
 
-layout (location = 0) out vec4 FragColor;
+layout (location = 0) out vec2 FragColor;
 
 layout (location = 0) in vec2 in_TextureCoords;
 
@@ -117,5 +117,5 @@ void main() {
 	F0Scale /= SAMPLE_COUNT;
 	F0Bias /= SAMPLE_COUNT;
 
-	FragColor = vec4(F0Scale, F0Bias, 0.0, 1.0);
+	FragColor = vec2(F0Scale, F0Bias);
 }

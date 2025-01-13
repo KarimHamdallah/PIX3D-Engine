@@ -69,6 +69,8 @@ namespace PIX3D
 			struct _ModelMatrixPushConstant
 			{
 				glm::mat4 model;
+				glm::vec3 CameraPosition;
+				float MeshIndex;
 			};
 
 
@@ -137,6 +139,8 @@ namespace PIX3D
 			inline static VulkanIrradianceCubemap* s_IrraduianceCubemap;
 			inline static VulkanPrefilteredCubemap* s_PrefilterCubemap;
 			inline static VulkanBrdfLutTexture* s_BrdfLutTexture;
+
+			inline static glm::vec3 s_CameraPosition;
 		};
 	}
 }

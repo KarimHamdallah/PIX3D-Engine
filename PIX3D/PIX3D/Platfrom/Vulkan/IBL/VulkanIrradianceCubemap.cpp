@@ -142,7 +142,7 @@ namespace PIX3D
                     .AddVertexInputState(&bindingDesc, attributeDesc.data(), 1, attributeDesc.size())
                     .AddViewportState(m_Size, m_Size)
                     .AddInputAssemblyState(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, VK_FALSE)
-                    .AddRasterizationState(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE)
+                    .AddRasterizationState(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_CLOCKWISE)
                     .AddMultisampleState(VK_SAMPLE_COUNT_1_BIT)
                     .AddDepthStencilState(true, true)
                     .AddColorBlendState(true, 1)
@@ -152,24 +152,33 @@ namespace PIX3D
                 // Prepare 6 glm::LookAt matrices for each face and Projection
 
                 glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
+                
+                /*
                 glm::mat4 captureViews[] =
                 {
                     glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)), // right
-                    glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)), // left
-                    glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f,  0.0f), glm::vec3(0.0f,  0.0f,  1.0f)), // up
-                    glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f,  0.0f), glm::vec3(0.0f,  0.0f, -1.0f)), // down
+                    glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-1.0f, 0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)), // left
+                    glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  1.0f,  0.0f), glm::vec3(0.0f,  0.0f,  1.0f)), // up
+                    glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f,  0.0f), glm::vec3(0.0f,  0.0f, -1.0f)), // down
                     glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  0.0f,  1.0f), glm::vec3(0.0f, -1.0f,  0.0f)), // back
                     glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  0.0f, -1.0f), glm::vec3(0.0f, -1.0f,  0.0f)) // forawad
                 };
+                */
 
-                glm::mat4 faceRotations[] =
+                glm::mat4 captureViews[] =
                 {
-                    glm::mat4(1.0f),
-                    glm::mat4(1.0f),
-                    glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
-                    glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
-                    glm::mat4(1.0f),
-                    glm::mat4(1.0f)
+                    // Right
+                    glm::lookAt(glm::vec3(0.0f), glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
+                    // Left 
+                    glm::lookAt(glm::vec3(0.0f), glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
+                    // Top
+                    glm::lookAt(glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
+                    // Bottom
+                    glm::lookAt(glm::vec3(0.0f), glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f)),
+                    // Front 
+                    glm::lookAt(glm::vec3(0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
+                    // Back
+                    glm::lookAt(glm::vec3(0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, -1.0f, 0.0f))
                 };
 
                 // Render 6 Times in loop Each Time We Do Resetup Framebuffer To Target Next Cubemap Layer (face)
@@ -188,7 +197,7 @@ namespace PIX3D
                     renderPassInfo.clearValueCount = 1;
                     renderPassInfo.pClearValues = &clearValue;
 
-                    glm::mat4 view_proj = captureProjection * captureViews[i] * faceRotations[i];
+                    glm::mat4 view_proj = captureProjection * captureViews[i];
 
                     vkCmdPushConstants(CommandBuffer, PipelineLayout,
                         VK_SHADER_STAGE_VERTEX_BIT,
@@ -199,9 +208,9 @@ namespace PIX3D
 
                     VkViewport viewport{};
                     viewport.x = 0.0f;
-                    viewport.y = (float)m_Size;
+                    viewport.y = 0.0f;
                     viewport.width = (float)m_Size;
-                    viewport.height = -(float)m_Size;
+                    viewport.height = (float)m_Size;
                     viewport.minDepth = 0.0f;
                     viewport.maxDepth = 1.0f;
 
