@@ -179,7 +179,61 @@ namespace PIX3D
 
 		void VulkanPostProcessingRenderpass::Destroy()
 		{
-			// TODO:: Destroy Vulkan Objects
+			auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
+
+			for (auto& framebuffer : m_Framebuffers)
+				framebuffer.Destroy();
+			m_Framebuffers.clear();
+
+
+			if (m_Renderpass.GetVKRenderpass() != VK_NULL_HANDLE)
+				m_Renderpass.Destroy();
+
+			if (m_GraphicsPipeline.GetVkPipeline() != VK_NULL_HANDLE)
+				m_GraphicsPipeline.Destroy();
+
+			if (m_PipelineLayout != VK_NULL_HANDLE) {
+				vkDestroyPipelineLayout(Context->m_Device, m_PipelineLayout, nullptr);
+				m_PipelineLayout = VK_NULL_HANDLE;
+			}
+
+			m_QuadMesh.VertexBuffer.Destroy();
+			m_QuadMesh.IndexBuffer.Destroy();
+
+
+			m_Shader.Destroy();
+			m_DescriptorSetLayout.Destroy();
+			m_DescriptorSet.Destroy();
+		}
+
+
+		void VulkanPostProcessingRenderpass::Resize(uint32_t width, uint32_t height, VulkanTexture* color_attachment, VulkanTexture* bloom_attachment)
+		{
+			m_Width = width;
+			m_Height = height;
+
+			auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
+
+			// Update descriptor set with new textures
+			m_DescriptorSet.Init(m_DescriptorSetLayout)
+				.AddTexture(0, *color_attachment)
+				.AddTexture(1, *bloom_attachment)
+				.Build();
+
+			// Clean up old framebuffers if they exist
+			for (auto& framebuffer : m_Framebuffers) {
+				framebuffer.Destroy();
+			}
+			m_Framebuffers.clear();
+
+			// Recreate framebuffers
+			m_Framebuffers.resize(Context->m_SwapChainImages.size());
+			for (size_t i = 0; i < m_Framebuffers.size(); i++)
+			{
+				m_Framebuffers[i].Init(Context->m_Device, m_Renderpass.GetVKRenderpass(), width, height)
+					.AddSwapChainAttachment(i)
+					.Build();
+			}
 		}
 	}
 }

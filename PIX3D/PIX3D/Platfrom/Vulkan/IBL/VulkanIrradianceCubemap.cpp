@@ -40,8 +40,8 @@ namespace PIX3D
 
                 //////////////////////// Shader ///////////////////////////
 
-                VulkanShader EquirectangularMapToCubeShader;
-                EquirectangularMapToCubeShader.LoadFromFile("../PIX3D/res/vk shaders/diffuse_irradiance.vert", "../PIX3D/res/vk shaders/diffuse_irradiance.frag");
+                VulkanShader IrradianceToCubeMapGeneratorShader;
+                IrradianceToCubeMapGeneratorShader.LoadFromFile("../PIX3D/res/vk shaders/diffuse_irradiance.vert", "../PIX3D/res/vk shaders/diffuse_irradiance.frag");
 
                 // Load Cube Mesh Vertex Buffer And Extract Vertex Input Data
 
@@ -138,7 +138,7 @@ namespace PIX3D
 
                 VulkanGraphicsPipeline GraphicsPipeline;
                 GraphicsPipeline.Init(Context->m_Device, Renderpass.GetVKRenderpass())
-                    .AddShaderStages(EquirectangularMapToCubeShader.GetVertexShader(), EquirectangularMapToCubeShader.GetFragmentShader())
+                    .AddShaderStages(IrradianceToCubeMapGeneratorShader.GetVertexShader(), IrradianceToCubeMapGeneratorShader.GetFragmentShader())
                     .AddVertexInputState(&bindingDesc, attributeDesc.data(), 1, attributeDesc.size())
                     .AddViewportState(m_Size, m_Size)
                     .AddInputAssemblyState(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, VK_FALSE)
@@ -152,7 +152,7 @@ namespace PIX3D
                 // Prepare 6 glm::LookAt matrices for each face and Projection
 
                 glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
-                
+
                 /*
                 glm::mat4 captureViews[] =
                 {
@@ -234,11 +234,37 @@ namespace PIX3D
                 }
 
                 VulkanHelper::EndSingleTimeCommands(Context->m_Device, Context->m_Queue.m_Queue, Context->m_CommandPool, CommandBuffer);
+
+                vkDeviceWaitIdle(Context->m_Device);
+
+                // Cleanup framebuffers
+                for (auto& framebuffer : m_Framebuffers)
+                {
+                    framebuffer.Destroy();
+                }
+                m_Framebuffers.clear();
+
+                // Cleanup shader
+                IrradianceToCubeMapGeneratorShader.Destroy();
+
+                // Cleanup descriptor resources
+                DescriptorSet.Destroy();
+                DescriptorSetLayout.Destroy();
+
+                // Cleanup render pass
+                Renderpass.Destroy();
+
+                // Cleanup pipeline and layout
+                GraphicsPipeline.Destroy();
+                if (PipelineLayout != VK_NULL_HANDLE)
+                {
+                    vkDestroyPipelineLayout(Context->m_Device, PipelineLayout, nullptr);
+                    PipelineLayout = VK_NULL_HANDLE;
+                }
             }
 
             VulkanCubemapHelper::TransitionImageLayout(m_Image, m_MipLevels, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, nullptr);
 
-            // TODO:: Destroy All Vulkan Objects
             return true;
         }
 

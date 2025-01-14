@@ -12,6 +12,8 @@ namespace PIX3D
             VulkanDescriptorSetLayout& AddBinding(uint32_t binding, VkDescriptorType type, VkShaderStageFlags stageFlags, uint32_t descriptorCount = 1);
             void Build();
 
+            void Destroy();
+
             operator const VkDescriptorSetLayout() const
             {
                 return m_DescriptorSetLayout;

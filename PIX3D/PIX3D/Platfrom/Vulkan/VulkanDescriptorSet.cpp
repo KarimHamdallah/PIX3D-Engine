@@ -166,5 +166,22 @@ namespace PIX3D
 
             vkUpdateDescriptorSets(Context->m_Device, 1, &descriptorWrite, 0, nullptr);
         }
+
+        void VulkanDescriptorSet::Destroy()
+        {
+            if (m_DescriptorSet != VK_NULL_HANDLE)
+            {
+                auto* Context = (VK::VulkanGraphicsContext*)Engine::GetGraphicsContext();
+
+                // Free the descriptor set
+                vkFreeDescriptorSets(Context->m_Device, Context->m_DescriptorPool, 1, &m_DescriptorSet);
+                m_DescriptorSet = VK_NULL_HANDLE;
+
+                // Clear bindings maps
+                m_ShaderStorageBufferBindings.clear();
+                m_UniformBufferBindings.clear();
+                m_ImageBindings.clear();
+            }
+        }
     }
 }

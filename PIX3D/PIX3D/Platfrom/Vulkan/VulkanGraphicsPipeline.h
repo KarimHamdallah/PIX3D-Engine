@@ -33,6 +33,8 @@ namespace PIX3D
 
             VkPipeline GetVkPipeline() { return m_Pipeline; }
 
+            void Destroy();
+
         private:
             VkDevice m_device = nullptr;
             VkRenderPass m_renderPass = nullptr;

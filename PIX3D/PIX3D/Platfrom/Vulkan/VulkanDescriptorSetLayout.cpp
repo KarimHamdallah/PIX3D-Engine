@@ -32,5 +32,16 @@ namespace PIX3D
             if (vkCreateDescriptorSetLayout(Context->m_Device, &layoutInfo, nullptr, &m_DescriptorSetLayout) != VK_SUCCESS)
                 PIX_ASSERT_MSG(false, "Failed to create descriptor set layout!");
         }
+
+        void VulkanDescriptorSetLayout::Destroy()
+        {
+            if (m_DescriptorSetLayout != VK_NULL_HANDLE)
+            {
+                auto* Context = (VK::VulkanGraphicsContext*)Engine::GetGraphicsContext();
+                vkDestroyDescriptorSetLayout(Context->m_Device, m_DescriptorSetLayout, nullptr);
+                m_DescriptorSetLayout = VK_NULL_HANDLE;
+                m_Bindings.clear();
+            }
+        }
     }
 }

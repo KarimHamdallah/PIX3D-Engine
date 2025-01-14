@@ -29,6 +29,8 @@ namespace PIX3D
 
             VkRenderPass GetVKRenderpass() { return m_Renderpass; }
 
+            void Destroy();
+
         private:
             VkRenderPass m_Renderpass = VK_NULL_HANDLE;
             VkDevice m_device = VK_NULL_HANDLE;

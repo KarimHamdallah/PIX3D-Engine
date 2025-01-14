@@ -22,6 +22,7 @@ namespace PIX3D
             void Build();
             VkDescriptorSet GetVkDescriptorSet() const { return m_DescriptorSet; }
             void UpdateTexture(uint32_t binding, const VulkanTexture& texture);
+            void Destroy();
         private:
             VkDescriptorSetLayout m_DescriptorSetLayout;
             VkDescriptorSet m_DescriptorSet;

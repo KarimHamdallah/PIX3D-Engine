@@ -374,7 +374,66 @@ namespace PIX3D
 
         void VulkanBloomPass::Destroy()
         {
-            // TODO:: Destroy Vulkan Objects
+            auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
+
+            // Destroy color attachments
+            for (int i = 0; i < BLUR_BUFFERS_COUNT; i++)
+            {
+                if (m_ColorAttachments[i])
+                {
+                    m_ColorAttachments[i]->Destroy();
+                    delete m_ColorAttachments[i];
+                    m_ColorAttachments[i] = nullptr;
+                }
+            }
+
+            // Destroy descriptor sets and layout
+            for (int i = 0; i < BLUR_BUFFERS_COUNT; i++)
+            {
+                m_DescriptorSets[i].Destroy();
+            }
+            m_DescriptorSetLayout.Destroy();
+
+            // Destroy pipeline layouts
+            for (int i = 0; i < BLUR_BUFFERS_COUNT; i++)
+            {
+                if (m_PipelineLayouts[i] != VK_NULL_HANDLE)
+                {
+                    vkDestroyPipelineLayout(Context->m_Device, m_PipelineLayouts[i], nullptr);
+                    m_PipelineLayouts[i] = VK_NULL_HANDLE;
+                }
+            }
+
+            // Destroy graphics pipelines
+            for (int i = 0; i < BLUR_BUFFERS_COUNT; i++)
+            {
+                m_Pipelines[i].Destroy();
+            }
+
+            // Destroy render passes
+            for (int i = 0; i < BLUR_BUFFERS_COUNT; i++)
+            {
+                m_Renderpasses[i].Destroy();
+            }
+
+            // Destroy framebuffers
+            for (int i = 0; i < BLUR_BUFFERS_COUNT; i++)
+            {
+                for (auto& framebuffer : m_Framebuffers[i])
+                {
+                    framebuffer.Destroy();
+                }
+                m_Framebuffers[i].clear();
+            }
+
+            // Destroy shader
+            m_BloomShader.Destroy();
+
+            // Reset member pointers
+            m_InputBrightnessTexture = nullptr;
+            m_Width = 0;
+            m_Height = 0;
+            m_FinalResultBufferIndex = 0;
         }
     }
 }

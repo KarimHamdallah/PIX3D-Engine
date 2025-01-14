@@ -254,5 +254,27 @@ namespace PIX3D
             if (vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &m_Pipeline) != VK_SUCCESS)
                 PIX_ASSERT_MSG(false, "Failed to create graphics pipeline!");
         }
+
+        void VulkanGraphicsPipeline::Destroy()
+        {
+            if (m_device != VK_NULL_HANDLE)
+            {
+                if (m_Pipeline != VK_NULL_HANDLE)
+                {
+                    vkDestroyPipeline(m_device, m_Pipeline, nullptr);
+                    m_Pipeline = VK_NULL_HANDLE;
+                }
+
+                // Clear vectors
+                m_shaderStages.clear();
+                m_colorBlendAttachments.clear();
+                m_dynamicStates.clear();
+
+                // Reset handles
+                m_device = VK_NULL_HANDLE;
+                m_renderPass = VK_NULL_HANDLE;
+                m_pipelineLayout = VK_NULL_HANDLE;
+            }
+        }
     }
 }

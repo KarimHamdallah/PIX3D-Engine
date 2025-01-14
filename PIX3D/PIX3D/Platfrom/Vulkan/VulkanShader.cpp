@@ -335,5 +335,31 @@ namespace PIX3D
         VkShaderModule VulkanShader::GetComputeShader() const {
             return m_computeShader;
         }
+
+        void VulkanShader::Destroy()
+        {
+            if (m_device != VK_NULL_HANDLE)
+            {
+                if (m_vertexShader != VK_NULL_HANDLE)
+                {
+                    vkDestroyShaderModule(m_device, m_vertexShader, nullptr);
+                    m_vertexShader = VK_NULL_HANDLE;
+                }
+
+                if (m_fragmentShader != VK_NULL_HANDLE)
+                {
+                    vkDestroyShaderModule(m_device, m_fragmentShader, nullptr);
+                    m_fragmentShader = VK_NULL_HANDLE;
+                }
+
+                if (m_computeShader != VK_NULL_HANDLE)
+                {
+                    vkDestroyShaderModule(m_device, m_computeShader, nullptr);
+                    m_computeShader = VK_NULL_HANDLE;
+                }
+
+                m_device = VK_NULL_HANDLE;
+            }
+        }
     }
 }

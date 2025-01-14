@@ -51,14 +51,14 @@ namespace PIX3D
                 EquirectangularMapToCubeShader.LoadFromFile("../PIX3D/res/vk shaders/equirectangluarmap_to_cube.vert", "../PIX3D/res/vk shaders/equirectangluarmap_to_cube.frag");
 
                 // Load Cube Mesh Vertex Buffer And Extract Vertex Input Data
-                
+
                 VulkanStaticMeshData CubeMesh = VulkanStaticMeshGenerator::GenerateCube();
-                
+
                 auto bindingDesc = CubeMesh.VertexLayout.GetBindingDescription();
                 auto attributeDesc = CubeMesh.VertexLayout.GetAttributeDescriptions();
 
                 // Create Descriptor Set Layout : Single Image Sampler For Equirectangluar Map
-                
+
                  // Descriptor layout
                 VulkanDescriptorSetLayout DescriptorSetLayout;
                 DescriptorSetLayout
@@ -66,15 +66,15 @@ namespace PIX3D
                     .Build();
 
                 // Create Descriptor Set From Layout
-                
+
                 VulkanDescriptorSet DescriptorSet;
                 DescriptorSet
-                  .Init(DescriptorSetLayout)
-                  .AddTexture(0, *m_EquirectangularMap)
-                  .Build();
+                    .Init(DescriptorSetLayout)
+                    .AddTexture(0, *m_EquirectangularMap)
+                    .Build();
 
                 // Create Renderpass >> How To Make It Render To Cube Map Face!!!
-                
+
                 VulkanRenderPass Renderpass;
 
                 Renderpass
@@ -108,9 +108,9 @@ namespace PIX3D
                         VK_DEPENDENCY_BY_REGION_BIT
                     )
                     .Build();
-                 
+
                 // Create 6 Framebuffer Each One Write To Each Layer (face) Of CubeMap
-                
+
                 std::vector<VulkanFramebuffer> m_Framebuffers;
                 m_Framebuffers.resize(6);
 
@@ -157,9 +157,9 @@ namespace PIX3D
                     .Build();
 
                 // Prepare 6 glm::LookAt matrices for each face and Projection
-                
+
                 glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
-                
+
                 /*
                 glm::mat4 captureViews[] =
                 {
@@ -251,11 +251,39 @@ namespace PIX3D
                 }
 
                 VulkanHelper::EndSingleTimeCommands(Context->m_Device, Context->m_Queue.m_Queue, Context->m_CommandPool, CommandBuffer);
+
+                // Wait for device to finish operations
+                vkDeviceWaitIdle(Context->m_Device);
+
+                // Cleanup descriptor resources
+                DescriptorSet.Destroy();
+                DescriptorSetLayout.Destroy();
+
+                // Cleanup framebuffers
+                for (auto& framebuffer : m_Framebuffers)
+                {
+                    framebuffer.Destroy();
+                }
+                m_Framebuffers.clear();
+
+                // Cleanup render pass
+                Renderpass.Destroy();
+
+                // Cleanup pipeline and layout
+                GraphicsPipeline.Destroy();
+                if (PipelineLayout != VK_NULL_HANDLE)
+                {
+                    vkDestroyPipelineLayout(Context->m_Device, PipelineLayout, nullptr);
+                }
+
+                // Cleanup shader
+                EquirectangularMapToCubeShader.Destroy();
+
+
+                VulkanCubemapHelper::TransitionImageLayout(m_Image, m_MipLevels, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, nullptr);
+
             }
 
-            VulkanCubemapHelper::TransitionImageLayout(m_Image, m_MipLevels, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, nullptr);
-
-            // TODO:: Destroy All Vulkan Objects
             return true;
         }
 

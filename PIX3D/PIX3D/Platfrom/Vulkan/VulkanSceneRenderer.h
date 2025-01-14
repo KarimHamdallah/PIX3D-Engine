@@ -25,6 +25,8 @@ namespace PIX3D
 			static void RenderSkyBox();
 			static void End();
 
+			static void Resize(uint32_t width, uint32_t height);
+
 			inline static VulkanTexture* GetDefaultAlbedoTexture() { return s_DefaultAlbedoTexture; }
 			inline static VulkanTexture* GetDefaultNormalTexture() { return s_DefaultNormalTexture; }
 

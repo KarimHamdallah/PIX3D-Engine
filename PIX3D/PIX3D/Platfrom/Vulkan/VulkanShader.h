@@ -20,6 +20,8 @@ namespace PIX3D
             VkShaderModule GetFragmentShader() const;
             VkShaderModule GetComputeShader() const;
 
+            void Destroy();
+
         private:
             VkDevice m_device;
             VkShaderModule m_vertexShader;

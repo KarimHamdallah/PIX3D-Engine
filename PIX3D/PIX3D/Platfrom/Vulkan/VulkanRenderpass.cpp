@@ -112,5 +112,27 @@ namespace PIX3D
             VkResult result = vkCreateRenderPass(m_device, &renderPassInfo, nullptr, &m_Renderpass);
             PIX_ASSERT_MSG(result == VK_SUCCESS, "Failed to create render pass!");
         }
+
+        void VulkanRenderPass::Destroy()
+        {
+            if (m_device != VK_NULL_HANDLE)
+            {
+                if (m_Renderpass != VK_NULL_HANDLE)
+                {
+                    vkDestroyRenderPass(m_device, m_Renderpass, nullptr);
+                    m_Renderpass = VK_NULL_HANDLE;
+                }
+
+                // Clear all vectors
+                m_attachments.clear();
+                m_colorReferences.clear();
+                m_subpasses.clear();
+                m_dependencies.clear();
+
+                // Reset members
+                m_hasDepthAttachment = false;
+                m_device = VK_NULL_HANDLE;
+            }
+        }
     }
 }

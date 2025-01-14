@@ -499,6 +499,7 @@ namespace PIX3D
 			poolInfo.poolSizeCount = sizeof(poolSizes) / sizeof(poolSizes[0]); // Number of pool sizes
 			poolInfo.pPoolSizes = poolSizes;                                  // Pool sizes array
 			poolInfo.maxSets = MAX_DESCRIPTOR_SETS;                           // Max descriptor sets
+			poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 
 			// Create the descriptor pool
 			if (vkCreateDescriptorPool(m_Device, &poolInfo, nullptr, &m_DescriptorPool) != VK_SUCCESS)
@@ -507,49 +508,6 @@ namespace PIX3D
 
 		void VulkanGraphicsContext::SwapBuffers(void* window_handle)
 		{
-		}
-
-		void VulkanGraphicsContext::Destroy()
-		{
-			// destroy swap chain
-
-			for (int i = 0; i < m_SwapChainImageViews.size(); i++)
-			{
-				vkDestroyImageView(m_Device, m_SwapChainImageViews[i], NULL);
-			}
-
-			vkDestroySwapchainKHR(m_Device, m_SwapChain, NULL);
-
-			// destroy device
-
-			vkDestroyDevice(m_Device, NULL);
-
-			// destroy surface
-
-			PFN_vkDestroySurfaceKHR vkDestroySurface = VK_NULL_HANDLE;
-			vkDestroySurface = (PFN_vkDestroySurfaceKHR)vkGetInstanceProcAddr(m_Instance, "vkDestroySurfaceKHR");
-
-			PIX_ASSERT_MSG(vkDestroySurface, "Cannot find address of vkDestroySurfaceKHR\n");
-
-			vkDestroySurface(m_Instance, m_Surface, NULL);
-
-			PIX_DEBUG_SUCCESS("GLFW window surface destroyed");
-
-			// destroy debug messenger
-
-			PFN_vkDestroyDebugUtilsMessengerEXT vkDestroyDebugUtilsMessenger = VK_NULL_HANDLE;
-			vkDestroyDebugUtilsMessenger = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(m_Instance, "vkDestroyDebugUtilsMessengerEXT");
-
-			PIX_ASSERT_MSG(vkDestroyDebugUtilsMessenger, "Cannot find address of vkDestroyDebugUtilsMessengerEXT\n");
-
-			vkDestroyDebugUtilsMessenger(m_Instance, m_DebugMessenger, NULL);
-
-			PIX_DEBUG_SUCCESS("Debug callback destroyed");
-
-			// destroy instance
-
-			vkDestroyInstance(m_Instance, NULL);
-			PIX_DEBUG_SUCCESS("Vulkan instance destroyed");
 		}
 
 
@@ -564,11 +522,15 @@ namespace PIX3D
 				vkDestroyImageView(m_Device, imageView, nullptr);
 			}
 
-			if (m_SwapChain != nullptr)
-				vkDestroySwapchainKHR(m_Device, m_SwapChain, nullptr);
-
 			m_SwapChainImageViews.clear();
 			m_SwapChainImages.clear();
+
+			// Destroy old swapchain
+			if (m_SwapChain != VK_NULL_HANDLE)
+			{
+				vkDestroySwapchainKHR(m_Device, m_SwapChain, nullptr);
+				m_SwapChain = VK_NULL_HANDLE;
+			}
 
 			// Get new surface capabilities
 			VkSurfaceCapabilitiesKHR surfaceCaps;
@@ -598,13 +560,14 @@ namespace PIX3D
 			createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 			createInfo.presentMode = presentMode;
 			createInfo.clipped = VK_TRUE;
-			createInfo.oldSwapchain = m_SwapChain;
+			createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-			VkSwapchainKHR newSwapChain;
-			res = vkCreateSwapchainKHR(m_Device, &createInfo, nullptr, &newSwapChain);
+			res = vkCreateSwapchainKHR(m_Device, &createInfo, nullptr, &m_SwapChain);
 			VK_CHECK_RESULT(res);
 
-			m_SwapChain = newSwapChain;
+
+			m_Queue.UpdateSwapchain(m_SwapChain);
+
 
 			// Get new swapchain images
 			uint32_t imageCount;
@@ -660,7 +623,106 @@ namespace PIX3D
 			RecreateSwapChain(width, height);
 		}
 
+		void VulkanGraphicsContext::Destroy()
+		{
+			// Wait for device to finish operations
+			if (m_Device != VK_NULL_HANDLE)
+			{
+				vkDeviceWaitIdle(m_Device);
+			}
 
+			// Destroy descriptor pool
+			if (m_DescriptorPool != VK_NULL_HANDLE)
+			{
+				vkDestroyDescriptorPool(m_Device, m_DescriptorPool, nullptr);
+				m_DescriptorPool = VK_NULL_HANDLE;
+			}
+
+			// Free command buffers
+			if (m_CopyCommandBuffer != VK_NULL_HANDLE)
+			{
+				vkFreeCommandBuffers(m_Device, m_CommandPool, 1, &m_CopyCommandBuffer);
+				m_CopyCommandBuffer = VK_NULL_HANDLE;
+			}
+
+			// Destroy command pool
+			if (m_CommandPool != VK_NULL_HANDLE)
+			{
+				vkDestroyCommandPool(m_Device, m_CommandPool, nullptr);
+				m_CommandPool = VK_NULL_HANDLE;
+			}
+
+			// Destroy queue resources
+			m_Queue.Destroy();
+
+			// Destroy depth attachment
+			if (m_DepthAttachmentTexture)
+			{
+				m_DepthAttachmentTexture->Destroy();
+				delete m_DepthAttachmentTexture;
+				m_DepthAttachmentTexture = nullptr;
+			}
+
+			// Destroy swapchain resources
+			for (auto imageView : m_SwapChainImageViews)
+			{
+				if (imageView != VK_NULL_HANDLE)
+				{
+					vkDestroyImageView(m_Device, imageView, nullptr);
+				}
+			}
+			m_SwapChainImageViews.clear();
+			m_SwapChainImages.clear();
+
+			if (m_SwapChain != VK_NULL_HANDLE)
+			{
+				vkDestroySwapchainKHR(m_Device, m_SwapChain, nullptr);
+				m_SwapChain = VK_NULL_HANDLE;
+			}
+
+			// Destroy device
+			if (m_Device != VK_NULL_HANDLE)
+			{
+				vkDestroyDevice(m_Device, nullptr);
+				m_Device = VK_NULL_HANDLE;
+			}
+
+			// Destroy surface
+			if (m_Surface != VK_NULL_HANDLE)
+			{
+				PFN_vkDestroySurfaceKHR vkDestroySurface =
+					(PFN_vkDestroySurfaceKHR)vkGetInstanceProcAddr(m_Instance, "vkDestroySurfaceKHR");
+
+				if (vkDestroySurface)
+				{
+					vkDestroySurface(m_Instance, m_Surface, nullptr);
+					m_Surface = VK_NULL_HANDLE;
+					PIX_DEBUG_SUCCESS("GLFW window surface destroyed");
+				}
+			}
+
+			// Destroy debug messenger
+			if (m_DebugMessenger != VK_NULL_HANDLE)
+			{
+				PFN_vkDestroyDebugUtilsMessengerEXT vkDestroyDebugUtilsMessenger =
+					(PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(m_Instance, "vkDestroyDebugUtilsMessengerEXT");
+
+				if (vkDestroyDebugUtilsMessenger)
+				{
+					vkDestroyDebugUtilsMessenger(m_Instance, m_DebugMessenger, nullptr);
+					m_DebugMessenger = VK_NULL_HANDLE;
+					PIX_DEBUG_SUCCESS("Debug callback destroyed");
+				}
+			}
+
+			// Destroy instance
+			if (m_Instance != VK_NULL_HANDLE)
+			{
+				vkDestroyInstance(m_Instance, nullptr);
+				m_Instance = VK_NULL_HANDLE;
+				PIX_DEBUG_SUCCESS("Vulkan instance destroyed");
+			}
+		}
 
 
 
@@ -932,6 +994,12 @@ namespace PIX3D
 			VK_CHECK_RESULT(res, "vkQueuePresentKHR");
 
 			WaitIdle();	// TODO: looks like a workaround but we're getting error messages without it
+		}
+
+
+		void VulkanQueue::UpdateSwapchain(VkSwapchainKHR newSwapchain)
+		{
+			m_SwapChain = newSwapchain;
 		}
 	}
 }

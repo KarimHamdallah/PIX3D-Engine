@@ -165,6 +165,8 @@ namespace PIX3D
 
 			void Init(VkDevice Device, VkSwapchainKHR SwapChain, uint32_t QueueFamily, uint32_t QueueIndex);
 
+			void UpdateSwapchain(VkSwapchainKHR newSwapchain);
+
 			void Destroy();
 
 			uint32_t AcquireNextImage();

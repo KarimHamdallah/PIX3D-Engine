@@ -72,7 +72,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <IncludePath>$(VULKAN_SDK)\Include;$(SolutionDir)\Vendor\assimp\include;$(SolutionDir)\Vendor\tiny gltf;$(SolutionDir)\PIX3D\imgui;$(SolutionDir)\Vendor\glm;$(SolutionDir)\Vendor\glad\include;$(SolutionDir)\Vendor\Mono\include;$(SolutionDir)\PIX3D\PIX3D;$(SolutionDir)\Vendor\glfw\include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(VULKAN_SDK)\Lib;$(SolutionDir)\Vendor\assimp\bin\windows\Release;$(SolutionDir)\Vendor\Mono\lib;$(SolutionDir)\Vendor\glfw\lib;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(VULKAN_SDK)\Lib;$(SolutionDir)\Vendor\assimp\bin\windows\Release;$(SolutionDir)\Vendor\Mono\lib;$(SolutionDir)\Vendor\glfw\Debug\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <IncludePath>$(SolutionDir)\Vendor\assimp\include;$(SolutionDir)\Vendor\tiny gltf;$(SolutionDir)\PIX3D\imgui;$(SolutionDir)\Vendor\glm;$(SolutionDir)\Vendor\glad\include;$(SolutionDir)\Vendor\Mono\include;$(SolutionDir)\PIX3D\PIX3D;$(SolutionDir)\Vendor\glfw\include;$(IncludePath)</IncludePath>
@@ -80,7 +80,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IncludePath>$(VULKAN_SDK)\Include;$(SolutionDir)\Vendor\assimp\include;$(SolutionDir)\Vendor\tiny gltf;$(SolutionDir)\PIX3D\imgui;$(SolutionDir)\Vendor\glm;$(SolutionDir)\Vendor\glad\include;$(SolutionDir)\Vendor\Mono\include;$(SolutionDir)\PIX3D\PIX3D;$(SolutionDir)\Vendor\glfw\include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(VULKAN_SDK)\Lib;$(SolutionDir)\Vendor\assimp\bin\windows\Release;$(SolutionDir)\Vendor\Mono\lib;$(SolutionDir)\Vendor\glfw\lib;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(VULKAN_SDK)\Lib;$(SolutionDir)\Vendor\assimp\bin\windows\Release;$(SolutionDir)\Vendor\Mono\lib;$(SolutionDir)\Vendor\glfw\Debug\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>$(SolutionDir)\Vendor\assimp\include;$(SolutionDir)\Vendor\tiny gltf;$(SolutionDir)\PIX3D\imgui;$(SolutionDir)\Vendor\glm;$(SolutionDir)\Vendor\glad\include;$(SolutionDir)\Vendor\Mono\include;$(SolutionDir)\PIX3D\PIX3D;$(SolutionDir)\Vendor\glfw\include;$(IncludePath)</IncludePath>

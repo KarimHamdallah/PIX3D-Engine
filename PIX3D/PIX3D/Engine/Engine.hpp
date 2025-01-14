@@ -147,6 +147,8 @@ namespace PIX3D
 			else if (s_EngineSpecs.API == GraphicsAPI::VULKAN)
 			{
 				VK::VulkanSceneRenderer::Destroy();
+				auto* _Context = (VK::VulkanGraphicsContext*)s_GraphicsContext;
+				_Context->Destroy();
 			}
 
 			delete s_Platform;

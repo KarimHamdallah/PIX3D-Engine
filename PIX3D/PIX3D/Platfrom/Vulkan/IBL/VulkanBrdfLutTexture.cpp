@@ -211,8 +211,26 @@ namespace PIX3D
                     commandBuffer
                 );
 
-                // Cleanup
-                
+                // On error, cleanup in reverse order
+                vkDeviceWaitIdle(Context->m_Device);
+
+                // Cleanup shader
+                brdfShader.Destroy();
+
+                // Cleanup pipeline and layout
+                graphicsPipeline.Destroy();
+                if (pipelineLayout != VK_NULL_HANDLE)
+                {
+                    vkDestroyPipelineLayout(Context->m_Device, pipelineLayout, nullptr);
+                    pipelineLayout = VK_NULL_HANDLE;
+                }
+
+                // Cleanup framebuffer
+                framebuffer.Destroy();
+
+                // Cleanup renderpass
+                renderpass.Destroy();
+
             }
 
             return true;

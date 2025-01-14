@@ -435,21 +435,6 @@ namespace PIX3D
 			s_PostProcessingRenderpass.Init(width, height, s_MainRenderpass.ColorAttachmentTexture, s_BloomPass.GetFinalBloomTexture());
 		}
 
-		void VulkanSceneRenderer::Destroy()
-		{
-			// TODO:: Handel
-
-			s_DefaultAlbedoTexture->Destroy();
-			s_DefaultNormalTexture->Destroy();
-			s_DefaultWhiteTexture->Destroy();
-			s_DefaultBlackTexture->Destroy();
-
-			delete s_DefaultAlbedoTexture;
-			delete s_DefaultNormalTexture;
-			delete s_DefaultWhiteTexture;
-			delete s_DefaultBlackTexture;
-		}
-
 		void VulkanSceneRenderer::Begin(Camera3D& cam)
 		{
 			auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
@@ -667,6 +652,205 @@ namespace PIX3D
 
 				vkCmdEndRenderPass(s_MainRenderpass.CommandBuffers[s_ImageIndex]);
 			}
+		}
+
+		void VulkanSceneRenderer::Resize(uint32_t width, uint32_t height)
+		{
+			auto* Context = (VK::VulkanGraphicsContext*)Engine::GetGraphicsContext();
+
+			// Wait for device to finish all operations
+			vkDeviceWaitIdle(Context->m_Device);
+
+			// Resize main renderpass
+			{
+				// Recreate color attachment with new size
+				s_MainRenderpass.ColorAttachmentTexture->Destroy();
+				s_MainRenderpass.ColorAttachmentTexture->Create();
+				s_MainRenderpass.ColorAttachmentTexture->CreateColorAttachment(
+					width,
+					height,
+					VK::TextureFormat::RGBA16F
+				);
+				s_MainRenderpass.ColorAttachmentTexture->TransitionImageLayout(
+					s_MainRenderpass.ColorAttachmentTexture->GetVKormat(),
+					VK_IMAGE_LAYOUT_UNDEFINED,
+					VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+				);
+
+				// Recreate bloom brightness attachment with new size
+				s_MainRenderpass.BloomBrightnessAttachmentTexture->Destroy();
+				s_MainRenderpass.BloomBrightnessAttachmentTexture->Create();
+				s_MainRenderpass.BloomBrightnessAttachmentTexture->CreateColorAttachment(
+					width,
+					height,
+					VK::TextureFormat::RGBA16F,
+					BLOOM_DOWN_SAMPLES
+				);
+				s_MainRenderpass.BloomBrightnessAttachmentTexture->TransitionImageLayout(
+					s_MainRenderpass.BloomBrightnessAttachmentTexture->GetVKormat(),
+					VK_IMAGE_LAYOUT_UNDEFINED,
+					VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+				);
+
+				// Recreate framebuffer
+				s_MainRenderpass.Framebuffer.Destroy();
+				s_MainRenderpass.Framebuffer
+					.Init(Context->m_Device, s_MainRenderpass.Renderpass.GetVKRenderpass(), width, height)
+					.AddAttachment(s_MainRenderpass.ColorAttachmentTexture)
+					.AddAttachment(s_MainRenderpass.BloomBrightnessAttachmentTexture)
+					.AddAttachment(Context->m_DepthAttachmentTexture)
+					.Build();
+			}
+
+			// Resize skybox pass
+			{
+				s_SkyBoxPass.Framebuffer.Destroy();
+				s_SkyBoxPass.Framebuffer
+					.Init(Context->m_Device, s_SkyBoxPass.Renderpass.GetVKRenderpass(), width, height)
+					.AddAttachment(s_MainRenderpass.ColorAttachmentTexture)
+					.AddAttachment(s_MainRenderpass.BloomBrightnessAttachmentTexture)
+					.AddAttachment(Context->m_DepthAttachmentTexture)
+					.Build();
+			}
+
+			// Resize bloom pass
+			s_BloomPass.Resize(width, height);
+
+			// Resize post processing pass
+			s_PostProcessingRenderpass.Resize(width, height, s_MainRenderpass.ColorAttachmentTexture, s_BloomPass.GetFinalBloomTexture());
+
+			PIX_DEBUG_SUCCESS("Scene renderer resized successfully");
+		}
+
+		void VulkanSceneRenderer::Destroy()
+		{
+			auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
+
+			// Wait for device to finish operations
+			vkDeviceWaitIdle(Context->m_Device);
+
+			// Destroy default textures
+			if (s_DefaultAlbedoTexture) {
+				s_DefaultAlbedoTexture->Destroy();
+				delete s_DefaultAlbedoTexture;
+				s_DefaultAlbedoTexture = nullptr;
+			}
+
+			if (s_DefaultNormalTexture) {
+				s_DefaultNormalTexture->Destroy();
+				delete s_DefaultNormalTexture;
+				s_DefaultNormalTexture = nullptr;
+			}
+
+			if (s_DefaultWhiteTexture) {
+				s_DefaultWhiteTexture->Destroy();
+				delete s_DefaultWhiteTexture;
+				s_DefaultWhiteTexture = nullptr;
+			}
+
+			if (s_DefaultBlackTexture) {
+				s_DefaultBlackTexture->Destroy();
+				delete s_DefaultBlackTexture;
+				s_DefaultBlackTexture = nullptr;
+			}
+
+			// Destroy environment maps
+			if (s_Cubemap) {
+				s_Cubemap->Destroy();
+				delete s_Cubemap;
+				s_Cubemap = nullptr;
+			}
+
+			if (s_IrraduianceCubemap) {
+				s_IrraduianceCubemap->Destroy();
+				delete s_IrraduianceCubemap;
+				s_IrraduianceCubemap = nullptr;
+			}
+
+			if (s_PrefilterCubemap) {
+				s_PrefilterCubemap->Destroy();
+				delete s_PrefilterCubemap;
+				s_PrefilterCubemap = nullptr;
+			}
+
+			if (s_BrdfLutTexture) {
+				s_BrdfLutTexture->Destroy();
+				delete s_BrdfLutTexture;
+				s_BrdfLutTexture = nullptr;
+			}
+
+			// Destroy descriptor sets and layouts
+			s_VulkanStaticMeshMaterialDescriptorSetLayout.Destroy();
+			s_EnvironmetDescriptorSetLayout.Destroy();
+			s_EnvironmetDescriptorSet.Destroy();
+			s_CameraDescriptorSetLayout.Destroy();
+
+			for (auto& descriptorSet : s_CameraDescriptorSets) {
+				descriptorSet.Destroy();
+			}
+			s_CameraDescriptorSets.clear();
+
+			// Destroy uniform buffers
+			for (auto& buffer : s_CameraUniformBuffers) {
+				buffer.Destroy();
+			}
+			s_CameraUniformBuffers.clear();
+
+			// Destroy main renderpass resources
+			{
+				if (s_MainRenderpass.ColorAttachmentTexture) {
+					s_MainRenderpass.ColorAttachmentTexture->Destroy();
+					delete s_MainRenderpass.ColorAttachmentTexture;
+					s_MainRenderpass.ColorAttachmentTexture = nullptr;
+				}
+
+				if (s_MainRenderpass.BloomBrightnessAttachmentTexture) {
+					s_MainRenderpass.BloomBrightnessAttachmentTexture->Destroy();
+					delete s_MainRenderpass.BloomBrightnessAttachmentTexture;
+					s_MainRenderpass.BloomBrightnessAttachmentTexture = nullptr;
+				}
+
+				s_MainRenderpass.Renderpass.Destroy();
+				s_MainRenderpass.Framebuffer.Destroy();
+				s_MainRenderpass.Shader.Destroy();
+				s_MainRenderpass.GraphicsPipeline.Destroy();
+
+				if (s_MainRenderpass.PipelineLayout != VK_NULL_HANDLE) {
+					vkDestroyPipelineLayout(Context->m_Device, s_MainRenderpass.PipelineLayout, nullptr);
+					s_MainRenderpass.PipelineLayout = VK_NULL_HANDLE;
+				}
+
+				// Free command buffers
+				if (!s_MainRenderpass.CommandBuffers.empty()) {
+					vkFreeCommandBuffers(Context->m_Device, Context->m_CommandPool,
+						static_cast<uint32_t>(s_MainRenderpass.CommandBuffers.size()),
+						s_MainRenderpass.CommandBuffers.data());
+					s_MainRenderpass.CommandBuffers.clear();
+				}
+			}
+
+			// Destroy skybox pass resources
+			{
+				s_SkyBoxPass.Renderpass.Destroy();
+				s_SkyBoxPass.Framebuffer.Destroy();
+				s_SkyBoxPass.Shader.Destroy();
+				s_SkyBoxPass.GraphicsPipeline.Destroy();
+				s_SkyBoxPass.DescriptorSetLayout.Destroy();
+				s_SkyBoxPass.DescriptorSet.Destroy();
+
+				if (s_SkyBoxPass.PipelineLayout != VK_NULL_HANDLE) {
+					vkDestroyPipelineLayout(Context->m_Device, s_SkyBoxPass.PipelineLayout, nullptr);
+					s_SkyBoxPass.PipelineLayout = VK_NULL_HANDLE;
+				}
+
+				// Destroy cube mesh
+				s_SkyBoxPass.CubeMesh.VertexBuffer.Destroy();
+				s_SkyBoxPass.CubeMesh.IndexBuffer.Destroy();
+			}
+
+			// Destroy bloom and post processing passes
+			s_BloomPass.Destroy();
+			s_PostProcessingRenderpass.Destroy();
 		}
 	}
 }

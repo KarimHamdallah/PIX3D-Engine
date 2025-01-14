@@ -40,8 +40,8 @@ namespace PIX3D
 
                 //////////////////////// Shader ///////////////////////////
 
-                VulkanShader EquirectangularMapToCubeShader;
-                EquirectangularMapToCubeShader.LoadFromFile("../PIX3D/res/vk shaders/ibl_specular_map.vert", "../PIX3D/res/vk shaders/ibl_specular_map.frag");
+                VulkanShader PrefilterCubeMapGeneratorShader;
+                PrefilterCubeMapGeneratorShader.LoadFromFile("../PIX3D/res/vk shaders/ibl_specular_map.vert", "../PIX3D/res/vk shaders/ibl_specular_map.frag");
 
                 // Load Cube Mesh Vertex Buffer And Extract Vertex Input Data
 
@@ -153,7 +153,7 @@ namespace PIX3D
 
                 VulkanGraphicsPipeline GraphicsPipeline;
                 GraphicsPipeline.Init(Context->m_Device, Renderpass.GetVKRenderpass())
-                    .AddShaderStages(EquirectangularMapToCubeShader.GetVertexShader(), EquirectangularMapToCubeShader.GetFragmentShader())
+                    .AddShaderStages(PrefilterCubeMapGeneratorShader.GetVertexShader(), PrefilterCubeMapGeneratorShader.GetFragmentShader())
                     .AddVertexInputState(&bindingDesc, attributeDesc.data(), 1, attributeDesc.size())
                     .AddViewportState(m_Size, m_Size)
                     .AddInputAssemblyState(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, VK_FALSE)
@@ -267,11 +267,39 @@ namespace PIX3D
                 }
 
                 VulkanHelper::EndSingleTimeCommands(Context->m_Device, Context->m_Queue.m_Queue, Context->m_CommandPool, CommandBuffer);
+
+
+                // Wait for device
+                vkDeviceWaitIdle(Context->m_Device);
+
+                // Cleanup shader
+                PrefilterCubeMapGeneratorShader.Destroy();
+
+                // Cleanup pipeline and layout
+                GraphicsPipeline.Destroy();
+                if (PipelineLayout != VK_NULL_HANDLE)
+                {
+                    vkDestroyPipelineLayout(Context->m_Device, PipelineLayout, nullptr);
+                }
+
+                // Cleanup render pass
+                Renderpass.Destroy();
+
+                for (size_t face = 0; face < FaceCount; face++)
+                {
+                    for (size_t mip = 0; mip < MipCount; mip++)
+                    {
+                        m_Framebuffers[face][mip].Destroy();
+                    }
+                }
+
+                // Cleanup descriptor resources
+                DescriptorSet.Destroy();
+                DescriptorSetLayout.Destroy();
             }
 
             VulkanCubemapHelper::TransitionImageLayout(m_Image, m_MipLevels, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, nullptr);
 
-            // TODO:: Destroy All Vulkan Objects
             return true;
         }
 
