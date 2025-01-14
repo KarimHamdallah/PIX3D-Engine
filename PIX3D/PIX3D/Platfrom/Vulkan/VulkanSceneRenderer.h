@@ -24,6 +24,7 @@ namespace PIX3D
 			static void RenderMesh(VulkanStaticMesh& mesh);
 			static void RenderSkyBox();
 			static void End();
+			static void Submit();
 
 			static void Resize(uint32_t width, uint32_t height);
 

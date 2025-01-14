@@ -3,6 +3,7 @@
 #include <PIX3D.h>
 #include <Platfrom/Vulkan/VulkanSceneRenderer.h>
 #include <Platfrom/Vulkan/VulkanComputePipeline.h>
+#include <Platfrom/Vulkan/VulkanImGuiPass.h>
 
 using namespace PIX3D;
 
@@ -31,4 +32,6 @@ private:
 	VK::VulkanDescriptorSet m_ComputeDescriptorSet;
 
 	VK::VulkanComputePipeline m_ComputePipeline;
+
+	VK::VulkanImGuiPass* m_ImGuiPass;
 };

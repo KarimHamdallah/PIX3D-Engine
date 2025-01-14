@@ -1,5 +1,6 @@
 #include "PixEditor.h"
 #include <Platfrom/Vulkan/VulkanHelper.h>
+#include <imgui.h>
 
 void PixEditor::OnStart()
 {
@@ -9,6 +10,9 @@ void PixEditor::OnStart()
 	m_Mesh.Load("res/helmet/DamagedHelmet.gltf");
 	
 	Cam.Init({0.0f, 0.0f, 5.0f});
+
+    m_ImGuiPass = new VK::VulkanImGuiPass();
+    m_ImGuiPass->Init(Context->m_NativeWindowHandle, specs.Width, specs.Height);
 
     /*
 
@@ -160,6 +164,29 @@ void PixEditor::OnUpdate(float dt)
     VK::VulkanSceneRenderer::RenderMesh(m_Mesh);
 
     VK::VulkanSceneRenderer::End();
+
+
+
+
+    m_ImGuiPass->BeginFrame();
+
+    ImGui::Begin("Debug Window");
+
+    ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+
+    if (ImGui::Button("Click me!"))
+    {
+        // Handle button click
+    }
+
+    ImGui::End();
+
+
+    m_ImGuiPass->EndFrame();
+
+    m_ImGuiPass->Render(VK::VulkanSceneRenderer::s_MainRenderpass.CommandBuffers[VK::VulkanSceneRenderer::s_ImageIndex], VK::VulkanSceneRenderer::s_ImageIndex);
+
+    VK::VulkanSceneRenderer::Submit();
 }
 
 void PixEditor::OnDestroy()

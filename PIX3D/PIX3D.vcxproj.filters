@@ -213,6 +213,12 @@
     <ClCompile Include="PIX3D\Platfrom\Vulkan\IBL\VulkanBrdfLutTexture.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanImGuiPass.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui\imgui_impl_vulkan.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="PIX3D\Platfrom\Platform.h">
@@ -471,6 +477,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="PIX3D\Platfrom\Vulkan\IBL\VulkanBrdfLutTexture.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanImGuiPass.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui\imgui_impl_vulkan.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

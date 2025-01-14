@@ -466,6 +466,11 @@ namespace PIX3D
 
 			s_BloomPass.RecordCommandBuffer(s_MainRenderpass.CommandBuffers[s_ImageIndex], BLOOM_BLUR_ITERATIONS);
 			s_PostProcessingRenderpass.RecordCommandBuffer(s_MainRenderpass.CommandBuffers[s_ImageIndex], s_ImageIndex);
+		}
+
+		void VulkanSceneRenderer::Submit()
+		{
+			auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
 
 			////////////////// End Record CommandBuffer ////////////////
 

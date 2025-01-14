@@ -158,6 +158,7 @@
     <ClCompile Include="imgui\imgui_draw.cpp" />
     <ClCompile Include="imgui\imgui_impl_glfw.cpp" />
     <ClCompile Include="imgui\imgui_impl_opengl3.cpp" />
+    <ClCompile Include="imgui\imgui_impl_vulkan.cpp" />
     <ClCompile Include="imgui\imgui_tables.cpp" />
     <ClCompile Include="imgui\imgui_widgets.cpp" />
     <ClCompile Include="PIX3D\Core\Application.cpp" />
@@ -202,6 +203,7 @@
     <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanDescriptorSetLayout.cpp" />
     <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanFramebuffer.cpp" />
     <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanHdrCubemap.cpp" />
+    <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanImGuiPass.cpp" />
     <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanPostProcessingRenderpass.cpp" />
     <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanGraphicsContext.cpp" />
     <ClCompile Include="PIX3D\Platfrom\Vulkan\VulkanGraphicsPipeline.cpp" />
@@ -226,6 +228,7 @@
     <ClInclude Include="imgui\imgui_impl_glfw.h" />
     <ClInclude Include="imgui\imgui_impl_opengl3.h" />
     <ClInclude Include="imgui\imgui_impl_opengl3_loader.h" />
+    <ClInclude Include="imgui\imgui_impl_vulkan.h" />
     <ClInclude Include="imgui\imgui_internal.h" />
     <ClInclude Include="imgui\imstb_rectpack.h" />
     <ClInclude Include="imgui\imstb_textedit.h" />
@@ -280,6 +283,7 @@
     <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanDescriptorSetLayout.h" />
     <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanFramebuffer.h" />
     <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanHdrCubemap.h" />
+    <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanImGuiPass.h" />
     <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanPostProcessingRenderpass.h" />
     <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanGraphicsContext.h" />
     <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanGraphicsPipeline.h" />
