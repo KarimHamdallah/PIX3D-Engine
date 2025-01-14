@@ -219,6 +219,9 @@
     <ClCompile Include="imgui\imgui_impl_vulkan.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="PIX3D\Graphics\Material.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="PIX3D\Platfrom\Platform.h">
@@ -485,6 +488,9 @@
     <ClInclude Include="imgui\imgui_impl_vulkan.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="PIX3D\Graphics\Material.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="res\gl shaders\pos_vertex.vert" />
@@ -529,5 +535,7 @@
     <None Include="res\vk shaders\ibl_specular_map.frag" />
     <None Include="res\vk shaders\brdf_lut.frag" />
     <None Include="res\vk shaders\brdf_lut.vert" />
+    <None Include="res\vk shaders\sprite.vert" />
+    <None Include="res\vk shaders\sprite.frag" />
   </ItemGroup>
 </Project>

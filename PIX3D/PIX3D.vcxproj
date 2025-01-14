@@ -167,6 +167,7 @@
     <ClCompile Include="PIX3D\glad.c" />
     <ClCompile Include="PIX3D\Graphics\Camera2D.cpp" />
     <ClCompile Include="PIX3D\Graphics\Camera3D.cpp" />
+    <ClCompile Include="PIX3D\Graphics\Material.cpp" />
     <ClCompile Include="PIX3D\Graphics\Mesh.cpp" />
     <ClCompile Include="PIX3D\Graphics\Sprite.cpp" />
     <ClCompile Include="PIX3D\Graphics\VulkanStaticMesh.cpp" />
@@ -243,6 +244,7 @@
     <ClInclude Include="PIX3D\Graphics\Camera2D.h" />
     <ClInclude Include="PIX3D\Graphics\Camera3D.h" />
     <ClInclude Include="PIX3D\Graphics\GraphicsContext.h" />
+    <ClInclude Include="PIX3D\Graphics\Material.h" />
     <ClInclude Include="PIX3D\Graphics\Mesh.h" />
     <ClInclude Include="PIX3D\Graphics\Sprite.h" />
     <ClInclude Include="PIX3D\Graphics\Transform.h" />
@@ -354,6 +356,8 @@
     <None Include="res\vk shaders\3d_model.vert" />
     <None Include="res\vk shaders\skybox.frag" />
     <None Include="res\vk shaders\skybox.vert" />
+    <None Include="res\vk shaders\sprite.frag" />
+    <None Include="res\vk shaders\sprite.vert" />
     <None Include="res\vk shaders\square.comp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

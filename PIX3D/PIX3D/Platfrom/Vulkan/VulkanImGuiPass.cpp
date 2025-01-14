@@ -8,7 +8,7 @@ namespace PIX3D
 {
 	namespace VK
 	{
-        void VulkanImGuiPass::Init(void* window_handle, uint32_t width, uint32_t height)
+        void VulkanImGuiPass::Init(uint32_t width, uint32_t height)
         {
             auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
 
@@ -36,7 +36,7 @@ namespace PIX3D
             }
 
             // Initialize GLFW backend
-            ImGui_ImplGlfw_InitForVulkan((GLFWwindow*)window_handle, true);
+            ImGui_ImplGlfw_InitForVulkan((GLFWwindow*)Context->m_NativeWindowHandle, true);
 
             // Create Render Pass
             CreateRenderPass();

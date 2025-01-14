@@ -58,6 +58,22 @@ namespace
         0, 1, 2,  // first triangle
         2, 3, 0   // second triangle
     };
+
+
+    const std::vector<float> SpriteVertices =
+    {
+        // positions         // circle NDC coords    // texcoords
+         0.5f,  0.5f, 0.0f,   1.0f,  1.0f,   1.0f,  1.0f,   // top right
+         0.5f, -0.5f, 0.0f,   1.0f, -1.0f,   1.0f,  0.0f,   // bottom right
+        -0.5f, -0.5f, 0.0f,  -1.0f, -1.0f,   0.0f,  0.0f,   // bottom left
+        -0.5f,  0.5f, 0.0f,  -1.0f,  1.0f,   0.0f,  1.0f    // top left
+    };
+
+    const std::vector<uint32_t> SpriteIndices =
+    {
+        0, 1, 3,  // first triangle
+        1, 2, 3   // second triangle
+    };
 }
 
 namespace PIX3D
@@ -105,6 +121,33 @@ namespace PIX3D
                 QuadMesh.valid = true;
             }
             return QuadMesh;
+        }
+
+
+        VulkanStaticMeshData VulkanStaticMeshGenerator::GenerateSprite()
+        {
+            if (!SpriteMesh.valid)
+            {
+                // Setup vertex buffer
+                SpriteMesh.VertexBuffer.Create();
+                SpriteMesh.VertexBuffer.FillData(SpriteVertices.data(), SpriteVertices.size() * sizeof(float));
+
+                // Setup index buffer
+                SpriteMesh.IndexBuffer.Create();
+                SpriteMesh.IndexBuffer.FillData(SpriteIndices.data(), SpriteIndices.size() * sizeof(uint32_t));
+
+                // Setup vertex layout
+                // position (xyz), circle NDC coords (xy), texcoords (uv)
+                SpriteMesh.VertexLayout
+                    .AddAttribute(VertexAttributeFormat::Float3)  // position
+                    .AddAttribute(VertexAttributeFormat::Float2)  // circle NDC coords
+                    .AddAttribute(VertexAttributeFormat::Float2); // texcoords
+
+                SpriteMesh.VerticesCount = 4;
+                SpriteMesh.IndicesCount = 6;
+                SpriteMesh.valid = true;
+            }
+            return SpriteMesh;
         }
     }
 }

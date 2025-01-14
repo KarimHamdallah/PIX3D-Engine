@@ -45,6 +45,7 @@ namespace PIX3D
             VkFormat GetVKormat() const { return GetVulkanFormat(m_Format); }
             VkImage GetVKImage() const { return m_Image; }
             uint32_t GetMipLevels() { return m_MipLevels; }
+            VkDescriptorSet GetImGuiDescriptorSet();
 
             void TransitionImageLayout(VkFormat Format,
                 VkImageLayout OldLayout, VkImageLayout NewLayout, VkCommandBuffer ExistingCommandBuffer = VK_NULL_HANDLE);
@@ -86,6 +87,8 @@ namespace PIX3D
             TextureFormat m_Format = TextureFormat::RGBA8;
             uint32_t m_MipLevels = 1;
             bool m_SamplerClampToEdge = false;
+
+            VkDescriptorSet m_ImGuiDescriptorset = nullptr;
         };
     }
 }

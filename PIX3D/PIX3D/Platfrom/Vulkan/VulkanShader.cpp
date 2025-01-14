@@ -19,13 +19,6 @@ namespace PIX3D
 
         VulkanShader::~VulkanShader()
         {
-            if (m_device != VK_NULL_HANDLE)
-            {
-                if (m_vertexShader != VK_NULL_HANDLE)
-                    vkDestroyShaderModule(m_device, m_vertexShader, nullptr);
-                if (m_fragmentShader != VK_NULL_HANDLE)
-                    vkDestroyShaderModule(m_device, m_fragmentShader, nullptr);
-            }
         }
 
         bool VulkanShader::FileExists(const std::string& filename) {

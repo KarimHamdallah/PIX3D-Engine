@@ -19,6 +19,7 @@
 #include <Project/Project.h>
 #include <Platfrom/Vulkan/VulkanGraphicsContext.h>
 #include <Platfrom/Vulkan/VulkanSceneRenderer.h>
+#include <Platfrom/Vulkan/VulkanImGuiPass.h>
 
 namespace PIX3D
 {
@@ -85,6 +86,7 @@ namespace PIX3D
 					s_GraphicsContext = new VK::VulkanGraphicsContext();
 					s_GraphicsContext->Init(s_Platform->GetNativeWindowHandel());
 
+					VK::VulkanImGuiPass::Init(s_AppSpecs.Width, s_AppSpecs.Height);
 					VK::VulkanSceneRenderer::Init(s_AppSpecs.Width, s_AppSpecs.Height);
 			    }break;
 			    
@@ -110,20 +112,8 @@ namespace PIX3D
 
 				// Poll Events
 				s_Platform->PollEvents();
-
-				if (s_EngineSpecs.API == GraphicsAPI::OPENGL)
-				{
-					GL::GLPixelBatchRenderer2D::ResetDrawCalls();
-					ImGuiLayer::BeginDraw();
-				}
 				
 				s_Application->OnUpdate(s_DeltaTime);
-				
-				
-				if (s_EngineSpecs.API == GraphicsAPI::OPENGL)
-				{
-					ImGuiLayer::EndDraw();
-				}
 
 				s_GraphicsContext->SwapBuffers(s_Platform->GetNativeWindowHandel());
 
@@ -146,6 +136,7 @@ namespace PIX3D
 			}
 			else if (s_EngineSpecs.API == GraphicsAPI::VULKAN)
 			{
+				VK::VulkanImGuiPass::Destroy();
 				VK::VulkanSceneRenderer::Destroy();
 				auto* _Context = (VK::VulkanGraphicsContext*)s_GraphicsContext;
 				_Context->Destroy();

@@ -4,6 +4,7 @@
 #include <Platfrom/Vulkan/VulkanSceneRenderer.h>
 #include <Platfrom/Vulkan/VulkanComputePipeline.h>
 #include <Platfrom/Vulkan/VulkanImGuiPass.h>
+#include <Graphics/Material.h>
 
 using namespace PIX3D;
 
@@ -33,5 +34,6 @@ private:
 
 	VK::VulkanComputePipeline m_ComputePipeline;
 
-	VK::VulkanImGuiPass* m_ImGuiPass;
+	TransformComponent m_SpriteTransform;
+	SpriteMaterial m_Material;
 };

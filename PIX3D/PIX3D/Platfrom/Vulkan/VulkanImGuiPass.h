@@ -12,21 +12,21 @@ namespace PIX3D
             VulkanImGuiPass() {}
             ~VulkanImGuiPass() {}
 
-            void Init(void* window_handle, uint32_t width, uint32_t height);
-            void Destroy();
-            void BeginFrame();
-            void EndFrame();
-            void Render(VkCommandBuffer commandBuffer, uint32_t imageIndex);
-            void OnResize(uint32_t width, uint32_t height);
+            static void Init(uint32_t width, uint32_t height);
+            static void Destroy();
+            static void BeginFrame();
+            static void EndFrame();
+            static void Render(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+            static void OnResize(uint32_t width, uint32_t height);
 
         private:
-            void CreateDescriptorPool();
-            void CreateRenderPass();
+            static void CreateDescriptorPool();
+            static void CreateRenderPass();
 
         private:
-            VkDescriptorPool m_DescriptorPool = VK_NULL_HANDLE;
-            VkRenderPass m_RenderPass = VK_NULL_HANDLE;
-            std::vector<VkFramebuffer> m_Framebuffers;
+            inline static VkDescriptorPool m_DescriptorPool = VK_NULL_HANDLE;
+            inline static VkRenderPass m_RenderPass = VK_NULL_HANDLE;
+            inline static std::vector<VkFramebuffer> m_Framebuffers;
         };
 	}
 }

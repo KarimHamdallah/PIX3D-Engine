@@ -22,10 +22,12 @@ namespace PIX3D
         public:
             static VulkanStaticMeshData GenerateCube();
             static VulkanStaticMeshData GenerateQuad();
+            static VulkanStaticMeshData GenerateSprite();
 
         private:
             inline static VulkanStaticMeshData CubeMesh;
             inline static VulkanStaticMeshData QuadMesh;
+            inline static VulkanStaticMeshData SpriteMesh;
         };
     }
 }

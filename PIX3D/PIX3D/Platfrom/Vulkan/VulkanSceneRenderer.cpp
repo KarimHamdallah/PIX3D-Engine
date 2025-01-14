@@ -429,6 +429,68 @@ namespace PIX3D
 
 
 
+			//////////////////////////////////////  Sprite Pass   //////////////////////////////////////////////////////////////
+
+
+			{
+			//////////////////////// Shader ///////////////////////////
+
+			s_SpriteRenderpass.Shader.LoadFromFile("../PIX3D/res/vk shaders/sprite.vert", "../PIX3D/res/vk shaders/sprite.frag");
+
+			//////////////////////// Descriptor Layout ///////////////////////
+
+			s_SpriteRenderpass.DescriptorSetLayout
+				.AddBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT) // For texture
+				.AddBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT) // For texture
+				.Build();
+
+			//////////////////////// Pipeline Layout ///////////////////////
+
+			VkPushConstantRange pushConstant{};
+			pushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+			pushConstant.offset = 0;
+			pushConstant.size = sizeof(glm::mat4);  // Only model matrix in push constants
+
+			VkDescriptorSetLayout layouts[] =
+			{
+				s_CameraDescriptorSetLayout.GetVkDescriptorSetLayout(),
+				s_SpriteRenderpass.DescriptorSetLayout.GetVkDescriptorSetLayout()
+			};
+
+			VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
+			pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+			pipelineLayoutInfo.setLayoutCount = 2;
+			pipelineLayoutInfo.pSetLayouts = layouts;
+			pipelineLayoutInfo.pushConstantRangeCount = 1;
+			pipelineLayoutInfo.pPushConstantRanges = &pushConstant;
+
+			if (vkCreatePipelineLayout(Context->m_Device, &pipelineLayoutInfo, nullptr, &s_SpriteRenderpass.PipelineLayout) != VK_SUCCESS)
+				PIX_ASSERT_MSG(false, "Failed to create sprite pipeline layout!");
+
+			//////////////////////// Vertex Description ///////////////////////
+
+			s_SpriteRenderpass.SpriteMesh = VulkanStaticMeshGenerator::GenerateSprite();
+
+			auto bindingDesc = s_SpriteRenderpass.SpriteMesh.VertexLayout.GetBindingDescription();
+			auto attributeDesc = s_SpriteRenderpass.SpriteMesh.VertexLayout.GetAttributeDescriptions();
+
+			//////////////////////// Graphics Pipeline ///////////////////////
+
+			s_SpriteRenderpass.GraphicsPipeline.Init(Context->m_Device, s_MainRenderpass.Renderpass.GetVKRenderpass())
+				.AddShaderStages(s_SpriteRenderpass.Shader.GetVertexShader(), s_SpriteRenderpass.Shader.GetFragmentShader())
+				.AddVertexInputState(&bindingDesc, attributeDesc.data(), 1, attributeDesc.size())
+				.AddViewportState(width, height)
+				.AddInputAssemblyState(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, VK_FALSE)
+				.AddRasterizationState(VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE)
+				.AddMultisampleState(VK_SAMPLE_COUNT_1_BIT)
+				.AddDepthStencilState(false, false) // Disable depth testing for 2D sprites
+				.AddColorBlendState(true, 2)  // Enable blending for transparency
+				.SetPipelineLayout(s_SpriteRenderpass.PipelineLayout)
+				.Build();
+
+			}
+
+
 			//////////////////////////////////////  Bloom & PostProcessing Passes   ////////////////////////////////////////////
 
 			s_BloomPass.Init(width, height, s_MainRenderpass.BloomBrightnessAttachmentTexture);
@@ -458,6 +520,7 @@ namespace PIX3D
 			VK::VulkanHelper::BeginCommandBuffer(s_MainRenderpass.CommandBuffers[s_ImageIndex], VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
 
 			s_CameraPosition = cam.GetPosition();
+			s_CameraViewProjection = cam.GetProjectionMatrix() * cam.GetViewMatrix();
 		}
 
 		void VulkanSceneRenderer::End()
@@ -470,6 +533,8 @@ namespace PIX3D
 
 		void VulkanSceneRenderer::Submit()
 		{
+			VK::VulkanImGuiPass::Render(s_MainRenderpass.CommandBuffers[s_ImageIndex], s_ImageIndex);
+
 			auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
 
 			////////////////// End Record CommandBuffer ////////////////
@@ -479,6 +544,88 @@ namespace PIX3D
 
 			Context->m_Queue.SubmitAsync(s_MainRenderpass.CommandBuffers[s_ImageIndex]);
 			Context->m_Queue.Present(s_ImageIndex);
+		}
+
+
+		void VulkanSceneRenderer::RenderTexturedQuad(SpriteMaterial* material, const glm::mat4& transform)
+		{
+			if (!material)
+				return;
+
+			auto* Context = (VK::VulkanGraphicsContext*)Engine::GetGraphicsContext();
+			auto specs = Engine::GetApplicationSpecs();
+
+			VkRenderPassBeginInfo RenderPassBeginInfo = {
+				.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+				.pNext = NULL,
+				.renderPass = s_MainRenderpass.Renderpass.GetVKRenderpass(),
+				.renderArea = {
+					.offset = { 0, 0 },
+					.extent = { specs.Width, specs.Height }
+				},
+				.clearValueCount = 0,
+				.pClearValues = nullptr
+			};
+			RenderPassBeginInfo.framebuffer = s_MainRenderpass.Framebuffer.GetVKFramebuffer();
+
+			vkCmdBeginRenderPass(s_MainRenderpass.CommandBuffers[s_ImageIndex], &RenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+			vkCmdBindPipeline(s_MainRenderpass.CommandBuffers[s_ImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, s_SpriteRenderpass.GraphicsPipeline.GetVkPipeline());
+
+			// Set viewport and scissor
+			VkViewport viewport{};
+			viewport.x = 0.0f;
+			viewport.y = (float)specs.Height;
+			viewport.width = (float)specs.Width;
+			viewport.height = -(float)specs.Height;
+			viewport.minDepth = 0.0f;
+			viewport.maxDepth = 1.0f;
+
+			VkRect2D scissor{};
+			scissor.offset = { 0, 0 };
+			scissor.extent = { specs.Width, specs.Height };
+
+			vkCmdSetViewport(s_MainRenderpass.CommandBuffers[s_ImageIndex], 0, 1, &viewport);
+			vkCmdSetScissor(s_MainRenderpass.CommandBuffers[s_ImageIndex], 0, 1, &scissor);
+
+
+			// Bind camera's descriptor set
+			auto _camera_descriptor_set = s_CameraDescriptorSets[s_ImageIndex].GetVkDescriptorSet();
+			vkCmdBindDescriptorSets(s_MainRenderpass.CommandBuffers[s_ImageIndex],
+				VK_PIPELINE_BIND_POINT_GRAPHICS,
+				s_SpriteRenderpass.PipelineLayout,
+				0, 1, &_camera_descriptor_set,
+				0, nullptr);
+
+			// Bind material's descriptor set (contains both storage buffer and texture)
+			auto descriptorSet = material->GetVKDescriptorSet();
+			vkCmdBindDescriptorSets(s_MainRenderpass.CommandBuffers[s_ImageIndex],
+				VK_PIPELINE_BIND_POINT_GRAPHICS,
+				s_SpriteRenderpass.PipelineLayout,
+				1, 1, &descriptorSet,
+				0, nullptr);
+
+			// Push model matrix
+			vkCmdPushConstants(s_MainRenderpass.CommandBuffers[s_ImageIndex],
+				s_SpriteRenderpass.PipelineLayout,
+				VK_SHADER_STAGE_VERTEX_BIT,
+				0,
+				sizeof(glm::mat4),
+				&transform);
+
+			// Bind vertex and index buffers
+			VkBuffer vertexBuffers[] = { s_SpriteRenderpass.SpriteMesh.VertexBuffer.GetBuffer() };
+			VkDeviceSize offsets[] = { 0 };
+			vkCmdBindVertexBuffers(s_MainRenderpass.CommandBuffers[s_ImageIndex], 0, 1, vertexBuffers, offsets);
+			vkCmdBindIndexBuffer(s_MainRenderpass.CommandBuffers[s_ImageIndex],
+				s_SpriteRenderpass.SpriteMesh.IndexBuffer.GetBuffer(),
+				0,
+				VK_INDEX_TYPE_UINT32);
+
+			vkCmdDrawIndexed(s_MainRenderpass.CommandBuffers[s_ImageIndex],
+				s_SpriteRenderpass.SpriteMesh.IndicesCount,
+				1, 0, 0, 0);
+
+			vkCmdEndRenderPass(s_MainRenderpass.CommandBuffers[s_ImageIndex]);
 		}
 
 		void VulkanSceneRenderer::RenderMesh(VulkanStaticMesh& mesh)
@@ -659,7 +806,7 @@ namespace PIX3D
 			}
 		}
 
-		void VulkanSceneRenderer::Resize(uint32_t width, uint32_t height)
+		void VulkanSceneRenderer::OnResize(uint32_t width, uint32_t height)
 		{
 			auto* Context = (VK::VulkanGraphicsContext*)Engine::GetGraphicsContext();
 
@@ -723,6 +870,8 @@ namespace PIX3D
 
 			// Resize post processing pass
 			s_PostProcessingRenderpass.Resize(width, height, s_MainRenderpass.ColorAttachmentTexture, s_BloomPass.GetFinalBloomTexture());
+
+			VK::VulkanImGuiPass::OnResize(width, height);
 
 			PIX_DEBUG_SUCCESS("Scene renderer resized successfully");
 		}

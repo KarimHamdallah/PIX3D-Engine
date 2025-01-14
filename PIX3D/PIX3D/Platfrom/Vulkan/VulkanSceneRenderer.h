@@ -9,6 +9,7 @@
 #include <Platfrom/Vulkan/IBL/VulkanBrdfLutTexture.h>
 #include <Graphics/VulkanStaticMesh.h>
 #include <Graphics/Camera3D.h>
+#include <Graphics/Material.h>
 
 namespace PIX3D
 {
@@ -22,11 +23,13 @@ namespace PIX3D
 
 			static void Begin(Camera3D& cam);
 			static void RenderMesh(VulkanStaticMesh& mesh);
+			static void RenderTexturedQuad(SpriteMaterial* material, const glm::mat4& transform);
+			static void RenderTexturedQuadUV(VkDescriptorSet descriptorSet, const glm::mat4& transformation, const glm::vec2& uv_offset, const glm::vec2& uv_scale, glm::vec4 color, float tiling_factor, bool flip);
 			static void RenderSkyBox();
 			static void End();
 			static void Submit();
 
-			static void Resize(uint32_t width, uint32_t height);
+			static void OnResize(uint32_t width, uint32_t height);
 
 			inline static VulkanTexture* GetDefaultAlbedoTexture() { return s_DefaultAlbedoTexture; }
 			inline static VulkanTexture* GetDefaultNormalTexture() { return s_DefaultNormalTexture; }
@@ -130,7 +133,19 @@ namespace PIX3D
 
 			inline static _SkyBoxPass s_SkyBoxPass;
 
+			struct _SpriteRenderpass
+			{
+				VK::VulkanShader Shader;
 
+				VK::VulkanDescriptorSetLayout DescriptorSetLayout;
+
+				VkPipelineLayout PipelineLayout = nullptr;
+				VK::VulkanGraphicsPipeline GraphicsPipeline;
+
+				VulkanStaticMeshData SpriteMesh;
+			};
+
+			inline static _SpriteRenderpass s_SpriteRenderpass;
 
 
 
@@ -144,6 +159,7 @@ namespace PIX3D
 			inline static VulkanBrdfLutTexture* s_BrdfLutTexture;
 
 			inline static glm::vec3 s_CameraPosition;
+			inline static glm::mat4 s_CameraViewProjection;
 		};
 	}
 }

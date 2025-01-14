@@ -4,6 +4,7 @@
 #include "VulkanHelper.h"
 
 #include <Utils/stb_image.h>
+#include <imgui_impl_vulkan.h>
 
 namespace PIX3D
 {
@@ -769,6 +770,20 @@ namespace PIX3D
             case TextureFormat::RGBA32F: return 16;
             default: throw std::runtime_error("Unsupported texture format!");
             }
+        }
+
+        VkDescriptorSet VulkanTexture::GetImGuiDescriptorSet()
+        {
+            if (!m_ImGuiDescriptorset)
+            {
+                m_ImGuiDescriptorset = ImGui_ImplVulkan_AddTexture(
+                    GetSampler(),
+                    GetImageView(),
+                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+                );
+            }
+
+            return m_ImGuiDescriptorset;
         }
     }
 }

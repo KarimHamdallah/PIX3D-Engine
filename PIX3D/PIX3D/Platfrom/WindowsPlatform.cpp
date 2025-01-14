@@ -26,7 +26,7 @@ namespace
         auto* Context = (PIX3D::VK::VulkanGraphicsContext*)PIX3D::Engine::GetGraphicsContext();
         Context->Resize(width, height);
 
-        PIX3D::VK::VulkanSceneRenderer::Resize(width, height);
+        PIX3D::VK::VulkanSceneRenderer::OnResize(width, height);
 
         auto App = PIX3D::Engine::GetApplication();
         App->OnResize(width, height);
