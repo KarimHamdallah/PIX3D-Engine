@@ -24,9 +24,7 @@ namespace PIX3D
 				};
 
 				s_DefaultAlbedoTexture = new VulkanTexture();
-
-				s_DefaultAlbedoTexture->Create();
-				s_DefaultAlbedoTexture->LoadFromData(data.data(), 2, 2, TextureFormat::RGBA8);
+				s_DefaultAlbedoTexture->LoadFromData(data.data(), 2, 2, VK_FORMAT_R8G8B8A8_UNORM);
 			}
 
 			// Default Normal Texture
@@ -41,9 +39,7 @@ namespace PIX3D
 				};
 
 				s_DefaultNormalTexture = new VulkanTexture();
-
-				s_DefaultNormalTexture->Create();
-				s_DefaultNormalTexture->LoadFromData(data.data(), 2, 2, TextureFormat::RGBA8);
+				s_DefaultNormalTexture->LoadFromData(data.data(), 2, 2, VK_FORMAT_R8G8B8A8_UNORM);
 			}
 
 			// Default White Texture
@@ -58,9 +54,7 @@ namespace PIX3D
 				};
 
 				s_DefaultWhiteTexture = new VulkanTexture();
-
-				s_DefaultWhiteTexture->Create();
-				s_DefaultWhiteTexture->LoadFromData(data.data(), 2, 2, TextureFormat::RGBA8);
+				s_DefaultWhiteTexture->LoadFromData(data.data(), 2, 2, VK_FORMAT_R8G8B8A8_UNORM);
 			}
 
 			// Default Black Texture
@@ -75,9 +69,7 @@ namespace PIX3D
 				};
 
 				s_DefaultBlackTexture = new VulkanTexture();
-
-				s_DefaultBlackTexture->Create();
-				s_DefaultBlackTexture->LoadFromData(data.data(), 2, 2, TextureFormat::RGBA8);
+				s_DefaultBlackTexture->LoadFromData(data.data(), 2, 2, VK_FORMAT_R8G8B8A8_UNORM);
 			}
 
 			////////////////// Vulkan Static Mesh Material Descriptor Set Layout ///////////////////////
@@ -94,17 +86,21 @@ namespace PIX3D
 
 			/////////////// Environment Maps //////////////////
 
-			s_Cubemap = new VulkanHdrCubemap();
-			s_Cubemap->LoadHdrToCubemapGPU("res/hdr/barcelona_rooftop.hdr", 1024);
+			// Load And Setup Scene Environment Maps
+			{
+				s_Environment.Cubemap = new VK::VulkanHdrCubemap();
+				s_Environment.Cubemap->LoadHdrToCubemapGPU("res/hdr/barcelona_rooftop.hdr", s_Environment.EnvironmentMapSize);
 
-			s_IrraduianceCubemap = new VulkanIrradianceCubemap();
-			s_IrraduianceCubemap->Generate(s_Cubemap, 32);
+				s_Environment.IrraduianceCubemap = new VK::VulkanIrradianceCubemap();
+				s_Environment.IrraduianceCubemap->Generate(s_Environment.Cubemap, 32);
 
-			s_PrefilterCubemap = new VulkanPrefilteredCubemap();
-			s_PrefilterCubemap->Generate(s_Cubemap, 128);
+				s_Environment.PrefilterCubemap = new VK::VulkanPrefilteredCubemap();
+				s_Environment.PrefilterCubemap->Generate(s_Environment.Cubemap, 128);
 
-			s_BrdfLutTexture = new VulkanBrdfLutTexture();
-			s_BrdfLutTexture->Generate(512);
+				s_BrdfLutTexture = new VulkanBrdfLutTexture();
+				s_BrdfLutTexture->Generate(512);
+			}
+
 
 			/////////////////////// Environment DescriptorSets ////////////////////////////
 
@@ -114,11 +110,12 @@ namespace PIX3D
 				.AddBinding(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
 				.Build();
 
-			s_EnvironmetDescriptorSet
-				.Init(s_EnvironmetDescriptorSetLayout)
-				.AddCubemap(0, s_IrraduianceCubemap->m_ImageView, s_IrraduianceCubemap->m_Sampler)
-				.AddCubemap(1, s_PrefilterCubemap->m_ImageView, s_PrefilterCubemap->m_Sampler)
-				.AddTexture(2, s_BrdfLutTexture->GetImageView(), s_BrdfLutTexture->GetSampler())
+
+			VK::VulkanSceneRenderer::s_EnvironmetDescriptorSet
+				.Init(VK::VulkanSceneRenderer::s_EnvironmetDescriptorSetLayout)
+				.AddCubemap(0, s_Environment.IrraduianceCubemap->m_ImageView, s_Environment.IrraduianceCubemap->m_Sampler)
+				.AddCubemap(1, s_Environment.PrefilterCubemap->m_ImageView, s_Environment.PrefilterCubemap->m_Sampler)
+				.AddTexture(2, VK::VulkanSceneRenderer::s_BrdfLutTexture->GetImageView(), VK::VulkanSceneRenderer::s_BrdfLutTexture->GetSampler())
 				.Build();
 
 			//////////////////////// Setup Camera Shader Set Data ///////////////////////////
@@ -145,6 +142,7 @@ namespace PIX3D
 					.Build();
 			}
 
+
 			//////////////////////////////////////  Main Render Pass   ////////////////////////////////////////////
 
 			{
@@ -155,21 +153,25 @@ namespace PIX3D
 				/////////////// Color Attachments //////////////////////
 
 				s_MainRenderpass.ColorAttachmentTexture = new VK::VulkanTexture();
-				s_MainRenderpass.ColorAttachmentTexture->Create();
-				s_MainRenderpass.ColorAttachmentTexture->CreateColorAttachment(width, height, VK::TextureFormat::RGBA16F);
+				s_MainRenderpass.ColorAttachmentTexture->CreateColorAttachment(width, height, VK_FORMAT_R16G16B16A16_SFLOAT);
 
-				s_MainRenderpass.ColorAttachmentTexture->TransitionImageLayout(
-					s_MainRenderpass.ColorAttachmentTexture->GetVKormat(),
+				VulkanTextureHelper::TransitionImageLayout
+				(
+					s_MainRenderpass.ColorAttachmentTexture->GetImage(),
+					s_MainRenderpass.ColorAttachmentTexture->GetFormat(),
+					0, 1,
 					VK_IMAGE_LAYOUT_UNDEFINED,
 					VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 				);
 
 				s_MainRenderpass.BloomBrightnessAttachmentTexture = new VK::VulkanTexture();
-				s_MainRenderpass.BloomBrightnessAttachmentTexture->Create();
-				s_MainRenderpass.BloomBrightnessAttachmentTexture->CreateColorAttachment(width, height, VK::TextureFormat::RGBA16F, BLOOM_DOWN_SAMPLES);
+				s_MainRenderpass.BloomBrightnessAttachmentTexture->CreateColorAttachment(width, height, VK_FORMAT_R16G16B16A16_SFLOAT, BLOOM_DOWN_SAMPLES);
 
-				s_MainRenderpass.BloomBrightnessAttachmentTexture->TransitionImageLayout(
-					s_MainRenderpass.BloomBrightnessAttachmentTexture->GetVKormat(),
+				VulkanTextureHelper::TransitionImageLayout
+				(
+					s_MainRenderpass.BloomBrightnessAttachmentTexture->GetImage(),
+					s_MainRenderpass.BloomBrightnessAttachmentTexture->GetFormat(),
+					0, BLOOM_DOWN_SAMPLES,
 					VK_IMAGE_LAYOUT_UNDEFINED,
 					VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 				);
@@ -180,7 +182,7 @@ namespace PIX3D
 					.Init(Context->m_Device)
 
 					.AddColorAttachment(
-						s_MainRenderpass.ColorAttachmentTexture->GetVKormat(),
+						s_MainRenderpass.ColorAttachmentTexture->GetFormat(),
 						VK_SAMPLE_COUNT_1_BIT,
 						VK_ATTACHMENT_LOAD_OP_LOAD,
 						VK_ATTACHMENT_STORE_OP_STORE,
@@ -188,7 +190,7 @@ namespace PIX3D
 						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
 
 					.AddColorAttachment(
-						s_MainRenderpass.BloomBrightnessAttachmentTexture->GetVKormat(),
+						s_MainRenderpass.BloomBrightnessAttachmentTexture->GetFormat(),
 						VK_SAMPLE_COUNT_1_BIT,
 						VK_ATTACHMENT_LOAD_OP_LOAD,
 						VK_ATTACHMENT_STORE_OP_STORE,
@@ -290,6 +292,64 @@ namespace PIX3D
 			}
 
 
+			//////////////////////////////////////  Clear Pass   ////////////////////////////////////////////
+			
+			// Create Clear Renderpass
+			s_ClearRenderpass.Renderpass
+				.Init(Context->m_Device)
+				.AddColorAttachment(
+					s_MainRenderpass.ColorAttachmentTexture->GetFormat(),
+					VK_SAMPLE_COUNT_1_BIT,
+					VK_ATTACHMENT_LOAD_OP_CLEAR,
+					VK_ATTACHMENT_STORE_OP_STORE,
+					VK_IMAGE_LAYOUT_UNDEFINED,
+					VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+				.AddColorAttachment(
+					s_MainRenderpass.BloomBrightnessAttachmentTexture->GetFormat(),
+					VK_SAMPLE_COUNT_1_BIT,
+					VK_ATTACHMENT_LOAD_OP_CLEAR,
+					VK_ATTACHMENT_STORE_OP_STORE,
+					VK_IMAGE_LAYOUT_UNDEFINED,
+					VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+				.AddDepthAttachment(
+					Context->m_SupportedDepthFormat,
+					VK_SAMPLE_COUNT_1_BIT,
+					VK_ATTACHMENT_LOAD_OP_CLEAR,
+					VK_ATTACHMENT_STORE_OP_STORE,
+					VK_IMAGE_LAYOUT_UNDEFINED,
+					VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
+				.AddSubpass(VK_PIPELINE_BIND_POINT_GRAPHICS)
+				// Initial synchronization dependency
+				.AddDependency(
+					VK_SUBPASS_EXTERNAL,                            // srcSubpass
+					0,                                              // dstSubpass
+					VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,          // srcStageMask
+					VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+					VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,    // dstStageMask
+					VK_ACCESS_MEMORY_READ_BIT,                     // srcAccessMask
+					VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+					VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,  // dstAccessMask
+					VK_DEPENDENCY_BY_REGION_BIT                    // dependencyFlags
+				)
+				// Final synchronization dependency for shader read transition
+				.AddDependency(
+					0,                                              // srcSubpass
+					VK_SUBPASS_EXTERNAL,                           // dstSubpass
+					VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, // srcStageMask
+					VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,         // dstStageMask
+					VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,          // srcAccessMask
+					VK_ACCESS_SHADER_READ_BIT,                     // dstAccessMask
+					VK_DEPENDENCY_BY_REGION_BIT                    // dependencyFlags
+				)
+				.Build();
+
+			// Create Framebuffer
+			s_ClearRenderpass.Framebuffer
+				.Init(Context->m_Device, s_ClearRenderpass.Renderpass.GetVKRenderpass(), width, height)
+				.AddAttachment(s_MainRenderpass.ColorAttachmentTexture)
+				.AddAttachment(s_MainRenderpass.BloomBrightnessAttachmentTexture)
+				.AddAttachment(Context->m_DepthAttachmentTexture)
+				.Build();
 
 
 
@@ -306,27 +366,27 @@ namespace PIX3D
 					.Init(Context->m_Device)
 
 					.AddColorAttachment(
-						s_MainRenderpass.ColorAttachmentTexture->GetVKormat(),
+						s_MainRenderpass.ColorAttachmentTexture->GetFormat(),
 						VK_SAMPLE_COUNT_1_BIT,
-						VK_ATTACHMENT_LOAD_OP_CLEAR,
+						VK_ATTACHMENT_LOAD_OP_LOAD,
 						VK_ATTACHMENT_STORE_OP_STORE,
-						VK_IMAGE_LAYOUT_UNDEFINED,
+						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
 
 					.AddColorAttachment(
-						s_MainRenderpass.BloomBrightnessAttachmentTexture->GetVKormat(),
+						s_MainRenderpass.BloomBrightnessAttachmentTexture->GetFormat(),
 						VK_SAMPLE_COUNT_1_BIT,
-						VK_ATTACHMENT_LOAD_OP_CLEAR,
+						VK_ATTACHMENT_LOAD_OP_LOAD,
 						VK_ATTACHMENT_STORE_OP_STORE,
-						VK_IMAGE_LAYOUT_UNDEFINED,
+						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
 
 					.AddDepthAttachment(
 						Context->m_SupportedDepthFormat,
 						VK_SAMPLE_COUNT_1_BIT,
-						VK_ATTACHMENT_LOAD_OP_CLEAR,
+						VK_ATTACHMENT_LOAD_OP_LOAD,
 						VK_ATTACHMENT_STORE_OP_STORE,
-						VK_IMAGE_LAYOUT_UNDEFINED,
+						VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
 						VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
 
 					.AddSubpass(VK_PIPELINE_BIND_POINT_GRAPHICS)
@@ -376,7 +436,7 @@ namespace PIX3D
 
 				s_SkyBoxPass.DescriptorSet
 					.Init(s_SkyBoxPass.DescriptorSetLayout)
-					.AddCubemap(0, s_Cubemap->m_ImageView, s_Cubemap->m_Sampler)
+					.AddCubemap(0, s_Environment.Cubemap->m_ImageView, s_Environment.Cubemap->m_Sampler)
 					.Build();
 
 				/////////////// Pipeline Layout //////////////////////
@@ -493,9 +553,33 @@ namespace PIX3D
 
 			//////////////////////////////////////  Bloom & PostProcessing Passes   ////////////////////////////////////////////
 
-			s_BloomPass.Init(width, height, s_MainRenderpass.BloomBrightnessAttachmentTexture);
+			s_BloomPass.Init(width, height);
 			s_PostProcessingRenderpass.Init(width, height, s_MainRenderpass.ColorAttachmentTexture, s_BloomPass.GetFinalBloomTexture());
 		}
+
+		void VulkanSceneRenderer::RenderClearPass(const glm::vec4& clearColor)
+		{
+			auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
+			auto specs = Engine::GetApplicationSpecs();
+
+			VkClearValue clearValues[3] = {};
+			clearValues[0].color = { clearColor.r, clearColor.g, clearColor.b, clearColor.a };
+			clearValues[1].color = { 0.0f, 0.0f, 0.0f, 1.0f };
+			clearValues[2].depthStencil = { 1.0f, 0 };
+
+			VkRenderPassBeginInfo renderPassInfo = {};
+			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+			renderPassInfo.renderPass = s_ClearRenderpass.Renderpass.GetVKRenderpass();
+			renderPassInfo.framebuffer = s_ClearRenderpass.Framebuffer.GetVKFramebuffer();
+			renderPassInfo.renderArea.offset = { 0, 0 };
+			renderPassInfo.renderArea.extent = { specs.Width, specs.Height };
+			renderPassInfo.clearValueCount = 3;
+			renderPassInfo.pClearValues = clearValues;
+
+			vkCmdBeginRenderPass(s_MainRenderpass.CommandBuffers[s_ImageIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+			vkCmdEndRenderPass(s_MainRenderpass.CommandBuffers[s_ImageIndex]);
+		}
+
 
 		void VulkanSceneRenderer::Begin(Camera3D& cam)
 		{
@@ -527,13 +611,14 @@ namespace PIX3D
 		{
 			auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
 
-			s_BloomPass.RecordCommandBuffer(s_MainRenderpass.CommandBuffers[s_ImageIndex], BLOOM_BLUR_ITERATIONS);
+			s_BloomPass.RecordCommandBuffer(s_MainRenderpass.BloomBrightnessAttachmentTexture, s_MainRenderpass.CommandBuffers[s_ImageIndex], BLOOM_BLUR_ITERATIONS);
 			s_PostProcessingRenderpass.RecordCommandBuffer(s_MainRenderpass.CommandBuffers[s_ImageIndex], s_ImageIndex);
 		}
 
-		void VulkanSceneRenderer::Submit()
+		void VulkanSceneRenderer::Submit(bool render_imgui)
 		{
-			VK::VulkanImGuiPass::Render(s_MainRenderpass.CommandBuffers[s_ImageIndex], s_ImageIndex);
+			if(render_imgui)
+				VK::VulkanImGuiPass::Render(s_MainRenderpass.CommandBuffers[s_ImageIndex], s_ImageIndex);
 
 			auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
 
@@ -628,7 +713,7 @@ namespace PIX3D
 			vkCmdEndRenderPass(s_MainRenderpass.CommandBuffers[s_ImageIndex]);
 		}
 
-		void VulkanSceneRenderer::RenderMesh(VulkanStaticMesh& mesh)
+		void VulkanSceneRenderer::RenderMesh(VulkanStaticMesh& mesh, const glm::mat4& transform)
 		{
 			auto* Context = (VK::VulkanGraphicsContext*)Engine::GetGraphicsContext();
 			auto specs = Engine::GetApplicationSpecs();
@@ -705,7 +790,7 @@ namespace PIX3D
 						vkCmdBindDescriptorSets(s_MainRenderpass.CommandBuffers[s_ImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, s_MainRenderpass.PipelineLayout, 1, 1, &material_descriptor_set, 0, nullptr);
 					}
 
-					_ModelMatrixPushConstant pushData = { glm::mat4(1.0f), s_CameraPosition, (float)SubMeshIndex };
+					_ModelMatrixPushConstant pushData = { transform, s_CameraPosition, (float)SubMeshIndex };
 					vkCmdPushConstants(s_MainRenderpass.CommandBuffers[s_ImageIndex], s_MainRenderpass.PipelineLayout,
 						VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
 						0, sizeof(_ModelMatrixPushConstant), &pushData);
@@ -764,7 +849,7 @@ namespace PIX3D
 					.pClearValues = ClearValue
 				};
 
-				_ModelMatrixPushConstant pushData = { glm::mat4(1.0f), s_CameraPosition, 0.0f };
+				_ModelMatrixPushConstant pushData = { s_Environment.CubemapTransform, s_CameraPosition, 0.0f };
 				vkCmdPushConstants(s_MainRenderpass.CommandBuffers[s_ImageIndex], s_SkyBoxPass.PipelineLayout,
 					VK_SHADER_STAGE_VERTEX_BIT,
 					0, sizeof(_ModelMatrixPushConstant), &pushData);
@@ -817,29 +902,31 @@ namespace PIX3D
 			{
 				// Recreate color attachment with new size
 				s_MainRenderpass.ColorAttachmentTexture->Destroy();
-				s_MainRenderpass.ColorAttachmentTexture->Create();
-				s_MainRenderpass.ColorAttachmentTexture->CreateColorAttachment(
-					width,
-					height,
-					VK::TextureFormat::RGBA16F
-				);
-				s_MainRenderpass.ColorAttachmentTexture->TransitionImageLayout(
-					s_MainRenderpass.ColorAttachmentTexture->GetVKormat(),
+				s_MainRenderpass.BloomBrightnessAttachmentTexture->Destroy();
+				
+				delete s_MainRenderpass.ColorAttachmentTexture;
+				delete s_MainRenderpass.BloomBrightnessAttachmentTexture;
+
+				s_MainRenderpass.ColorAttachmentTexture = new VK::VulkanTexture();
+				s_MainRenderpass.ColorAttachmentTexture->CreateColorAttachment(width, height, VK_FORMAT_R16G16B16A16_SFLOAT);
+
+				VulkanTextureHelper::TransitionImageLayout
+				(
+					s_MainRenderpass.ColorAttachmentTexture->GetImage(),
+					s_MainRenderpass.ColorAttachmentTexture->GetFormat(),
+					0, 1,
 					VK_IMAGE_LAYOUT_UNDEFINED,
 					VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 				);
 
-				// Recreate bloom brightness attachment with new size
-				s_MainRenderpass.BloomBrightnessAttachmentTexture->Destroy();
-				s_MainRenderpass.BloomBrightnessAttachmentTexture->Create();
-				s_MainRenderpass.BloomBrightnessAttachmentTexture->CreateColorAttachment(
-					width,
-					height,
-					VK::TextureFormat::RGBA16F,
-					BLOOM_DOWN_SAMPLES
-				);
-				s_MainRenderpass.BloomBrightnessAttachmentTexture->TransitionImageLayout(
-					s_MainRenderpass.BloomBrightnessAttachmentTexture->GetVKormat(),
+				s_MainRenderpass.BloomBrightnessAttachmentTexture = new VK::VulkanTexture();
+				s_MainRenderpass.BloomBrightnessAttachmentTexture->CreateColorAttachment(width, height, VK_FORMAT_R16G16B16A16_SFLOAT, BLOOM_DOWN_SAMPLES);
+
+				VulkanTextureHelper::TransitionImageLayout
+				(
+					s_MainRenderpass.BloomBrightnessAttachmentTexture->GetImage(),
+					s_MainRenderpass.BloomBrightnessAttachmentTexture->GetFormat(),
+					0, BLOOM_DOWN_SAMPLES,
 					VK_IMAGE_LAYOUT_UNDEFINED,
 					VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 				);
@@ -865,11 +952,21 @@ namespace PIX3D
 					.Build();
 			}
 
+
+			// Recreate clear pass framebuffer
+			s_ClearRenderpass.Framebuffer.Destroy();
+			s_ClearRenderpass.Framebuffer
+				.Init(Context->m_Device, s_ClearRenderpass.Renderpass.GetVKRenderpass(), width, height)
+				.AddAttachment(s_MainRenderpass.ColorAttachmentTexture)
+				.AddAttachment(s_MainRenderpass.BloomBrightnessAttachmentTexture)
+				.AddAttachment(Context->m_DepthAttachmentTexture)
+				.Build();
+
 			// Resize bloom pass
-			s_BloomPass.Resize(width, height);
+			s_BloomPass.OnResize(width, height);
 
 			// Resize post processing pass
-			s_PostProcessingRenderpass.Resize(width, height, s_MainRenderpass.ColorAttachmentTexture, s_BloomPass.GetFinalBloomTexture());
+			s_PostProcessingRenderpass.OnResize(width, height, s_MainRenderpass.ColorAttachmentTexture, s_BloomPass.GetFinalBloomTexture());
 
 			VK::VulkanImGuiPass::OnResize(width, height);
 
@@ -909,25 +1006,29 @@ namespace PIX3D
 			}
 
 			// Destroy environment maps
-			if (s_Cubemap) {
-				s_Cubemap->Destroy();
-				delete s_Cubemap;
-				s_Cubemap = nullptr;
+			if (s_Environment.Cubemap)
+			{
+				s_Environment.Cubemap->Destroy();
+				delete s_Environment.Cubemap;
+				s_Environment.Cubemap = nullptr;
 			}
 
-			if (s_IrraduianceCubemap) {
-				s_IrraduianceCubemap->Destroy();
-				delete s_IrraduianceCubemap;
-				s_IrraduianceCubemap = nullptr;
+			if (s_Environment.IrraduianceCubemap)
+			{
+				s_Environment.IrraduianceCubemap->Destroy();
+				delete s_Environment.IrraduianceCubemap;
+				s_Environment.IrraduianceCubemap = nullptr;
 			}
 
-			if (s_PrefilterCubemap) {
-				s_PrefilterCubemap->Destroy();
-				delete s_PrefilterCubemap;
-				s_PrefilterCubemap = nullptr;
+			if (s_Environment.PrefilterCubemap)
+			{
+				s_Environment.PrefilterCubemap->Destroy();
+				delete s_Environment.PrefilterCubemap;
+				s_Environment.PrefilterCubemap = nullptr;
 			}
 
-			if (s_BrdfLutTexture) {
+			if (s_BrdfLutTexture)
+			{
 				s_BrdfLutTexture->Destroy();
 				delete s_BrdfLutTexture;
 				s_BrdfLutTexture = nullptr;
@@ -982,6 +1083,9 @@ namespace PIX3D
 					s_MainRenderpass.CommandBuffers.clear();
 				}
 			}
+
+			s_ClearRenderpass.Renderpass.Destroy();
+			s_ClearRenderpass.Framebuffer.Destroy();
 
 			// Destroy skybox pass resources
 			{

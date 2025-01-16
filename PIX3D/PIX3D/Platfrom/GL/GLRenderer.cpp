@@ -100,7 +100,7 @@ namespace PIX3D
 			s_CameraView = cam.GetViewMatrix();
 
 			// shadowpass
-			s_DirShadowpass.BeginRender(cam, scene->m_DirLight.m_Direction);
+			//s_DirShadowpass.BeginRender(cam, scene->m_DirLight.m_Direction);
 			{
 				// Query all entities that have both TransformComponent and StaticMeshComponent
 				auto view = scene->m_Registry.view<TransformComponent, StaticMeshComponent>();
@@ -116,7 +116,7 @@ namespace PIX3D
 						{
 							auto submesh = mesh.m_Mesh.m_SubMeshes[i];
 
-							mesh.m_Mesh.GetVertexArray().Bind();
+							//mesh.m_Mesh.GetVertexArray().Bind();
 							PIX3D::GL::GLCommands::DrawIndexedBaseVertex(PIX3D::GL::Primitive::TRIANGLES, submesh.IndicesCount, submesh.BaseIndex, submesh.BaseVertex);
 						}
 					});
@@ -153,10 +153,12 @@ namespace PIX3D
 			s_Model3DShader.SetFloat("u_BloomBrightnessCutoff", s_BloomThreshold);
 			s_Model3DShader.SetInt("u_PointLightsCount", point_lights_count);
 
+			/*
 			s_Model3DShader.SetVec3("u_DirLightDirection", scene->m_DirLight.m_Direction);
 			s_Model3DShader.SetVec4("u_DirLightColor", scene->m_DirLight.m_Color);
 			s_Model3DShader.SetFloat("u_DirLightIntensity", scene->m_DirLight.m_Intensity);
 			s_Model3DShader.SetBool("u_HasDirLight", scene->m_HasDirectionalLight);
+			*/
 
 			s_Model3DShader.SetMat4("u_View", s_CameraView);
 			for (size_t i = 0; i < s_DirShadowpass.m_ShadowCascadeLevels.size(); ++i)

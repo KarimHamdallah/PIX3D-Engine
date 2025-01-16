@@ -23,11 +23,11 @@ namespace PIX3D
         class VulkanBloomPass
         {
         public:
-            void Init(uint32_t width, uint32_t height, VulkanTexture* bloom_brightness_texture);
-            void RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t numIterations = 2);
+            void Init(uint32_t width, uint32_t height);
+            void RecordCommandBuffer(VulkanTexture* bloom_brightness_texture, VkCommandBuffer commandBuffer, uint32_t numIterations = 2);
             VulkanTexture* GetFinalBloomTexture() { return m_ColorAttachments[m_FinalResultBufferIndex]; }
             void Destroy();
-            void Resize(uint32_t width, uint32_t height);
+            void OnResize(uint32_t width, uint32_t height);
 
         private:
             void SetupFramebuffers(int mipLevel);
@@ -48,7 +48,6 @@ namespace PIX3D
             VulkanDescriptorSetLayout m_DescriptorSetLayout;
             VulkanDescriptorSet m_DescriptorSets[2];
 
-            VulkanTexture* m_InputBrightnessTexture = nullptr;
             VulkanTexture* m_ColorAttachments[BLUR_BUFFERS_COUNT];
             VulkanRenderPass m_Renderpasses[BLUR_BUFFERS_COUNT];
 

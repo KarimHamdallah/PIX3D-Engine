@@ -172,14 +172,14 @@ void InspectorWidget::OnRender()
         {
             if (ImGui::CollapsingHeader("Sprite", ImGuiTreeNodeFlags_DefaultOpen))
             {
-                ImGui::ColorEdit4("Color", &sprite->m_Color.x);
-                ImGui::DragFloat("Tiling Factor", &sprite->m_TilingFactor, 0.1f, 0.0f, 100.0f);
+                ImGui::ColorEdit4("Color", &sprite->m_Material->m_Data->color.x);
+                ImGui::DragFloat("Tiling Factor", &sprite->m_Material->m_Data->tiling_factor, 0.1f, 0.0f, 100.0f);
 
                 // Texture preview and change button
                 ImVec2 availableRegion = ImGui::GetContentRegionAvail();
-                if (sprite->m_Texture.GetHandle())
+                if (sprite->m_Material->m_Data->use_texture)
                 {
-                    ImGui::Image((ImTextureID)sprite->m_Texture.GetHandle(),
+                    ImGui::Image((ImTextureID)sprite->m_Material->m_Texture->GetImGuiDescriptorSet(),
                         { 256.0f, 256.0f }, { 0, 0 }, { 1, 1 });
                 }
 
@@ -189,11 +189,19 @@ void InspectorWidget::OnRender()
                     std::filesystem::path filepath = platform->OpenDialogue(PIX3D::FileDialougeFilter::PNG);
                     if (!filepath.empty())
                     {
-                        sprite->m_Texture.LoadFromFile(filepath.string(), true);
+
+                        if(sprite->m_Material->m_Texture)
+                            sprite->m_Material->m_Texture->Destroy();
+
+                        delete sprite->m_Material->m_Texture;
+                        sprite->m_Material->m_Texture = new VK::VulkanTexture();
+                        sprite->m_Material->m_Texture->LoadFromFile(filepath.string(), false, true);
                     }
                 }
                 ImGui::SameLine();
-                ImGui::Checkbox("Flip", &sprite->flip);
+                bool flip = sprite->m_Material->m_Data->flip;
+                if (ImGui::Checkbox("Flip", &flip))
+                    sprite->m_Material->m_Data->flip = flip;
             }
         }
 
@@ -204,7 +212,7 @@ void InspectorWidget::OnRender()
             {
                 ImGui::ColorEdit4("Color", &pointlight->m_Color.x);
                 ImGui::SliderFloat("Intensity", &pointlight->m_Intensity, 0.0f, 100.0f);
-                ImGui::SliderFloat("Raduis", &pointlight->m_Raduis, 0.0f, 20.0f);
+                ImGui::SliderFloat("Raduis", &pointlight->m_Radius, 0.0f, 20.0f);
                 ImGui::SliderFloat("FallOff", &pointlight->m_Falloff, 0.0f, 5.0f);
             }
         }
@@ -236,9 +244,9 @@ void InspectorWidget::OnRender()
             if (ImGui::CollapsingHeader("Sprite Animator", ImGuiTreeNodeFlags_DefaultOpen))
             {
                 // Texture preview and change button
-                if (animator->m_SpriteSheet.GetHandle())
+                if (animator->m_SpriteSheet)
                 {
-                    ImGui::Image((ImTextureID)animator->m_SpriteSheet.GetHandle(),
+                    ImGui::Image((ImTextureID)animator->m_SpriteSheet->GetImGuiDescriptorSet(),
                         { 256.0f, 64.0f }, { 0, 0 }, { 1, 1 });
                 }
 
@@ -250,7 +258,12 @@ void InspectorWidget::OnRender()
                     std::filesystem::path filepath = platform->OpenDialogue(PIX3D::FileDialougeFilter::PNG);
                     if (!filepath.empty())
                     {
-                        animator->m_SpriteSheet.LoadFromFile(filepath.string(), true);
+                        if (animator->m_SpriteSheet)
+                            animator->m_SpriteSheet->Destroy();
+
+                        delete animator->m_SpriteSheet;
+                        animator->m_SpriteSheet = new VK::VulkanTexture();
+                        animator->m_SpriteSheet->LoadFromFile(filepath.string(), false, true);
                     }
                 }
 

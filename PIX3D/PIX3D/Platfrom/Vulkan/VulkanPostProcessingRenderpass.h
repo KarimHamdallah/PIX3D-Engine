@@ -21,7 +21,7 @@ namespace PIX3D
 			~VulkanPostProcessingRenderpass() {}
 
 			void Init(uint32_t width, uint32_t height, VulkanTexture* color_attachment, VulkanTexture* bloom_attachment);
-			void Resize(uint32_t width, uint32_t height, VulkanTexture* color_attachment, VulkanTexture* bloom_attachment);
+			void OnResize(uint32_t width, uint32_t height, VulkanTexture* color_attachment, VulkanTexture* bloom_attachment);
 			void Destroy();
 
 			void RecordCommandBuffer(VkCommandBuffer commandbuffer, uint32_t ImageIndex);

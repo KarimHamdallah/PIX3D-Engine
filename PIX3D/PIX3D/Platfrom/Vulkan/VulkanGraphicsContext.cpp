@@ -145,31 +145,6 @@ namespace
 			format == VK_FORMAT_D24_UNORM_S8_UINT ||
 			format == VK_FORMAT_D16_UNORM_S8_UINT;
 	}
-
-	PIX3D::VK::TextureFormat GetTextureFormatFromVulkanFormat(VkFormat format)
-	{
-		switch (format)
-		{
-		case VK_FORMAT_R8_UNORM: return            PIX3D::VK::TextureFormat::R8;
-		case VK_FORMAT_R8G8_UNORM: return          PIX3D::VK::TextureFormat::RG8;
-		case VK_FORMAT_R8G8B8_UNORM: return        PIX3D::VK::TextureFormat::RGB8;
-		case VK_FORMAT_R8G8B8A8_UNORM: return      PIX3D::VK::TextureFormat::RGBA8;
-		case VK_FORMAT_R8G8B8A8_SRGB: return       PIX3D::VK::TextureFormat::RGBA8_SRGB;
-		case VK_FORMAT_R16G16B16_SFLOAT: return    PIX3D::VK::TextureFormat::RGB16F;
-		case VK_FORMAT_R16G16B16A16_SFLOAT: return PIX3D::VK::TextureFormat::RGBA16F;
-		case VK_FORMAT_R32G32B32A32_SFLOAT: return PIX3D::VK::TextureFormat::RGBA32F;
-
-			// Depth formats
-		case VK_FORMAT_D16_UNORM: return              PIX3D::VK::TextureFormat::DEPTH16;
-		case VK_FORMAT_X8_D24_UNORM_PACK32: return    PIX3D::VK::TextureFormat::DEPTH24;
-		case VK_FORMAT_D32_SFLOAT: return             PIX3D::VK::TextureFormat::DEPTH32;
-		case VK_FORMAT_D24_UNORM_S8_UINT: return      PIX3D::VK::TextureFormat::DEPTH24_STENCIL8;
-		case VK_FORMAT_D32_SFLOAT_S8_UINT: return     PIX3D::VK::TextureFormat::DEPTH32_STENCIL8;
-
-		default:
-			PIX_ASSERT_MSG(false, "Unsupported Vulkan format!");
-		}
-	};
 }
 
 namespace PIX3D
@@ -446,8 +421,7 @@ namespace PIX3D
 			auto specs = Engine::GetApplicationSpecs();
 
 			m_DepthAttachmentTexture = new VK::VulkanTexture();
-			m_DepthAttachmentTexture->Create();
-			m_DepthAttachmentTexture->CreateColorAttachment(specs.Width, specs.Height, GetTextureFormatFromVulkanFormat(m_SupportedDepthFormat));
+			m_DepthAttachmentTexture->CreateColorAttachment(specs.Width, specs.Height, m_SupportedDepthFormat);
 
 			//////////////////////////////////////////////////////
 			////////////////// Command Pool //////////////////////
@@ -580,7 +554,8 @@ namespace PIX3D
 
 			// Create new image views
 			m_SwapChainImageViews.resize(imageCount);
-			for (uint32_t i = 0; i < imageCount; i++) {
+			for (uint32_t i = 0; i < imageCount; i++)
+			{
 				m_SwapChainImageViews[i] = VulkanHelper::CreateImageView(
 					m_Device,
 					m_SwapChainImages[i],
@@ -590,6 +565,17 @@ namespace PIX3D
 					1,  // layerCount
 					1   // mipLevels
 				);
+
+				/*
+				VK::VulkanTextureHelper::TransitionImageLayout
+				(
+					m_SwapChainImages[i],
+					m_SwapChainSurfaceFormat.format,
+					0, 1,
+					VK_IMAGE_LAYOUT_UNDEFINED,
+					VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+				);
+				*/
 			}
 
 			// Recreate depth buffer if it exists
@@ -599,15 +585,32 @@ namespace PIX3D
 				delete m_DepthAttachmentTexture;
 				
 				m_DepthAttachmentTexture = new VK::VulkanTexture();
-				m_DepthAttachmentTexture->Create();
 				m_DepthAttachmentTexture->CreateColorAttachment(
 					surfaceCaps.currentExtent.width,
 					surfaceCaps.currentExtent.height,
-					GetTextureFormatFromVulkanFormat(m_SupportedDepthFormat)
+					m_SupportedDepthFormat
 				);
 			}
 
 			PIX_DEBUG_SUCCESS("Swapchain recreated successfully");
+
+			///////////////////////////////////////////////////////////////////////////////////////////////////////////
+            ////////////////// Transition SwapChain Images To Color Attachment ////////////////////////////////////////
+            ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+			/*
+			for (size_t i = 0; i < m_SwapChainImages.size(); i++)
+			{
+				VK::VulkanTextureHelper::TransitionImageLayout
+				(
+					m_SwapChainImages[i],
+					m_SwapChainSurfaceFormat.format,
+					0, 1,
+					VK_IMAGE_LAYOUT_UNDEFINED,
+					VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+				);
+			}
+			*/
 		}
 
 		void VulkanGraphicsContext::Resize(uint32_t width, uint32_t height)

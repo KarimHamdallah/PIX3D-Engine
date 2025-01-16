@@ -66,10 +66,10 @@ namespace PIX3D
             {
                 VkImageViewCreateInfo viewInfo{};
                 viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-                viewInfo.image = texture->GetVKImage();
+                viewInfo.image = texture->GetImage();
                 viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-                viewInfo.format = texture->GetVKormat();
-                viewInfo.subresourceRange.aspectMask = IsDepthFormat(texture->GetVKormat()) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+                viewInfo.format = texture->GetFormat();
+                viewInfo.subresourceRange.aspectMask = IsDepthFormat(texture->GetFormat()) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
                 viewInfo.subresourceRange.baseMipLevel = mipLevel;
                 viewInfo.subresourceRange.levelCount = 1;
                 viewInfo.subresourceRange.baseArrayLayer = 0;

@@ -25,8 +25,6 @@ namespace PIX3D
 
         VK::VulkanTexture* GetTexture() { return m_Texture; }
         VkDescriptorSet GetVKDescriptorSet() { return m_DescriptorSet.GetVkDescriptorSet(); }
-
-    private:
         void UpdateBuffer();
     public:
         _ShadereData* m_Data;

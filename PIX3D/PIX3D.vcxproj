@@ -221,7 +221,6 @@
     <ClCompile Include="PIX3D\Platfrom\WindowsPlatform.cpp" />
     <ClCompile Include="PIX3D\Scene\Scene.cpp" />
     <ClCompile Include="PIX3D\Scene\SceneSerializer.cpp" />
-    <ClCompile Include="PIX3D\Scene\Systems.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imgui\imconfig.h" />
@@ -296,6 +295,7 @@
     <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanShader.h" />
     <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanShaderStorageBuffer.h" />
     <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanStaticMeshFactory.h" />
+    <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanSystems.h" />
     <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanTexture.h" />
     <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanUniformBuffer.h" />
     <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanVertexBuffer.h" />
@@ -305,7 +305,7 @@
     <ClInclude Include="PIX3D\Scene\Components.h" />
     <ClInclude Include="PIX3D\Scene\Scene.h" />
     <ClInclude Include="PIX3D\Scene\SceneSerializer.h" />
-    <ClInclude Include="PIX3D\Scene\Systems.h" />
+    <ClInclude Include="PIX3D\Scene\SceneStructures.h" />
     <ClInclude Include="PIX3D\Utils\entt.hpp" />
     <ClInclude Include="PIX3D\Utils\FileWatcher.hpp" />
     <ClInclude Include="PIX3D\Utils\json.hpp" />

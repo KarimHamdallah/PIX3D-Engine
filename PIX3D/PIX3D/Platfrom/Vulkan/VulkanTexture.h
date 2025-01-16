@@ -1,81 +1,89 @@
 #pragma once
-#include "VulkanVertexBuffer.h"
+#include <vulkan/vulkan.h>
 #include <filesystem>
+#include <vector>
 
 namespace PIX3D
 {
     namespace VK
     {
-        enum class TextureFormat
-        {
-            R8,
-            RG8,
-            RGB8,
-            RGBA8,
-            RGBA8_SRGB,
-            RGB16F,
-            RGBA16F,
-            RGBA32F,
 
-            DEPTH16,
-            DEPTH24,
-            DEPTH32,
-            DEPTH24_STENCIL8,
-            DEPTH32_STENCIL8
+        struct VulkanImageAndMemory
+        {
+            VkImage Image = VK_NULL_HANDLE;
+            VkDeviceMemory Memory = VK_NULL_HANDLE;
+        };
+
+        struct VulkanBufferAndMemory
+        {
+            VkBuffer Buffer = VK_NULL_HANDLE;
+            VkDeviceMemory Memory = VK_NULL_HANDLE;
+            VkDeviceSize AllocationSize = 0;
+
+            void Destroy(VkDevice device)
+            {
+                if (Buffer != VK_NULL_HANDLE)
+                    vkDestroyBuffer(device, Buffer, nullptr);
+                if (Memory != VK_NULL_HANDLE)
+                    vkFreeMemory(device, Memory, nullptr);
+            }
+        };
+
+        class VulkanTextureHelper
+        {
+        public:
+
+            static void TransitionImageLayout(VkImage Image, VkFormat Format, uint32_t base_mip, uint32_t mip_count, VkImageLayout OldLayout, VkImageLayout NewLayout, VkCommandBuffer ExistingCommandBuffer = VK_NULL_HANDLE);
+
+            static void CopyTextureWithAllMips(VkImage src_image, VkFormat src_format, VkImage dst_image, VkFormat dst_format, uint32_t width, uint32_t height, uint32_t mip_count, VkCommandBuffer existing_commandbuffer);
+
+            static VulkanBufferAndMemory CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
+
+            static VulkanImageAndMemory CreateImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, uint32_t mip_count = 1);
+
+            static void CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
+
+            static VkImageView CreateImageView(VkImage image, VkFormat format, uint32_t base_mip = 0, uint32_t mip_count = 1);
+            
+            static VkSampler CreateSampler(float mip_count = 1, bool clamp_to_edge = false);
+
+            static uint32_t FindMemoryType(uint32_t type_filter, VkMemoryPropertyFlags properties);
+
+            static uint32_t CalculateMipLevels(uint32_t width, uint32_t height);
         };
 
         class VulkanTexture
         {
         public:
             VulkanTexture() = default;
-            ~VulkanTexture() { Destroy(); }
+            ~VulkanTexture() {}
 
-            void Create();
-            bool LoadFromFile(const std::filesystem::path& FilePath, uint32_t miplevels = 1, bool IsSRGB = false);
-            bool LoadFromHDRFile(const std::filesystem::path& FilePath, TextureFormat format = TextureFormat::RGBA32F,uint32_t miplevels = 1);
-            bool LoadFromData(void* Data, uint32_t Width, uint32_t Height, TextureFormat Format);
-            bool CreateColorAttachment(uint32_t Width, uint32_t Height, TextureFormat Format, uint32_t MipLevels = 1, bool ClampToEdge = true);
+            bool LoadFromFile(const std::filesystem::path& FilePath, bool gen_mips = true, bool IsSRGB = false);
+
+            bool LoadFromHDRFile(const std::filesystem::path& FilePath, VkFormat  format = VK_FORMAT_R32G32B32A32_SFLOAT, uint32_t miplevels = 1);
+            
+            bool LoadFromData(void* Data, uint32_t Width, uint32_t Height, VkFormat Format);
+            
+            bool CreateColorAttachment(uint32_t Width, uint32_t Height, VkFormat Format, uint32_t MipLevels = 1, bool ClampToEdge = true);
+            
             void GenerateMipmaps(VkCommandBuffer commandBuffer);
+            
             void Destroy();
+
+
+            std::filesystem::path GetPath() { return m_Path; }
 
             VkImageView GetImageView() const { return m_ImageView; }
             VkSampler GetSampler() const { return m_Sampler; }
             uint32_t GetWidth() const { return m_Width; }
             uint32_t GetHeight() const { return m_Height; }
-            VkFormat GetVKormat() const { return GetVulkanFormat(m_Format); }
-            VkImage GetVKImage() const { return m_Image; }
+            VkFormat GetFormat() const { return m_Format; }
+            VkImage GetImage() const { return m_Image; }
             uint32_t GetMipLevels() { return m_MipLevels; }
             VkDescriptorSet GetImGuiDescriptorSet();
 
-            void TransitionImageLayout(VkFormat Format,
-                VkImageLayout OldLayout, VkImageLayout NewLayout, VkCommandBuffer ExistingCommandBuffer = VK_NULL_HANDLE);
-
-            void CopyFromTexture(VulkanTexture* sourceTexture, VkCommandBuffer existingCommandBuffer);
         private:
-            void CreateImage(uint32_t Width, uint32_t Height, VkFormat Format, VkImageTiling Tiling,
-                VkImageUsageFlags Usage, VkMemoryPropertyFlags Properties);
-            
-            void CreateImageView(VkFormat Format);
-            void CreateSampler(float MaxLod = 0.0f);
-
-            void CopyBufferToImage(VkBuffer Buffer, uint32_t Width, uint32_t Height);
-            VkFormat GetVulkanFormat(TextureFormat Format) const;
-            uint32_t GetBytesPerPixel(TextureFormat Format);
-
-            BufferAndMemory CreateBuffer(VkDeviceSize Size,
-                VkBufferUsageFlags Usage,
-                VkMemoryPropertyFlags Properties,
-                VkPhysicalDevice PhysDevice);
-
-            uint32_t FindMemoryType(VkPhysicalDevice PhysDevice,
-                uint32_t TypeFilter,
-                VkMemoryPropertyFlags Properties);
-
-        private:
-            VkDevice m_Device = VK_NULL_HANDLE;
-            VkPhysicalDevice m_PhysicalDevice = VK_NULL_HANDLE;
-            VkQueue m_Queue = VK_NULL_HANDLE;
-            VkCommandPool m_CmdPool = VK_NULL_HANDLE;
+            std::filesystem::path m_Path;
 
             VkImage m_Image = VK_NULL_HANDLE;
             VkDeviceMemory m_ImageMemory = VK_NULL_HANDLE;
@@ -84,7 +92,7 @@ namespace PIX3D
 
             uint32_t m_Width = 0;
             uint32_t m_Height = 0;
-            TextureFormat m_Format = TextureFormat::RGBA8;
+            VkFormat m_Format = VK_FORMAT_R8G8B8A8_UNORM;
             uint32_t m_MipLevels = 1;
             bool m_SamplerClampToEdge = false;
 

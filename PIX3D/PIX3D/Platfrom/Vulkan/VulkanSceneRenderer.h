@@ -10,6 +10,7 @@
 #include <Graphics/VulkanStaticMesh.h>
 #include <Graphics/Camera3D.h>
 #include <Graphics/Material.h>
+#include <Scene/SceneStructures.h>
 
 namespace PIX3D
 {
@@ -22,14 +23,15 @@ namespace PIX3D
 			static void Destroy();
 
 			static void Begin(Camera3D& cam);
-			static void RenderMesh(VulkanStaticMesh& mesh);
+			static void RenderClearPass(const glm::vec4& clearColor);
+			static void RenderMesh(VulkanStaticMesh& mesh, const glm::mat4& transform);
 			static void RenderTexturedQuad(SpriteMaterial* material, const glm::mat4& transform);
-			static void RenderTexturedQuadUV(VkDescriptorSet descriptorSet, const glm::mat4& transformation, const glm::vec2& uv_offset, const glm::vec2& uv_scale, glm::vec4 color, float tiling_factor, bool flip);
 			static void RenderSkyBox();
 			static void End();
-			static void Submit();
+			static void Submit(bool render_imgui = false);
 
 			static void OnResize(uint32_t width, uint32_t height);
+
 
 			inline static VulkanTexture* GetDefaultAlbedoTexture() { return s_DefaultAlbedoTexture; }
 			inline static VulkanTexture* GetDefaultNormalTexture() { return s_DefaultNormalTexture; }
@@ -38,6 +40,7 @@ namespace PIX3D
 			inline static VulkanTexture* GetDefaultBlackTexture() { return s_DefaultBlackTexture; }
 
 			inline static VkDescriptorSetLayout GetVulkanStaticMeshMaterialDescriptorSetLayout() { return s_VulkanStaticMeshMaterialDescriptorSetLayout.GetVkDescriptorSetLayout(); }
+
 
 		public:
 
@@ -87,6 +90,14 @@ namespace PIX3D
 				BLOOM_DOWN_SAMPLES = 6,
 				BLOOM_BLUR_ITERATIONS = 10
 			};
+
+			struct _ClearRenderpass
+			{
+				VK::VulkanRenderPass Renderpass;
+				VK::VulkanFramebuffer Framebuffer;
+			};
+
+			inline static _ClearRenderpass s_ClearRenderpass;
 
 			struct _MainRenderpass
 			{
@@ -147,15 +158,24 @@ namespace PIX3D
 
 			inline static _SpriteRenderpass s_SpriteRenderpass;
 
+			struct _Environment
+			{
+				VK::VulkanHdrCubemap* Cubemap;
+
+				int EnvironmentMapSize = 1024;
+
+				TransformData CubemapTransform;
+
+				VK::VulkanIrradianceCubemap* IrraduianceCubemap;
+				VK::VulkanPrefilteredCubemap* PrefilterCubemap;
+			};
+			inline static _Environment s_Environment;
 
 
 			inline static VulkanPostProcessingRenderpass s_PostProcessingRenderpass;
 			inline static VulkanBloomPass s_BloomPass;
 			inline static uint32_t s_ImageIndex = 0;
 
-			inline static VulkanHdrCubemap* s_Cubemap;
-			inline static VulkanIrradianceCubemap* s_IrraduianceCubemap;
-			inline static VulkanPrefilteredCubemap* s_PrefilterCubemap;
 			inline static VulkanBrdfLutTexture* s_BrdfLutTexture;
 
 			inline static glm::vec3 s_CameraPosition;

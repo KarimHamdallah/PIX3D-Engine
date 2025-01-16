@@ -1,11 +1,10 @@
 #pragma once
 #include <vulkan/vulkan.h>
 #include <vector>
-
 namespace PIX3D
 {
-	namespace VK
-	{
+    namespace VK
+    {
         class VulkanImGuiPass
         {
         public:
@@ -16,17 +15,24 @@ namespace PIX3D
             static void Destroy();
             static void BeginFrame();
             static void EndFrame();
-            static void Render(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+            static void Render(VkCommandBuffer commandBuffer, uint32_t imageIndex, bool useLoadRenderPass = true);
             static void OnResize(uint32_t width, uint32_t height);
+            static void StartDockSpace();
+            static void EndDockSpace();
 
+            static void BeginRecordCommandbuffer();
+            static void EndRecordCommandbufferAndSubmit();
         private:
             static void CreateDescriptorPool();
-            static void CreateRenderPass();
-
+            static void CreateRenderPasses();
         private:
             inline static VkDescriptorPool m_DescriptorPool = VK_NULL_HANDLE;
-            inline static VkRenderPass m_RenderPass = VK_NULL_HANDLE;
-            inline static std::vector<VkFramebuffer> m_Framebuffers;
+            inline static VkRenderPass m_LoadRenderPass = VK_NULL_HANDLE;    // For overlay rendering
+            inline static VkRenderPass m_ClearRenderPass = VK_NULL_HANDLE;   // For standalone UI
+            inline static std::vector<VkFramebuffer> m_LoadFramebuffers;     // Framebuffers for overlay
+            inline static std::vector<VkFramebuffer> m_ClearFramebuffers;    // Framebuffers for standalone
+            inline static std::vector<VkCommandBuffer> m_CommandBuffers;
+            inline static uint32_t s_ImageIndex = 0;
         };
-	}
+    }
 }

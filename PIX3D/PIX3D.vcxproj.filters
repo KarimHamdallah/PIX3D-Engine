@@ -132,9 +132,6 @@
     <ClCompile Include="PIX3D\Scene\Scene.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="PIX3D\Scene\Systems.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="PIX3D\Graphics\Sprite.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -389,9 +386,6 @@
     <ClInclude Include="PIX3D\Graphics\Sprite.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="PIX3D\Scene\Systems.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="PIX3D\Project\Project.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -489,6 +483,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="PIX3D\Graphics\Material.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PIX3D\Platfrom\Vulkan\VulkanSystems.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PIX3D\Scene\SceneStructures.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

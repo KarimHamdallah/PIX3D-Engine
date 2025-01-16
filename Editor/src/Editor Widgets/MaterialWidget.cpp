@@ -38,7 +38,7 @@ void MaterialWidget::OnRender()
     ImGui::End();
 }
 
-void MaterialWidget::DrawMaterialUI(PIX3D::BaseColorMaterial& material)
+void MaterialWidget::DrawMaterialUI(PIX3D::VulkanBaseColorMaterial& material)
 {
     if (!ImGui::CollapsingHeader(material.Name.c_str(), ImGuiTreeNodeFlags_DefaultOpen))
         return;
@@ -69,12 +69,14 @@ void MaterialWidget::DrawMaterialUI(PIX3D::BaseColorMaterial& material)
                 std::filesystem::path filepath = platform->OpenDialogue(PIX3D::FileDialougeFilter::PNG);
                 if (!filepath.empty())
                 {
-                    material.AlbedoTexture.LoadFromFile(filepath.string(), true);
-                    materialModified = true;
+                    material.AlbedoTexture->Destroy();
+
+                    material.AlbedoTexture = new VK::VulkanTexture();
+                    material.AlbedoTexture->LoadFromFile(filepath.string(), true, true);
                 }
             }
 
-            ImGui::Image((ImTextureID)material.AlbedoTexture.GetHandle(), ImVec2(128, 128), ImVec2(0, 0), ImVec2(1, 1));
+            ImGui::Image((ImTextureID)material.AlbedoTexture->GetImGuiDescriptorSet(), ImVec2(128, 128), ImVec2(0, 0), ImVec2(1, 1));
         }
         ImGui::TreePop();
     }
@@ -94,12 +96,14 @@ void MaterialWidget::DrawMaterialUI(PIX3D::BaseColorMaterial& material)
                 std::filesystem::path filepath = platform->OpenDialogue(PIX3D::FileDialougeFilter::PNG);
                 if (!filepath.empty())
                 {
-                    material.NormalTexture.LoadFromFile(filepath.string());
-                    materialModified = true;
+                    material.NormalTexture->Destroy();
+
+                    material.NormalTexture = new VK::VulkanTexture();
+                    material.NormalTexture->LoadFromFile(filepath.string());
                 }
             }
 
-            ImGui::Image((ImTextureID)material.NormalTexture.GetHandle(),
+            ImGui::Image((ImTextureID)material.NormalTexture->GetImGuiDescriptorSet(),
                 ImVec2(128, 128), ImVec2(0, 0), ImVec2(1, 1));
         }
         ImGui::TreePop();
@@ -123,12 +127,14 @@ void MaterialWidget::DrawMaterialUI(PIX3D::BaseColorMaterial& material)
                 std::filesystem::path filepath = platform->OpenDialogue(PIX3D::FileDialougeFilter::PNG);
                 if (!filepath.empty())
                 {
-                    material.MetalRoughnessTexture.LoadFromFile(filepath.string());
-                    materialModified = true;
+                    material.MetalRoughnessTexture->Destroy();
+
+                    material.MetalRoughnessTexture = new VK::VulkanTexture();
+                    material.MetalRoughnessTexture->LoadFromFile(filepath.string());
                 }
             }
 
-            ImGui::Image((ImTextureID)material.MetalRoughnessTexture.GetHandle(),
+            ImGui::Image((ImTextureID)material.MetalRoughnessTexture->GetImGuiDescriptorSet(),
                 ImVec2(128, 128), ImVec2(0, 0), ImVec2(1, 1));
         }
         ImGui::TreePop();
@@ -151,12 +157,14 @@ void MaterialWidget::DrawMaterialUI(PIX3D::BaseColorMaterial& material)
                 std::filesystem::path filepath = platform->OpenDialogue(PIX3D::FileDialougeFilter::PNG);
                 if (!filepath.empty())
                 {
-                    material.AoTexture.LoadFromFile(filepath.string());
-                    materialModified = true;
+                    material.AoTexture->Destroy();
+
+                    material.AoTexture = new VK::VulkanTexture();
+                    material.AoTexture->LoadFromFile(filepath.string());
                 }
             }
 
-            ImGui::Image((ImTextureID)material.AoTexture.GetHandle(),
+            ImGui::Image((ImTextureID)material.AoTexture->GetImGuiDescriptorSet(),
                 ImVec2(128, 128), ImVec2(0, 0), ImVec2(1, 1));
         }
         ImGui::TreePop();
@@ -179,12 +187,15 @@ void MaterialWidget::DrawMaterialUI(PIX3D::BaseColorMaterial& material)
                 std::filesystem::path filepath = platform->OpenDialogue(PIX3D::FileDialougeFilter::PNG);
                 if (!filepath.empty())
                 {
-                    material.EmissiveTexture.LoadFromFile(filepath.string());
+                    material.EmissiveTexture->Destroy();
+
+                    material.EmissiveTexture = new VK::VulkanTexture();
+                    material.EmissiveTexture->LoadFromFile(filepath.string());
                     materialModified = true;
                 }
             }
 
-            ImGui::Image((ImTextureID)material.EmissiveTexture.GetHandle(),
+            ImGui::Image((ImTextureID)material.EmissiveTexture->GetImGuiDescriptorSet(),
                 ImVec2(128, 128), ImVec2(0, 0), ImVec2(1, 1));
         }
         ImGui::TreePop();

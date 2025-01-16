@@ -10,7 +10,7 @@ public:
     void OnRender();
 
 private:
-    void DrawMaterialUI(PIX3D::BaseColorMaterial& material);
+    void DrawMaterialUI(PIX3D::VulkanBaseColorMaterial& material);
 
     PIX3D::Scene* m_Scene = nullptr;
     HierarchyWidget* m_HierarchyWidget;

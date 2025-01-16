@@ -39,7 +39,7 @@ namespace PIX3D
 					VK_ATTACHMENT_LOAD_OP_CLEAR,
 					VK_ATTACHMENT_STORE_OP_STORE,
 					VK_IMAGE_LAYOUT_UNDEFINED,
-					VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+					VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) // change to present if no imgui after that
 				.AddSubpass(VK_PIPELINE_BIND_POINT_GRAPHICS)
 				// Add initial dependency to wait for previous pass
 				.AddDependency(
@@ -207,7 +207,7 @@ namespace PIX3D
 		}
 
 
-		void VulkanPostProcessingRenderpass::Resize(uint32_t width, uint32_t height, VulkanTexture* color_attachment, VulkanTexture* bloom_attachment)
+		void VulkanPostProcessingRenderpass::OnResize(uint32_t width, uint32_t height, VulkanTexture* color_attachment, VulkanTexture* bloom_attachment)
 		{
 			m_Width = width;
 			m_Height = height;

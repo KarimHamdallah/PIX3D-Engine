@@ -11,7 +11,6 @@ namespace PIX3D
             // Load HDRI Texture
 
             m_EquirectangularMap = new VulkanTexture();
-            m_EquirectangularMap->Create();
             m_EquirectangularMap->LoadFromHDRFile(hdrPath);
 
             // Create Cubemap Texture [ usage >> Color Attachment Texture To Draw Into It ]

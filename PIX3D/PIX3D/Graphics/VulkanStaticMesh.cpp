@@ -177,9 +177,7 @@ namespace PIX3D
                     mat.UseAlbedoTexture = true;
                     
                     mat.AlbedoTexture = new VK::VulkanTexture();
-
-                    mat.AlbedoTexture->Create();
-                    mat.AlbedoTexture->LoadFromFile(FullPath.string(), 6, true);
+                    mat.AlbedoTexture->LoadFromFile(FullPath.string(), true, true);
                 }
                 else // Default Albedo
                 {
@@ -208,8 +206,6 @@ namespace PIX3D
                     mat.UseNormalTexture = true;
 
                     mat.NormalTexture = new VK::VulkanTexture();
-                    mat.NormalTexture->Create();
-
                     mat.NormalTexture->LoadFromFile(FullPath.string());
                 }
                 else
@@ -238,8 +234,6 @@ namespace PIX3D
                     mat.UseMetallicRoughnessTexture = true;
                     
                     mat.MetalRoughnessTexture = new VK::VulkanTexture();
-                    mat.MetalRoughnessTexture->Create();
-
                     mat.MetalRoughnessTexture->LoadFromFile(FullPath.string());
                 }
                 else
@@ -260,7 +254,6 @@ namespace PIX3D
                     mat.useAoTexture = true;
 
                     mat.AoTexture = new VK::VulkanTexture();
-                    mat.AoTexture->Create();
                     mat.AoTexture->LoadFromFile(FullPath.string(), 6);
                 }
                 else
@@ -281,8 +274,6 @@ namespace PIX3D
                     mat.UseEmissiveTexture = true;
 
                     mat.EmissiveTexture = new VK::VulkanTexture();
-                    mat.EmissiveTexture->Create();
-
                     mat.EmissiveTexture->LoadFromFile(FullPath.string());
                 }
                 else

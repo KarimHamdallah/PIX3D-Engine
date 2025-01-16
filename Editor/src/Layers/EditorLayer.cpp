@@ -33,9 +33,14 @@ void EditorLayer::OnUpdate(float dt)
     // Render the scene
     m_Scene->OnRender();
 
+    VK::VulkanImGuiPass::BeginFrame();
+
     // Render UI
     RenderMenuBar();
     RenderWidgets();
+
+    VK::VulkanImGuiPass::EndFrame();
+    VK::VulkanSceneRenderer::Submit(true);
 }
 
 void EditorLayer::OnDestroy()
@@ -79,7 +84,8 @@ void EditorLayer::SaveSceneDialogue()
     std::filesystem::path ScenePath = PlatformLayer->SaveDialogue(FileDialougeFilter::PIXSCENE);
     if (!ScenePath.string().empty())
     {
-        SceneSerializer::SaveScene_Text(m_Scene, ScenePath);
+        PIX_ASSERT(false);
+        //SceneSerializer::SaveScene_Text(m_Scene, ScenePath);
     }
 }
 
@@ -90,7 +96,8 @@ void EditorLayer::LoadSceneDialogue()
     std::filesystem::path ScenePath = PlatformLayer->OpenDialogue(FileDialougeFilter::PIXSCENE);
     if (!ScenePath.string().empty() && ScenePath.extension().string() == ".pixscene")
     {
-        SceneSerializer::LoadScene_Text(m_Scene, ScenePath);
+        PIX_ASSERT(false);
+        //SceneSerializer::LoadScene_Text(m_Scene, ScenePath);
     }
 }
 

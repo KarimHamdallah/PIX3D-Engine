@@ -5,31 +5,34 @@ namespace PIX3D
 {
     namespace VK
     {
-        void VulkanBloomPass::Init(uint32_t width, uint32_t height, VulkanTexture* bloom_brightness_texture)
+        void VulkanBloomPass::Init(uint32_t width, uint32_t height)
         {
             m_Width = width;
             m_Height = height;
-            m_InputBrightnessTexture = bloom_brightness_texture;
 
             auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
 
             // Create two textures for ping-pong blurring with mip levels
             m_ColorAttachments[HORIZONTAL_BLUR_BUFFER_INDEX] = new VulkanTexture();
-            m_ColorAttachments[HORIZONTAL_BLUR_BUFFER_INDEX]->Create();
-            m_ColorAttachments[HORIZONTAL_BLUR_BUFFER_INDEX]->CreateColorAttachment(width, height, TextureFormat::RGBA16F, BLUR_DOWN_SAMPLES);
+            m_ColorAttachments[HORIZONTAL_BLUR_BUFFER_INDEX]->CreateColorAttachment(width, height, VK_FORMAT_R16G16B16A16_SFLOAT, BLUR_DOWN_SAMPLES);
 
-            m_ColorAttachments[HORIZONTAL_BLUR_BUFFER_INDEX]->TransitionImageLayout(
-                m_ColorAttachments[HORIZONTAL_BLUR_BUFFER_INDEX]->GetVKormat(),
+            VulkanTextureHelper::TransitionImageLayout
+            (
+                m_ColorAttachments[HORIZONTAL_BLUR_BUFFER_INDEX]->GetImage(),
+                m_ColorAttachments[HORIZONTAL_BLUR_BUFFER_INDEX]->GetFormat(),
+                0, BLUR_DOWN_SAMPLES,
                 VK_IMAGE_LAYOUT_UNDEFINED,
                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
             );
 
             m_ColorAttachments[VERTICAL_BLUR_BUFFER_INDEX] = new VulkanTexture();
-            m_ColorAttachments[VERTICAL_BLUR_BUFFER_INDEX]->Create();
-            m_ColorAttachments[VERTICAL_BLUR_BUFFER_INDEX]->CreateColorAttachment(width, height, TextureFormat::RGBA16F, BLUR_DOWN_SAMPLES);
+            m_ColorAttachments[VERTICAL_BLUR_BUFFER_INDEX]->CreateColorAttachment(width, height, VK_FORMAT_R16G16B16A16_SFLOAT, BLUR_DOWN_SAMPLES);
 
-            m_ColorAttachments[VERTICAL_BLUR_BUFFER_INDEX]->TransitionImageLayout(
-                m_ColorAttachments[VERTICAL_BLUR_BUFFER_INDEX]->GetVKormat(),
+            VulkanTextureHelper::TransitionImageLayout
+            (
+                m_ColorAttachments[VERTICAL_BLUR_BUFFER_INDEX]->GetImage(),
+                m_ColorAttachments[VERTICAL_BLUR_BUFFER_INDEX]->GetFormat(),
+                0, BLUR_DOWN_SAMPLES,
                 VK_IMAGE_LAYOUT_UNDEFINED,
                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
             );
@@ -66,7 +69,7 @@ namespace PIX3D
                 m_Renderpasses[i]
                     .Init(Context->m_Device)
                     .AddColorAttachment(
-                        m_ColorAttachments[i]->GetVKormat(),
+                        m_ColorAttachments[i]->GetFormat(),
                         VK_SAMPLE_COUNT_1_BIT,
                         VK_ATTACHMENT_LOAD_OP_CLEAR,
                         VK_ATTACHMENT_STORE_OP_STORE,
@@ -174,24 +177,38 @@ namespace PIX3D
                 .Build();
         }
 
-        void VulkanBloomPass::RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t numIterations)
+        void VulkanBloomPass::RecordCommandBuffer(VulkanTexture* bloom_brightness_texture, VkCommandBuffer commandBuffer, uint32_t numIterations)
         {
             m_FinalResultBufferIndex = (numIterations % 2 == 0) ? 1 : 0;
 
             // First generate mipmaps for input brightness texture (down sampling)
             {
-                m_InputBrightnessTexture->TransitionImageLayout(
-                    m_InputBrightnessTexture->GetVKormat(),
+                VulkanTextureHelper::TransitionImageLayout
+                (
+                    bloom_brightness_texture->GetImage(),
+                    bloom_brightness_texture->GetFormat(),
+                    0, bloom_brightness_texture->GetMipLevels(),
                     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                     commandBuffer
                 );
 
-                m_InputBrightnessTexture->GenerateMipmaps(commandBuffer);
+                bloom_brightness_texture->GenerateMipmaps(commandBuffer);
             }
 
             // Copy Data To Vertical Pass Color Attachment For Ping - Pong Blur
-            m_ColorAttachments[VERTICAL_BLUR_BUFFER_INDEX]->CopyFromTexture(m_InputBrightnessTexture, commandBuffer);
+
+            VulkanTextureHelper::CopyTextureWithAllMips
+            (
+                bloom_brightness_texture->GetImage(),
+                bloom_brightness_texture->GetFormat(),
+                m_ColorAttachments[VERTICAL_BLUR_BUFFER_INDEX]->GetImage(),
+                m_ColorAttachments[VERTICAL_BLUR_BUFFER_INDEX]->GetFormat(),
+                bloom_brightness_texture->GetWidth(),
+                bloom_brightness_texture->GetHeight(),
+                bloom_brightness_texture->GetMipLevels(),
+                commandBuffer
+            );
 
             for (int mipLevel = 0; mipLevel < BLUR_DOWN_SAMPLES; mipLevel++)
             {
@@ -301,7 +318,7 @@ namespace PIX3D
             }
         }
 
-        void VulkanBloomPass::Resize(uint32_t width, uint32_t height)
+        void VulkanBloomPass::OnResize(uint32_t width, uint32_t height)
         {
             m_Width = width;
             m_Height = height;
@@ -330,22 +347,27 @@ namespace PIX3D
             // Recreate color attachments with new size
             auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
 
-            // Recreate horizontal blur buffer
+            // Create two textures for ping-pong blurring with mip levels
             m_ColorAttachments[HORIZONTAL_BLUR_BUFFER_INDEX] = new VulkanTexture();
-            m_ColorAttachments[HORIZONTAL_BLUR_BUFFER_INDEX]->Create();
-            m_ColorAttachments[HORIZONTAL_BLUR_BUFFER_INDEX]->CreateColorAttachment(width, height, TextureFormat::RGBA16F, BLUR_DOWN_SAMPLES);
-            m_ColorAttachments[HORIZONTAL_BLUR_BUFFER_INDEX]->TransitionImageLayout(
-                m_ColorAttachments[HORIZONTAL_BLUR_BUFFER_INDEX]->GetVKormat(),
+            m_ColorAttachments[HORIZONTAL_BLUR_BUFFER_INDEX]->CreateColorAttachment(width, height, VK_FORMAT_R16G16B16A16_SFLOAT, BLUR_DOWN_SAMPLES);
+
+            VulkanTextureHelper::TransitionImageLayout
+            (
+                m_ColorAttachments[HORIZONTAL_BLUR_BUFFER_INDEX]->GetImage(),
+                m_ColorAttachments[HORIZONTAL_BLUR_BUFFER_INDEX]->GetFormat(),
+                0, BLUR_DOWN_SAMPLES,
                 VK_IMAGE_LAYOUT_UNDEFINED,
                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
             );
 
-            // Recreate vertical blur buffer
             m_ColorAttachments[VERTICAL_BLUR_BUFFER_INDEX] = new VulkanTexture();
-            m_ColorAttachments[VERTICAL_BLUR_BUFFER_INDEX]->Create();
-            m_ColorAttachments[VERTICAL_BLUR_BUFFER_INDEX]->CreateColorAttachment(width, height, TextureFormat::RGBA16F, BLUR_DOWN_SAMPLES);
-            m_ColorAttachments[VERTICAL_BLUR_BUFFER_INDEX]->TransitionImageLayout(
-                m_ColorAttachments[VERTICAL_BLUR_BUFFER_INDEX]->GetVKormat(),
+            m_ColorAttachments[VERTICAL_BLUR_BUFFER_INDEX]->CreateColorAttachment(width, height, VK_FORMAT_R16G16B16A16_SFLOAT, BLUR_DOWN_SAMPLES);
+
+            VulkanTextureHelper::TransitionImageLayout
+            (
+                m_ColorAttachments[VERTICAL_BLUR_BUFFER_INDEX]->GetImage(),
+                m_ColorAttachments[VERTICAL_BLUR_BUFFER_INDEX]->GetFormat(),
+                0, BLUR_DOWN_SAMPLES,
                 VK_IMAGE_LAYOUT_UNDEFINED,
                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
             );
@@ -430,7 +452,6 @@ namespace PIX3D
             m_BloomShader.Destroy();
 
             // Reset member pointers
-            m_InputBrightnessTexture = nullptr;
             m_Width = 0;
             m_Height = 0;
             m_FinalResultBufferIndex = 0;

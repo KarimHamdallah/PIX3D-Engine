@@ -14,29 +14,29 @@ void HierarchyWidget::OnRender()
             std::filesystem::path filepath = platform->OpenDialogue(PIX3D::FileDialougeFilter::GLTF);
             if (!filepath.empty() && (filepath.extension().string() == ".gltf" || filepath.extension().string() == ".glb" || filepath.extension().string() == ".obj"))
             {
-                StaticMesh mesh;
+                VulkanStaticMesh mesh;
                 mesh.Load(filepath.string(), 1.0f);
-                Transform transform;
+                TransformData transform;
                 m_Scene->AddStaticMesh("New Mesh", transform, mesh);
             }
         }
 
         if (ImGui::MenuItem("Add Sprite"))
         {
-            Transform transform;
-            Sprite sprite;
+            TransformData transform;
+            SpriteData sprite;
             m_Scene->AddSprite("New Sprite", transform, sprite);
         }
 
         if (ImGui::MenuItem("Add Point Light"))
         {
-            Transform transform;
+            TransformData transform;
             m_Scene->AddPointLight("New Point Light", transform, {1.0f, 1.0f, 1.0f, 1.0f});
         }
 
         if (ImGui::MenuItem("Add Dir Light"))
         {
-            Transform transform;
+            TransformData transform;
             m_Scene->AddDirectionalLight("Dir Light", transform, { 1.0f, 1.0f, 1.0f, 1.0f });
         }
 
@@ -48,8 +48,10 @@ void HierarchyWidget::OnRender()
             std::filesystem::path filepath = platform->OpenDialogue(PIX3D::FileDialougeFilter::PNG);
             if (!filepath.empty())
             {
+                PIX_ASSERT(false);
+
                 spriteSheet.LoadFromFile(filepath.string(), true);
-                m_Scene->AddSpriteAnimation("New Animation", transform, spriteSheet, 4, 0.1f); // Default 4 frames at 0.1s each
+                //m_Scene->AddSpriteAnimation("New Animation", transform, spriteSheet, 4, 0.1f); // Default 4 frames at 0.1s each
             }
         }
         ImGui::EndPopup();

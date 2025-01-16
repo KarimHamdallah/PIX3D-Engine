@@ -1,16 +1,35 @@
 #include "LauncherLayer.h"
 #include <imgui.h>
 #include "EditorLayer.h"
+#include <imgui_impl_vulkan.h>
 
 void LauncherLayer::OnStart()
 {
-    m_EngineLogoTexture.LoadFromFile("res/logo.png");
-    m_LoadProjectTexture.LoadFromFile("res/folder_puls.png");
-    m_AddProjectTexture.LoadFromFile("res/plus_icon.png");
-    m_DefaultProjectThumbnail.LoadFromFile("res/default_project_thumbnail.png");
+
+    m_EngineLogoTexture = new VK::VulkanTexture();
+    m_EngineLogoTexture->LoadFromFile("res/logo.png", false);
+
+    m_LoadProjectTexture = new VK::VulkanTexture();
+    m_LoadProjectTexture->LoadFromFile("res/folder_puls.png", false);
+
+    m_AddProjectTexture = new VK::VulkanTexture();
+    m_AddProjectTexture->LoadFromFile("res/plus_icon.png", false);
+
+    m_DefaultProjectThumbnail = new VK::VulkanTexture();
+    m_DefaultProjectThumbnail->LoadFromFile("res/default_project_thumbnail.png", false);
 
     ImGuiIO& io = ImGui::GetIO();
+    io.Fonts->Clear();
+    io.Fonts->AddFontDefault();
     io.Fonts->AddFontFromFileTTF("res/Nexa-Heavy.ttf", 18.0f);
+
+    // Rebuild font atlas
+    unsigned char* pixels;
+    int width, height;
+    io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
+
+    // Tell ImGui_ImplVulkan to rebuild its font texture
+    ImGui_ImplVulkan_CreateFontsTexture();
 
     // default prject path
     {
@@ -177,7 +196,10 @@ void LauncherLayer::RenderNewProjectDialog()
 
 void LauncherLayer::OnUpdate(float dt)
 {
-    ImGuiLayer::StartDockSpace();
+    VK::VulkanImGuiPass::BeginRecordCommandbuffer();
+
+    VK::VulkanImGuiPass::BeginFrame();
+    VK::VulkanImGuiPass::StartDockSpace();
 
     // Logo and Header Bar
     {
@@ -197,10 +219,10 @@ void LauncherLayer::OnUpdate(float dt)
                 ImGui::GetWindowPos().y + headerHeight),
             IM_COL32(0, 0, 0, 255));
 
-        if (m_LoadProjectTexture.IsValid())
+        if (m_LoadProjectTexture)
         {
             auto Size = ImGui::GetContentRegionAvail();
-            ImGui::Image((ImTextureID)m_EngineLogoTexture.GetHandle(), Size);
+            ImGui::Image((ImTextureID)m_EngineLogoTexture->GetImGuiDescriptorSet(), Size);
         }
 
         ImGui::End();
@@ -208,33 +230,6 @@ void LauncherLayer::OnUpdate(float dt)
 
     {
         ImGui::Begin("PIX3D Launcher", nullptr, /*ImGuiWindowFlags_NoTitleBar*/0);
-
-        // Top Bar
-        /*
-        {
-            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8, 8));
-
-            if (ImGui::Button("Your Projects"))
-            {
-                // LoadRecentProjects();
-            }
-
-            ImGui::SameLine();
-            if (ImGui::Button("About")) {}
-
-            ImGui::SameLine();
-            if (ImGui::Button("Settings")) {}
-
-            ImGui::SameLine();
-            ImGui::PushItemWidth(200);
-            static char search[128] = "";
-            ImGui::InputText("##Search", search, sizeof(search), ImGuiInputTextFlags_AutoSelectAll);
-            ImGui::PopItemWidth();
-
-            ImGui::PopStyleVar();
-            ImGui::Separator();
-        }
-        */
 
         // Projects grid
         {
@@ -306,7 +301,9 @@ void LauncherLayer::OnUpdate(float dt)
         RenderNewProjectDialog();
     }
 
-    ImGuiLayer::EndDockSpace();
+    VK::VulkanImGuiPass::EndDockSpace();
+    VK::VulkanImGuiPass::EndFrame();
+    VK::VulkanImGuiPass::EndRecordCommandbufferAndSubmit();
 
     if(m_ProjectLoaded)
         LayerManager::Get().GoToLayer(new EditorLayer());
@@ -314,12 +311,18 @@ void LauncherLayer::OnUpdate(float dt)
 
 void LauncherLayer::OnDestroy()
 {
-    m_EngineLogoTexture.Destroy();
-    m_LoadProjectTexture.Destroy();
-    m_AddProjectTexture.Destroy();
+    m_EngineLogoTexture->Destroy();
+    m_LoadProjectTexture->Destroy();
+    m_AddProjectTexture->Destroy();
+    m_DefaultProjectThumbnail->Destroy();
+
+    delete m_EngineLogoTexture;
+    delete m_LoadProjectTexture;
+    delete m_AddProjectTexture;
+    delete m_DefaultProjectThumbnail;
 }
 
-bool LauncherLayer::RenderProjectTile(const char* name, GL::GLTexture& texture, bool isNewProject, float tileSize)
+bool LauncherLayer::RenderProjectTile(const char* name, VK::VulkanTexture* texture, bool isNewProject, float tileSize)
 {
     const float titleHeight = 40.0f;
     const float imageSize = tileSize * 0.5f;
@@ -358,7 +361,7 @@ bool LauncherLayer::RenderProjectTile(const char* name, GL::GLTexture& texture, 
 
     // Draw the image
     ImGui::GetWindowDrawList()->AddImage(
-        (ImTextureID)texture.GetHandle(),
+        (ImTextureID)texture->GetImGuiDescriptorSet(),
         ImVec2(imageX, imageY),
         ImVec2(imageX + imageSize, imageY + imageSize)
     );
@@ -398,7 +401,7 @@ bool LauncherLayer::RenderProjectTile(const char* name, GL::GLTexture& texture, 
     return clicked;
 }
 
-bool LauncherLayer::RenderProjectTileDoubleClick(const char* name, GL::GLTexture& texture, float tileSize)
+bool LauncherLayer::RenderProjectTileDoubleClick(const char* name, VK::VulkanTexture* texture, float tileSize)
 {
     const float titleHeight = 40.0f;
     const float imageSize = tileSize * 0.5f;
@@ -437,7 +440,7 @@ bool LauncherLayer::RenderProjectTileDoubleClick(const char* name, GL::GLTexture
 
     // Draw the image
     ImGui::GetWindowDrawList()->AddImage(
-        (ImTextureID)texture.GetHandle(),
+        (ImTextureID)texture->GetImGuiDescriptorSet(),
         ImVec2(imageX, imageY),
         ImVec2(imageX + imageSize, imageY + imageSize)
     );

@@ -28,16 +28,16 @@ public:
 	virtual void OnKeyPressed(uint32_t key) {}
 private:
 	void RenderNewProjectDialog();
-	bool RenderProjectTile(const char* name, GL::GLTexture& texture, bool isNewProject, float tileSize);
+	bool RenderProjectTile(const char* name, VK::VulkanTexture* texture, bool isNewProject, float tileSize);
 	void RenderRecentProjectTiles(float tileSize, float padding, int& itemCount, int tilesPerRow);
-	bool RenderProjectTileDoubleClick(const char* name, GL::GLTexture& texture, float tileSize);
+	bool RenderProjectTileDoubleClick(const char* name, VK::VulkanTexture* texture, float tileSize);
 	void ScanForRecentProjects();
 private:
 
-	GL::GLTexture m_EngineLogoTexture;
-	GL::GLTexture m_AddProjectTexture;
-	GL::GLTexture m_LoadProjectTexture;
-	GL::GLTexture m_DefaultProjectThumbnail;
+	VK::VulkanTexture* m_EngineLogoTexture;
+	VK::VulkanTexture* m_AddProjectTexture;
+	VK::VulkanTexture* m_LoadProjectTexture;
+	VK::VulkanTexture* m_DefaultProjectThumbnail;
 
 	bool m_ShowNewProjectDialog = false;
 	char m_ProjectName[256] = "Example Game";

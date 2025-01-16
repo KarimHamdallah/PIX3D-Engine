@@ -10,17 +10,7 @@ namespace PIX3D
 {
     namespace VK
     {
-        void VulkanTexture::Create()
-        {
-            auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
-
-            m_Device = Context->m_Device;
-            m_PhysicalDevice = Context->m_PhysDevice.GetSelected().m_physDevice;
-            m_Queue = Context->m_Queue.GetVkQueue();
-            m_CmdPool = Context->m_CommandPool;
-        }
-
-        bool VulkanTexture::CreateColorAttachment(uint32_t Width, uint32_t Height, TextureFormat Format, uint32_t MipLevels, bool ClampToEdge)
+        bool VulkanTexture::CreateColorAttachment(uint32_t Width, uint32_t Height, VkFormat Format, uint32_t MipLevels, bool ClampToEdge)
         {
             m_Width = Width;
             m_Height = Height;
@@ -28,229 +18,256 @@ namespace PIX3D
             m_MipLevels = MipLevels;
             m_SamplerClampToEdge = ClampToEdge;
 
-            auto usage = IsDepthFormat(GetVulkanFormat(Format))
+            auto usage = IsDepthFormat(Format)
                 ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
                 : (VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
             // Create the image with mip levels
-            CreateImage(Width, Height, GetVulkanFormat(Format),
+            auto ImageAndMemory = VulkanTextureHelper::CreateImage(Width, Height, Format,
                 VK_IMAGE_TILING_OPTIMAL,
                 usage | VK_IMAGE_USAGE_SAMPLED_BIT,
-                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                m_MipLevels);
+
+            m_Image = ImageAndMemory.Image;
+            m_ImageMemory == ImageAndMemory.Memory;
 
             // Create image view with mip levels
-            CreateImageView(GetVulkanFormat(Format));
-            CreateSampler(static_cast<float>(m_MipLevels - 1));
+            m_ImageView = VulkanTextureHelper::CreateImageView(m_Image, Format, 0, MipLevels);
+            m_Sampler = VulkanTextureHelper::CreateSampler(m_MipLevels, ClampToEdge);
 
             return true;
         }
 
-        bool VulkanTexture::LoadFromFile(const std::filesystem::path& FilePath, uint32_t miplevels, bool IsSRGB)
+        bool VulkanTexture::LoadFromFile(const std::filesystem::path& FilePath, bool gen_mips, bool IsSRGB)
         {
-            m_MipLevels = miplevels;
+            auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
+            if (!Context) return false;
+
 
             int texWidth, texHeight, texChannels;
             stbi_uc* pixels = stbi_load(FilePath.string().c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
 
             if (!pixels) {
-                throw std::runtime_error("Failed to load texture image!");
+                return false;
             }
 
+            m_Path = FilePath;
+            m_MipLevels = gen_mips ? VulkanTextureHelper::CalculateMipLevels(texWidth, texHeight) : 1;
             m_Width = static_cast<uint32_t>(texWidth);
             m_Height = static_cast<uint32_t>(texHeight);
-
-            // Always use RGBA8 format for loaded images, but handle SRGB if requested
-            m_Format = TextureFormat::RGBA8;
-            VkFormat vulkanFormat = IsSRGB ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
+            m_Format = IsSRGB ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
 
             VkDeviceSize imageSize = m_Width * m_Height * 4; // 4 bytes per RGBA pixel
 
             // Create staging buffer
-            BufferAndMemory stagingBuffer = CreateBuffer(
+            auto stagingBuffer = VulkanTextureHelper::CreateBuffer(
                 imageSize,
                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                m_PhysicalDevice
-            );
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
             // Copy pixel data to staging buffer
             void* data;
-            vkMapMemory(m_Device, stagingBuffer.m_Memory, 0, imageSize, 0, &data);
+            VK_CHECK_RESULT(vkMapMemory(Context->m_Device, stagingBuffer.Memory, 0, imageSize, 0, &data));
             memcpy(data, pixels, static_cast<size_t>(imageSize));
-            vkUnmapMemory(m_Device, stagingBuffer.m_Memory);
+            vkUnmapMemory(Context->m_Device, stagingBuffer.Memory);
 
-            // Free original pixel data
             stbi_image_free(pixels);
 
-            // Create the image
-
+            // Create the image with appropriate usage flags
             VkImageUsageFlags usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-
-            if (m_MipLevels > 1)
+            if (m_MipLevels > 1) {
                 usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+            }
 
-            CreateImage(m_Width, m_Height, vulkanFormat, VK_IMAGE_TILING_OPTIMAL,
+            auto imageAndMemory = VulkanTextureHelper::CreateImage(
+                m_Width, m_Height, m_Format,
+                VK_IMAGE_TILING_OPTIMAL,
                 usage,
-                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                m_MipLevels);
+
+            m_Image = imageAndMemory.Image;
+            m_ImageMemory = imageAndMemory.Memory;
 
             // Transition image layout for copy
-            TransitionImageLayout(vulkanFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+            VulkanTextureHelper::TransitionImageLayout(
+                m_Image, m_Format, 0, m_MipLevels,
+                VK_IMAGE_LAYOUT_UNDEFINED,
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
             // Copy data from staging buffer to image
-            CopyBufferToImage(stagingBuffer.m_Buffer, m_Width, m_Height);
+            VulkanTextureHelper::CopyBufferToImage(stagingBuffer.Buffer, m_Image, m_Width, m_Height);
 
             if (m_MipLevels > 1)
             {
-                auto* Context = (VK::VulkanGraphicsContext*)Engine::GetGraphicsContext();
-
-                VkCommandBuffer Commandbuffer = VulkanHelper::BeginSingleTimeCommands(Context->m_Device, Context->m_CommandPool);
-                GenerateMipmaps(Commandbuffer);
-                VulkanHelper::EndSingleTimeCommands(Context->m_Device, Context->m_Queue.m_Queue, Context->m_CommandPool, Commandbuffer);
+                VkCommandBuffer commandBuffer = VulkanHelper::BeginSingleTimeCommands(Context->m_Device, Context->m_CommandPool);
+                GenerateMipmaps(commandBuffer);
+                VulkanHelper::EndSingleTimeCommands(Context->m_Device, Context->m_Queue.m_Queue, Context->m_CommandPool, commandBuffer);
             }
             else
-                TransitionImageLayout(vulkanFormat, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+            {
+                VulkanTextureHelper::TransitionImageLayout(
+                    m_Image, m_Format, 0, m_MipLevels,
+                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+            }
 
             // Create image view and sampler
-            CreateImageView(vulkanFormat);
-            CreateSampler(static_cast<float>(m_MipLevels - 1));
+            m_ImageView = VulkanTextureHelper::CreateImageView(m_Image, m_Format, 0, m_MipLevels);
+            m_Sampler = VulkanTextureHelper::CreateSampler(m_MipLevels, false);
 
-            // Cleanup staging buffer
-            stagingBuffer.Destroy(m_Device);
-
+            stagingBuffer.Destroy(Context->m_Device);
             return true;
         }
 
-        bool VulkanTexture::LoadFromHDRFile(const std::filesystem::path& FilePath, TextureFormat format, uint32_t miplevels)
+        bool VulkanTexture::LoadFromHDRFile(const std::filesystem::path& FilePath, VkFormat format, uint32_t miplevels)
         {
+            auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
+            if (!Context || FilePath.extension() != ".hdr")
+                return false;
+
             m_MipLevels = miplevels;
 
             int texWidth, texHeight, texChannels;
-            PIX_ASSERT_MSG((FilePath.extension().string() == ".hdr"), "file is not .hdr file!");
-
             stbi_set_flip_vertically_on_load(true);
             float* pixels = stbi_loadf(FilePath.string().c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
             stbi_set_flip_vertically_on_load(false);
 
-            PIX_ASSERT_MSG(pixels, "failed to load hdr file!");
+            if (!pixels) {
+                return false;
+            }
 
             m_Width = static_cast<uint32_t>(texWidth);
             m_Height = static_cast<uint32_t>(texHeight);
-
-            // Always use RGBA8 format for loaded images, but handle SRGB if requested
             m_Format = format;
-            VkFormat vulkanFormat = GetVulkanFormat(format);
 
-            VkDeviceSize imageSize = m_Width * m_Height * GetBytesPerPixel(format); // 4 bytes per RGBA pixel for example
+            VkDeviceSize pixelSize = sizeof(float) * 4; // RGBA float format
+            VkDeviceSize imageSize = m_Width * m_Height * pixelSize;
 
             // Create staging buffer
-            BufferAndMemory stagingBuffer = CreateBuffer(
+            auto stagingBuffer = VulkanTextureHelper::CreateBuffer(
                 imageSize,
                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                m_PhysicalDevice
-            );
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-            // Copy pixel data to staging buffer
             void* data;
-            vkMapMemory(m_Device, stagingBuffer.m_Memory, 0, imageSize, 0, &data);
+            VK_CHECK_RESULT(vkMapMemory(Context->m_Device, stagingBuffer.Memory, 0, imageSize, 0, &data));
             memcpy(data, pixels, static_cast<size_t>(imageSize));
-            vkUnmapMemory(m_Device, stagingBuffer.m_Memory);
+            vkUnmapMemory(Context->m_Device, stagingBuffer.Memory);
 
-            // Free original pixel data
             stbi_image_free(pixels);
 
-            // Create the image
-
             VkImageUsageFlags usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-
             if (m_MipLevels > 1)
                 usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 
-            CreateImage(m_Width, m_Height, vulkanFormat, VK_IMAGE_TILING_OPTIMAL,
+            auto imageAndMemory = VulkanTextureHelper::CreateImage(
+                m_Width, m_Height, m_Format,
+                VK_IMAGE_TILING_OPTIMAL,
                 usage,
-                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                m_MipLevels);
 
-            // Transition image layout for copy
-            TransitionImageLayout(vulkanFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+            m_Image = imageAndMemory.Image;
+            m_ImageMemory = imageAndMemory.Memory;
 
-            // Copy data from staging buffer to image
-            CopyBufferToImage(stagingBuffer.m_Buffer, m_Width, m_Height);
+            VulkanTextureHelper::TransitionImageLayout(
+                m_Image, m_Format, 0, m_MipLevels,
+                VK_IMAGE_LAYOUT_UNDEFINED,
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+            VulkanTextureHelper::CopyBufferToImage(stagingBuffer.Buffer, m_Image, m_Width, m_Height);
 
             if (m_MipLevels > 1)
             {
-                auto* Context = (VK::VulkanGraphicsContext*)Engine::GetGraphicsContext();
-
-                VkCommandBuffer Commandbuffer = VulkanHelper::BeginSingleTimeCommands(Context->m_Device, Context->m_CommandPool);
-                GenerateMipmaps(Commandbuffer);
-                VulkanHelper::EndSingleTimeCommands(Context->m_Device, Context->m_Queue.m_Queue, Context->m_CommandPool, Commandbuffer);
+                VkCommandBuffer commandBuffer = VulkanHelper::BeginSingleTimeCommands(Context->m_Device, Context->m_CommandPool);
+                GenerateMipmaps(commandBuffer);
+                VulkanHelper::EndSingleTimeCommands(Context->m_Device, Context->m_Queue.m_Queue, Context->m_CommandPool, commandBuffer);
             }
             else
-                TransitionImageLayout(vulkanFormat, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+            {
+                VulkanTextureHelper::TransitionImageLayout(
+                    m_Image, m_Format, 0, m_MipLevels,
+                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+            }
 
-            // Create image view and sampler
-            CreateImageView(vulkanFormat);
-            CreateSampler(static_cast<float>(m_MipLevels - 1));
+            m_ImageView = VulkanTextureHelper::CreateImageView(m_Image, m_Format, 0, m_MipLevels);
+            m_Sampler = VulkanTextureHelper::CreateSampler(m_MipLevels, false);
 
-            // Cleanup staging buffer
-            stagingBuffer.Destroy(m_Device);
-
+            stagingBuffer.Destroy(Context->m_Device);
             return true;
         }
 
-        bool VulkanTexture::LoadFromData(void* Data, uint32_t Width, uint32_t Height, TextureFormat Format)
+        bool VulkanTexture::LoadFromData(void* Data, uint32_t Width, uint32_t Height, VkFormat Format)
         {
-            if (!Data || Width == 0 || Height == 0)
+            auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
+            if (!Context || !Data || Width == 0 || Height == 0)
                 return false;
 
             m_Width = Width;
             m_Height = Height;
             m_Format = Format;
 
-            VkFormat vulkanFormat = GetVulkanFormat(Format);
             VkDeviceSize imageSize = Width * Height * GetBytesPerPixel(Format);
 
             // Create staging buffer
-            BufferAndMemory stagingBuffer = CreateBuffer(
+            auto stagingBuffer = VulkanTextureHelper::CreateBuffer(
                 imageSize,
                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                m_PhysicalDevice
-            );
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
             // Copy data to staging buffer
             void* mappedData = nullptr;
-            VkResult res = vkMapMemory(m_Device, stagingBuffer.m_Memory, 0, imageSize, 0, &mappedData);
+            VkResult res = vkMapMemory(Context->m_Device, stagingBuffer.Memory, 0, imageSize, 0, &mappedData);
             VK_CHECK_RESULT(res, "Failed to map staging buffer memory");
 
             memcpy(mappedData, Data, static_cast<size_t>(imageSize));
-            vkUnmapMemory(m_Device, stagingBuffer.m_Memory);
+            vkUnmapMemory(Context->m_Device, stagingBuffer.Memory);
 
             // Create the image
-            CreateImage(Width, Height, vulkanFormat, VK_IMAGE_TILING_OPTIMAL,
+            auto imageAndMemory = VulkanTextureHelper::CreateImage(
+                Width, Height, Format,
+                VK_IMAGE_TILING_OPTIMAL,
                 VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                1);
+
+            m_Image = imageAndMemory.Image;
+            m_ImageMemory = imageAndMemory.Memory;
 
             // Transition image layout for copy
-            TransitionImageLayout(vulkanFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+            VulkanTextureHelper::TransitionImageLayout(
+                m_Image, Format, 0, 1,
+                VK_IMAGE_LAYOUT_UNDEFINED,
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
             // Copy data from staging buffer to image
-            CopyBufferToImage(stagingBuffer.m_Buffer, Width, Height);
+            VulkanTextureHelper::CopyBufferToImage(stagingBuffer.Buffer, m_Image, Width, Height);
 
             // Transition to shader read layout
-            TransitionImageLayout(vulkanFormat, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+            VulkanTextureHelper::TransitionImageLayout(
+                m_Image, Format, 0, 1,
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
             // Create image view and sampler
-            CreateImageView(vulkanFormat);
-            CreateSampler();
+            m_ImageView = VulkanTextureHelper::CreateImageView(m_Image, Format);
+            m_Sampler = VulkanTextureHelper::CreateSampler(1, false);
 
             // Cleanup staging buffer
-            stagingBuffer.Destroy(m_Device);
+            stagingBuffer.Destroy(Context->m_Device);
 
             return true;
         }
 
         void VulkanTexture::Destroy()
         {
+            auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
+
+            auto m_Device = Context->m_Device;
+
             if (m_Device != VK_NULL_HANDLE)
             {
                 if (m_Sampler != VK_NULL_HANDLE)
@@ -273,56 +290,83 @@ namespace PIX3D
                     vkFreeMemory(m_Device, m_ImageMemory, nullptr);
                     m_ImageMemory = VK_NULL_HANDLE;
                 }
+
+                if (m_ImGuiDescriptorset != VK_NULL_HANDLE)
+                {
+                    // TODO:: Remove Descriptor Set Created With ImGui
+                }
             }
         }
 
-        BufferAndMemory VulkanTexture::CreateBuffer(VkDeviceSize Size,
-            VkBufferUsageFlags Usage,
-            VkMemoryPropertyFlags Properties,
-            VkPhysicalDevice PhysDevice)
+
+
+
+
+
+
+
+
+
+
+
+
+
+        ///////////////// Vulkan Texture Helper ///////////////////////////////
+
+
+
+
+
+
+
+
+
+
+        VulkanBufferAndMemory VulkanTextureHelper::CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties)
         {
-            BufferAndMemory Result;
+            auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
+
+            VulkanBufferAndMemory Result;
 
             VkBufferCreateInfo BufferInfo{};
             BufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-            BufferInfo.size = Size;
-            BufferInfo.usage = Usage;
+            BufferInfo.size = size;
+            BufferInfo.usage = usage;
             BufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-            VkResult res = vkCreateBuffer(m_Device, &BufferInfo, nullptr, &Result.m_Buffer);
+            VkResult res = vkCreateBuffer(Context->m_Device, &BufferInfo, nullptr, &Result.Buffer);
             VK_CHECK_RESULT(res, "Failed to create buffer");
 
             VkMemoryRequirements MemRequirements;
-            vkGetBufferMemoryRequirements(m_Device, Result.m_Buffer, &MemRequirements);
+            vkGetBufferMemoryRequirements(Context->m_Device, Result.Buffer, &MemRequirements);
 
             VkMemoryAllocateInfo AllocInfo{};
             AllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
             AllocInfo.allocationSize = MemRequirements.size;
-            AllocInfo.memoryTypeIndex = FindMemoryType(PhysDevice,
-                MemRequirements.memoryTypeBits,
-                Properties);
+            AllocInfo.memoryTypeIndex = FindMemoryType(MemRequirements.memoryTypeBits, properties);
 
-            res = vkAllocateMemory(m_Device, &AllocInfo, nullptr, &Result.m_Memory);
+            res = vkAllocateMemory(Context->m_Device, &AllocInfo, nullptr, &Result.Memory);
             VK_CHECK_RESULT(res, "Failed to allocate buffer memory");
 
-            Result.m_AllocationSize = AllocInfo.allocationSize;
+            Result.AllocationSize = AllocInfo.allocationSize;
 
-            vkBindBufferMemory(m_Device, Result.m_Buffer, Result.m_Memory, 0);
+            vkBindBufferMemory(Context->m_Device, Result.Buffer, Result.Memory, 0);
 
             return Result;
         }
 
-        uint32_t VulkanTexture::FindMemoryType(VkPhysicalDevice PhysDevice,
-            uint32_t TypeFilter,
-            VkMemoryPropertyFlags Properties)
+        uint32_t VulkanTextureHelper::FindMemoryType(uint32_t type_filter, VkMemoryPropertyFlags properties)
         {
+            auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
+
             VkPhysicalDeviceMemoryProperties MemProperties;
-            vkGetPhysicalDeviceMemoryProperties(PhysDevice, &MemProperties);
+            vkGetPhysicalDeviceMemoryProperties(Context->m_PhysDevice.GetSelected().m_physDevice, &MemProperties);
 
             for (uint32_t i = 0; i < MemProperties.memoryTypeCount; i++)
             {
-                if ((TypeFilter & (1 << i)) &&
-                    (MemProperties.memoryTypes[i].propertyFlags & Properties) == Properties) {
+                if ((type_filter & (1 << i)) &&
+                    (MemProperties.memoryTypes[i].propertyFlags & properties) == properties)
+                {
                     return i;
                 }
             }
@@ -333,73 +377,78 @@ namespace PIX3D
 
 
 
-        void VulkanTexture::CreateImage(uint32_t Width, uint32_t Height, VkFormat Format,
-            VkImageTiling Tiling, VkImageUsageFlags Usage, VkMemoryPropertyFlags Properties)
+        VulkanImageAndMemory VulkanTextureHelper::CreateImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, uint32_t mip_count)
         {
+            auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
+
             VkImageCreateInfo imageInfo{};
             imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
             imageInfo.imageType = VK_IMAGE_TYPE_2D;
-            imageInfo.extent.width = Width;
-            imageInfo.extent.height = Height;
+            imageInfo.extent.width = width;
+            imageInfo.extent.height = height;
             imageInfo.extent.depth = 1;
-            imageInfo.mipLevels = m_MipLevels;
+            imageInfo.mipLevels = mip_count;
             imageInfo.arrayLayers = 1;
-            imageInfo.format = Format;
-            imageInfo.tiling = Tiling;
+            imageInfo.format = format;
+            imageInfo.tiling = tiling;
             imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            imageInfo.usage = Usage;
+            imageInfo.usage = usage;
             imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
             imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 
-            if (vkCreateImage(m_Device, &imageInfo, nullptr, &m_Image) != VK_SUCCESS)
-            {
-                throw std::runtime_error("Failed to create image!");
-            }
+            VulkanImageAndMemory Image;
+            if (vkCreateImage(Context->m_Device, &imageInfo, nullptr, &Image.Image) != VK_SUCCESS)
+                PIX_ASSERT_MSG(false, "Failed to create image!");
 
             VkMemoryRequirements memRequirements;
-            vkGetImageMemoryRequirements(m_Device, m_Image, &memRequirements);
+            vkGetImageMemoryRequirements(Context->m_Device, Image.Image, &memRequirements);
 
             VkMemoryAllocateInfo allocInfo{};
             allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
             allocInfo.allocationSize = memRequirements.size;
-            allocInfo.memoryTypeIndex = FindMemoryType(m_PhysicalDevice, memRequirements.memoryTypeBits, Properties);
+            allocInfo.memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits, properties);
 
-            if (vkAllocateMemory(m_Device, &allocInfo, nullptr, &m_ImageMemory) != VK_SUCCESS)
-            {
-                throw std::runtime_error("Failed to allocate image memory!");
-            }
+            if (vkAllocateMemory(Context->m_Device, &allocInfo, nullptr, &Image.Memory) != VK_SUCCESS)
+                PIX_ASSERT_MSG(false, "Failed to allocate image memory!");
 
-            vkBindImageMemory(m_Device, m_Image, m_ImageMemory, 0);
+            vkBindImageMemory(Context->m_Device, Image.Image, Image.Memory, 0);
+
+            return Image;
         }
 
-        void VulkanTexture::CreateImageView(VkFormat Format)
+        VkImageView VulkanTextureHelper::CreateImageView(VkImage image, VkFormat format, uint32_t base_mip, uint32_t mip_count)
         {
+            auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
+
             VkImageViewCreateInfo viewInfo{};
             viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-            viewInfo.image = m_Image;
+            viewInfo.image = image;
             viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-            viewInfo.format = Format;
-            viewInfo.subresourceRange.aspectMask = IsDepthFormat(GetVKormat()) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
-            viewInfo.subresourceRange.baseMipLevel = 0;
-            viewInfo.subresourceRange.levelCount = m_MipLevels;
+            viewInfo.format = format;
+            viewInfo.subresourceRange.aspectMask = IsDepthFormat(format) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+            viewInfo.subresourceRange.baseMipLevel = base_mip;
+            viewInfo.subresourceRange.levelCount = mip_count;
             viewInfo.subresourceRange.baseArrayLayer = 0;
             viewInfo.subresourceRange.layerCount = 1;
 
-            if (vkCreateImageView(m_Device, &viewInfo, nullptr, &m_ImageView) != VK_SUCCESS)
-            {
-                throw std::runtime_error("Failed to create texture image view!");
-            }
+            VkImageView View;
+            if (vkCreateImageView(Context->m_Device, &viewInfo, nullptr, &View) != VK_SUCCESS)
+                PIX_ASSERT_MSG(false,  "Failed to create texture image view!");
+
+            return View;
         }
 
-        void VulkanTexture::CreateSampler(float MaxLod)
+        VkSampler VulkanTextureHelper::CreateSampler(float mip_count, bool clamp_to_edge)
         {
+            auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
+
             VkSamplerCreateInfo samplerInfo{};
             samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
             samplerInfo.magFilter = VK_FILTER_LINEAR;
             samplerInfo.minFilter = VK_FILTER_LINEAR;
-            samplerInfo.addressModeU = m_SamplerClampToEdge ? VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE : VK_SAMPLER_ADDRESS_MODE_REPEAT;
-            samplerInfo.addressModeV = m_SamplerClampToEdge ? VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE : VK_SAMPLER_ADDRESS_MODE_REPEAT;
-            samplerInfo.addressModeW = m_SamplerClampToEdge ? VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE : VK_SAMPLER_ADDRESS_MODE_REPEAT;
+            samplerInfo.addressModeU = clamp_to_edge ? VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE : VK_SAMPLER_ADDRESS_MODE_REPEAT;
+            samplerInfo.addressModeV = clamp_to_edge ? VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE : VK_SAMPLER_ADDRESS_MODE_REPEAT;
+            samplerInfo.addressModeW = clamp_to_edge ? VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE : VK_SAMPLER_ADDRESS_MODE_REPEAT;
             samplerInfo.anisotropyEnable = VK_TRUE;
             samplerInfo.maxAnisotropy = 16.0f;
             samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
@@ -409,19 +458,22 @@ namespace PIX3D
             samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
             samplerInfo.mipLodBias = 0.0f;
             samplerInfo.minLod = 0.0f;
-            samplerInfo.maxLod = MaxLod;
+            samplerInfo.maxLod = mip_count;
 
-            if (vkCreateSampler(m_Device, &samplerInfo, nullptr, &m_Sampler) != VK_SUCCESS)
-            {
-                throw std::runtime_error("Failed to create texture sampler!");
-            }
+            VkSampler Sampler;
+            if (vkCreateSampler(Context->m_Device, &samplerInfo, nullptr, &Sampler) != VK_SUCCESS)
+                PIX_ASSERT_MSG(false, "Failed to create texture sampler!");
+
+            return Sampler;
         }
 
         void VulkanTexture::GenerateMipmaps(VkCommandBuffer commandBuffer)
         {
+            auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
+
             // Check if image format supports linear blitting
             VkFormatProperties formatProperties;
-            vkGetPhysicalDeviceFormatProperties(m_PhysicalDevice, GetVKormat(), &formatProperties);
+            vkGetPhysicalDeviceFormatProperties(Context->m_PhysDevice.GetSelected().m_physDevice, m_Format, &formatProperties);
 
             if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT))
                 PIX_ASSERT_MSG(false, "Texture image format does not support linear blitting!");
@@ -501,13 +553,15 @@ namespace PIX3D
                 1, &barrier);
         }
 
-        void VulkanTexture::TransitionImageLayout(VkFormat Format, VkImageLayout OldLayout, VkImageLayout NewLayout, VkCommandBuffer ExistingCommandBuffer)
+        void VulkanTextureHelper::TransitionImageLayout(VkImage Image, VkFormat Format, uint32_t base_mip,uint32_t mip_count, VkImageLayout OldLayout, VkImageLayout NewLayout, VkCommandBuffer ExistingCommandBuffer)
         {
+            auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
+
             VkCommandBuffer CommandBuffer;
             bool useExistingCommandBuffer = (ExistingCommandBuffer != VK_NULL_HANDLE);
 
             if (!useExistingCommandBuffer)
-                CommandBuffer = VulkanHelper::BeginSingleTimeCommands(m_Device, m_CmdPool);
+                CommandBuffer = VulkanHelper::BeginSingleTimeCommands(Context->m_Device, Context->m_CommandPool);
             else
                 CommandBuffer = ExistingCommandBuffer;
 
@@ -517,10 +571,10 @@ namespace PIX3D
             barrier.newLayout = NewLayout;
             barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
             barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            barrier.image = m_Image;
+            barrier.image = Image;
             barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            barrier.subresourceRange.baseMipLevel = 0;
-            barrier.subresourceRange.levelCount = m_MipLevels;
+            barrier.subresourceRange.baseMipLevel = base_mip;
+            barrier.subresourceRange.levelCount = mip_count;
             barrier.subresourceRange.baseArrayLayer = 0;
             barrier.subresourceRange.layerCount = 1;
 
@@ -604,6 +658,27 @@ namespace PIX3D
                 sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
                 destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
             }
+            else if (OldLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR && NewLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+            {
+                barrier.srcAccessMask = 0;
+                barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+                sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+                destinationStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+            }
+            else if (OldLayout == VK_IMAGE_LAYOUT_UNDEFINED && NewLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
+            {
+                barrier.srcAccessMask = 0;
+                barrier.dstAccessMask = 0;
+                sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+                destinationStage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+            }
+            else if (OldLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL && NewLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
+            {
+                barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+                barrier.dstAccessMask = 0;
+                sourceStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+                destinationStage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+            }
             else
             {
                 throw std::runtime_error("Unsupported layout transition!");
@@ -615,12 +690,14 @@ namespace PIX3D
                 1, &barrier);
 
             if (!useExistingCommandBuffer)
-                VulkanHelper::EndSingleTimeCommands(m_Device, m_Queue, m_CmdPool, CommandBuffer);
+                VulkanHelper::EndSingleTimeCommands(Context->m_Device, Context->m_Queue.m_Queue, Context->m_CommandPool, CommandBuffer);
         }
 
-        void VulkanTexture::CopyBufferToImage(VkBuffer Buffer, uint32_t Width, uint32_t Height)
+        void VulkanTextureHelper::CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height)
         {
-            VkCommandBuffer CommandBuffer = VulkanHelper::BeginSingleTimeCommands(m_Device, m_CmdPool);
+            auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
+
+            VkCommandBuffer CommandBuffer = VulkanHelper::BeginSingleTimeCommands(Context->m_Device, Context->m_CommandPool);
 
             VkBufferImageCopy region{};
             region.bufferOffset = 0;
@@ -631,53 +708,44 @@ namespace PIX3D
             region.imageSubresource.baseArrayLayer = 0;
             region.imageSubresource.layerCount = 1;
             region.imageOffset = { 0, 0, 0 };
-            region.imageExtent = { Width, Height, 1 };
+            region.imageExtent = { width, height, 1 };
 
-            vkCmdCopyBufferToImage(CommandBuffer, Buffer, m_Image,
-                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+            vkCmdCopyBufferToImage(CommandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
-            VulkanHelper::EndSingleTimeCommands(m_Device, m_Queue, m_CmdPool, CommandBuffer);
+            VulkanHelper::EndSingleTimeCommands(Context->m_Device, Context->m_Queue.m_Queue, Context->m_CommandPool, CommandBuffer);
         }
 
-        void VulkanTexture::CopyFromTexture(VulkanTexture* sourceTexture, VkCommandBuffer existingCommandBuffer)
+        void VulkanTextureHelper::CopyTextureWithAllMips(VkImage src_image, VkFormat src_format, VkImage dst_image, VkFormat dst_format, uint32_t width, uint32_t height, uint32_t mip_count, VkCommandBuffer existing_commandbuffer)
         {
-            // Ensure the dimensions match
-            if (m_Width != sourceTexture->GetWidth() || m_Height != sourceTexture->GetHeight())
-                PIX_ASSERT_MSG(false, "Source and destination textures must have the same dimensions!");
-
-            // Ensure mip levels match
-            if (m_MipLevels != sourceTexture->m_MipLevels)
-                PIX_ASSERT_MSG(false,  "Source and destination textures must have the same number of mip levels!");
+            auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
 
             VkCommandBuffer commandBuffer;
-            bool useExistingCommandBuffer = (existingCommandBuffer != VK_NULL_HANDLE);
+            bool useExistingCommandBuffer = (existing_commandbuffer != VK_NULL_HANDLE);
 
             if (!useExistingCommandBuffer)
-                commandBuffer = VulkanHelper::BeginSingleTimeCommands(m_Device, m_CmdPool);
+                commandBuffer = VulkanHelper::BeginSingleTimeCommands(Context->m_Device, Context->m_CommandPool);
             else
-                commandBuffer = existingCommandBuffer;
+                commandBuffer = existing_commandbuffer;
 
             // Transition source image to transfer source layout
-            sourceTexture->TransitionImageLayout(
-                sourceTexture->GetVKormat(),
+            VulkanTextureHelper::TransitionImageLayout(src_image, src_format, 0, mip_count,
                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                 VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                 commandBuffer
             );
 
             // Transition destination image to transfer destination layout
-            TransitionImageLayout(
-                GetVKormat(),
+            VulkanTextureHelper::TransitionImageLayout(dst_image, dst_format, 0, mip_count,
                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                 VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                 commandBuffer
             );
 
             std::vector<VkImageCopy> copyRegions;
-            copyRegions.reserve(m_MipLevels);
+            copyRegions.reserve(mip_count);
 
             // Set up the copy regions for each mip level
-            for (uint32_t mipLevel = 0; mipLevel < m_MipLevels; mipLevel++)
+            for (uint32_t mipLevel = 0; mipLevel < mip_count; mipLevel++)
             {
                 VkImageCopy copyRegion{};
                 copyRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -693,10 +761,11 @@ namespace PIX3D
                 copyRegion.dstOffset = { 0, 0, 0 };
 
                 // Calculate mip level dimensions
-                uint32_t mipWidth = std::max(m_Width >> mipLevel, 1u);
-                uint32_t mipHeight = std::max(m_Height >> mipLevel, 1u);
+                uint32_t mipWidth = std::max(width >> mipLevel, 1u);
+                uint32_t mipHeight = std::max(height >> mipLevel, 1u);
 
-                copyRegion.extent = {
+                copyRegion.extent =
+                {
                     mipWidth,
                     mipHeight,
                     1
@@ -708,68 +777,33 @@ namespace PIX3D
             // Execute the copy command for all mip levels at once
             vkCmdCopyImage(
                 commandBuffer,
-                sourceTexture->GetVKImage(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                m_Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                src_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                dst_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                 static_cast<uint32_t>(copyRegions.size()),
                 copyRegions.data()
             );
 
             // Transition images back to shader read layout
-            sourceTexture->TransitionImageLayout(
-                sourceTexture->GetVKormat(),
+            VulkanTextureHelper::TransitionImageLayout(src_image, src_format, 0, mip_count,
                 VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                 commandBuffer
             );
 
-            TransitionImageLayout(
-                GetVKormat(),
+            VulkanTextureHelper::TransitionImageLayout(dst_image, dst_format, 0, mip_count,
                 VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                 commandBuffer
             );
 
             if (!useExistingCommandBuffer)
-                VulkanHelper::EndSingleTimeCommands(m_Device, m_Queue, m_CmdPool, commandBuffer);
+                VulkanHelper::EndSingleTimeCommands(Context->m_Device, Context->m_Queue.m_Queue, Context->m_CommandPool, commandBuffer);
         }
 
-        VkFormat VulkanTexture::GetVulkanFormat(TextureFormat Format) const
+        uint32_t VulkanTextureHelper::CalculateMipLevels(uint32_t width, uint32_t height)
         {
-            switch (Format)
-            {
-            case TextureFormat::R8: return VK_FORMAT_R8_UNORM;
-            case TextureFormat::RG8: return VK_FORMAT_R8G8_UNORM;
-            case TextureFormat::RGB8: return VK_FORMAT_R8G8B8_UNORM;
-            case TextureFormat::RGBA8: return VK_FORMAT_R8G8B8A8_UNORM;
-            case TextureFormat::RGBA8_SRGB: return VK_FORMAT_R8G8B8A8_SRGB;
-            case TextureFormat::RGB16F: return VK_FORMAT_R16G16B16_SFLOAT;
-            case TextureFormat::RGBA16F: return VK_FORMAT_R16G16B16A16_SFLOAT;
-            case TextureFormat::RGBA32F: return VK_FORMAT_R32G32B32A32_SFLOAT;
-
-            // Depth formats
-            case TextureFormat::DEPTH16: return VK_FORMAT_D16_UNORM;
-            case TextureFormat::DEPTH24: return VK_FORMAT_X8_D24_UNORM_PACK32; // Depth24 with 8 unused bits
-            case TextureFormat::DEPTH32: return VK_FORMAT_D32_SFLOAT;
-            case TextureFormat::DEPTH24_STENCIL8: return VK_FORMAT_D24_UNORM_S8_UINT;
-            case TextureFormat::DEPTH32_STENCIL8: return VK_FORMAT_D32_SFLOAT_S8_UINT;
-
-            default:
-                PIX_ASSERT_MSG(false, "Unsupported texture format!");
-            }
-        }
-
-        uint32_t VulkanTexture::GetBytesPerPixel(TextureFormat Format)
-        {
-            switch (Format)
-            {
-            case TextureFormat::R8: return 1;
-            case TextureFormat::RG8: return 2;
-            case TextureFormat::RGB8: return 3;
-            case TextureFormat::RGBA8: return 4;
-            case TextureFormat::RGBA16F: return 8;
-            case TextureFormat::RGBA32F: return 16;
-            default: throw std::runtime_error("Unsupported texture format!");
-            }
+            uint32_t MaxDimension = std::max(width, height);
+            return static_cast<uint32_t>(std::floor(std::log2(MaxDimension))) + 1;
         }
 
         VkDescriptorSet VulkanTexture::GetImGuiDescriptorSet()

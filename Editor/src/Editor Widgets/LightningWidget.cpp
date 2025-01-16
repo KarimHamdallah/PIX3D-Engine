@@ -1,9 +1,10 @@
 #include "LightningWidget.h"
+#include <Platfrom/Vulkan/VulkanSceneRenderer.h>
 #include <imgui.h>
 
 namespace
 {
-	void RenderTransformComponent(PIX3D::Transform& transform, const std::string& label)
+	void RenderTransformComponent(PIX3D::TransformData& transform, const std::string& label)
 	{
 		// Use a unique label or ID scope
 		ImGui::PushID(label.c_str());
@@ -41,7 +42,7 @@ void LightningWidget::OnRender()
 	ImGui::Checkbox("Use Skybox", &m_Scene->m_UseSkybox);
 	ImGui::ColorEdit4("Background Color", &m_Scene->m_BackgroundColor.x);
 
-	ImGui::SliderInt("Environment Map Size", &m_Scene->m_EnvironmentMapSize, 0, 4000);
+	ImGui::SliderInt("Environment Map Size", &VK::VulkanSceneRenderer::s_Environment.EnvironmentMapSize, 0, 4000);
 
 	if (ImGui::Button("Load Environment Map", { WidgetSize.x, 20.0f }))
 	{
@@ -50,20 +51,36 @@ void LightningWidget::OnRender()
 		std::filesystem::path savepath = platform->OpenDialogue(PIX3D::FileDialougeFilter::HDR);
 		if (!savepath.empty() && savepath.extension().string() == ".hdr")
 		{
-			std::cout << "Reload EnvMap\n";
-			
-			// Destroy Current Environment Map Data
-			m_Scene->m_Cubemap.Destroy();
-			m_Scene->m_IBLMaps.Destroy();
-			
-			m_Scene->m_Cubemap.LoadHdrToCubemapGPU(savepath, m_Scene->m_EnvironmentMapSize);
-			m_Scene->m_IBLMaps = PIX3D::GL::IBLCubemapsGenerator::GenerateIBLMaps(m_Scene->m_Cubemap.GetHandle(), 32, 128);
+			std::cout << "Reload Environment Map\n";
+
+			// Destroy Current Environmnet Map
+			{
+				VK::VulkanSceneRenderer::s_Environment.Cubemap->Destroy();
+				VK::VulkanSceneRenderer::s_Environment.IrraduianceCubemap->Destroy();
+				VK::VulkanSceneRenderer::s_Environment.PrefilterCubemap->Destroy();
+
+				delete VK::VulkanSceneRenderer::s_Environment.Cubemap;
+				delete VK::VulkanSceneRenderer::s_Environment.IrraduianceCubemap;
+				delete VK::VulkanSceneRenderer::s_Environment.PrefilterCubemap;
+			}
+
+			// Create New Environmnet Map
+			{
+				VK::VulkanSceneRenderer::s_Environment.Cubemap = new VK::VulkanHdrCubemap();
+				VK::VulkanSceneRenderer::s_Environment.Cubemap->LoadHdrToCubemapGPU(savepath, VK::VulkanSceneRenderer::s_Environment.EnvironmentMapSize);
+
+				VK::VulkanSceneRenderer::s_Environment.IrraduianceCubemap = new VK::VulkanIrradianceCubemap();
+				VK::VulkanSceneRenderer::s_Environment.IrraduianceCubemap->Generate(VK::VulkanSceneRenderer::s_Environment.Cubemap, 32);
+
+				VK::VulkanSceneRenderer::s_Environment.PrefilterCubemap = new VK::VulkanPrefilteredCubemap();
+				VK::VulkanSceneRenderer::s_Environment.PrefilterCubemap->Generate(VK::VulkanSceneRenderer::s_Environment.Cubemap, 128);
+			}
 		}
 	}
 
-	ImGui::Image((ImTextureID)m_Scene->m_Cubemap.GetHdrTextureHandle(), { WidgetSize.x, 200.0f }, { 0, 1 }, { 1, 0 });
+	ImGui::Image((ImTextureID)VK::VulkanSceneRenderer::s_Environment.Cubemap->m_EquirectangularMap->GetImGuiDescriptorSet(), {WidgetSize.x, 200.0f}, {0, 1}, {1, 0});
 
-	RenderTransformComponent(m_Scene->m_CubemapTransform, "Environment Map Transform");
+	RenderTransformComponent(VK::VulkanSceneRenderer::s_Environment.CubemapTransform, "Environment Map Transform");
 
 	ImGui::CollapsingHeader("Post-processing");
 
