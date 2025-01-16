@@ -189,13 +189,9 @@ void InspectorWidget::OnRender()
                     std::filesystem::path filepath = platform->OpenDialogue(PIX3D::FileDialougeFilter::PNG);
                     if (!filepath.empty())
                     {
-
-                        if(sprite->m_Material->m_Texture)
-                            sprite->m_Material->m_Texture->Destroy();
-
-                        delete sprite->m_Material->m_Texture;
-                        sprite->m_Material->m_Texture = new VK::VulkanTexture();
-                        sprite->m_Material->m_Texture->LoadFromFile(filepath.string(), false, true);
+                        auto* new_texture = new VK::VulkanTexture();
+                        new_texture->LoadFromFile(filepath.string(), false, true);
+                        sprite->m_Material->ChangeTexture(new_texture);
                     }
                 }
                 ImGui::SameLine();

@@ -29,6 +29,7 @@ layout(push_constant) uniform PushConstants
    mat4 model;
    vec3 CameraPosition;
    float MeshIndex;
+   float BloomThreshold;
 }push;
 
 void main()

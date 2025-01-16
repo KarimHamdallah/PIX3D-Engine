@@ -17,6 +17,14 @@ namespace PIX3D
 		class VulkanPostProcessingRenderpass
 		{
 		public:
+			struct PushConstant
+			{
+				bool BloomEnabled = true;
+				float BloomIntensity = 1.0f;
+				bool TonemappingEnabled = false;
+				float GammaCorrectionFactor = 2.2f;
+			};
+		public:
 			VulkanPostProcessingRenderpass() = default;
 			~VulkanPostProcessingRenderpass() {}
 
@@ -25,6 +33,9 @@ namespace PIX3D
 			void Destroy();
 
 			void RecordCommandBuffer(VkCommandBuffer commandbuffer, uint32_t ImageIndex);
+
+		public:
+			PushConstant m_Data;
 
 		private:
 

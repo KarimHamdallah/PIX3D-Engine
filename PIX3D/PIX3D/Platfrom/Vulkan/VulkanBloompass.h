@@ -13,6 +13,13 @@ namespace PIX3D
 {
     namespace VK
     {
+        enum VKBloomDirection
+        {
+            BOTH = 0,
+            HORIZONTAL,
+            VERTICAL
+        };
+
         struct BloomPushConstant
         {
             glm::vec2 direction;
@@ -24,11 +31,14 @@ namespace PIX3D
         {
         public:
             void Init(uint32_t width, uint32_t height);
-            void RecordCommandBuffer(VulkanTexture* bloom_brightness_texture, VkCommandBuffer commandBuffer, uint32_t numIterations = 2);
+            void RecordCommandBuffer(VulkanTexture* bloom_brightness_texture, VkCommandBuffer commandBuffer);
             VulkanTexture* GetFinalBloomTexture() { return m_ColorAttachments[m_FinalResultBufferIndex]; }
             void Destroy();
             void OnResize(uint32_t width, uint32_t height);
 
+        public:
+            int m_BloomDirection = VKBloomDirection::BOTH;
+            int m_NumIterations = 10;
         private:
             void SetupFramebuffers(int mipLevel);
 

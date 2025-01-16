@@ -57,14 +57,13 @@ layout(push_constant) uniform PushConstants
    mat4 model;
    vec3 CameraPosition;
    float MeshIndex;
+   float BloomThreshold;
 }push;
 
 
 // PBR
 // IBL precomputed maps
 const float PREFILTERED_ENV_MAP_LOD = 5.0; // how many mipmap levels
-
-const float BloomBrightnessCutoff = 1.0;
 
 // Fresnel function (Fresnel-Schlick approximation)
 //
@@ -346,5 +345,5 @@ void main()
 	vec3 brightColor = emissive + Lo * 0.5;  // Include direct lighting contribution
     float greyscaleBrightness = dot(FragColor.rgb, GREYSCALE_WEIGHT_VECTOR);
 	//BloomColor = greyscaleBrightness > u_BloomBrightnessCutoff ? vec4(emissive, 1.0) : vec4(0.0, 0.0, 0.0, 1.0);
-	BloomColor = greyscaleBrightness > BloomBrightnessCutoff ? vec4(brightColor, 1.0) : vec4(0.0, 0.0, 0.0, 1.0);
+	BloomColor = greyscaleBrightness > push.BloomThreshold ? vec4(brightColor, 1.0) : vec4(0.0, 0.0, 0.0, 1.0);
 }

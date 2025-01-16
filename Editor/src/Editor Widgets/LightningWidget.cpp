@@ -86,18 +86,21 @@ void LightningWidget::OnRender()
 
 	// Bloom
 	ImGui::Text("Bloom (Gaussian)");
-	ImGui::Checkbox("Enabled", &GL::GLRenderer::s_PostProcessingpass.m_BloomEnabled);
-	ImGui::SliderFloat("Intensity", &GL::GLRenderer::s_PostProcessingpass.m_BloomIntensity, 0.0, 5.0);
-	ImGui::SliderFloat("Threshold", &GL::GLRenderer::s_BloomThreshold, 0.01, 5.0);
-	ImGui::SliderInt("Blur Iterations", &GL::GLRenderer::s_Bloompass.m_BloomIterations, 2, 20);
+	ImGui::Checkbox("Enabled", &VK::VulkanSceneRenderer::s_PostProcessingRenderpass.m_Data.BloomEnabled);
+	ImGui::SliderFloat("Intensity", &VK::VulkanSceneRenderer::s_PostProcessingRenderpass.m_Data.BloomIntensity, 0.0, 5.0);
+
+	ImGui::SliderFloat("Threshold", &VK::VulkanSceneRenderer::s_BloomThreshold, 0.01, 5.0);
+	ImGui::SliderInt("Blur Iterations", &VK::VulkanSceneRenderer::s_BloomPass.m_NumIterations, 2, 20);
+
 	ImGui::Text("Direction: "); ImGui::SameLine();
-	ImGui::RadioButton("Both", &GL::GLRenderer::s_Bloompass.m_BloomDirection, 0); ImGui::SameLine();
-	ImGui::RadioButton("Horizontal", &GL::GLRenderer::s_Bloompass.m_BloomDirection, 1); ImGui::SameLine();
-	ImGui::RadioButton("Vertical", &GL::GLRenderer::s_Bloompass.m_BloomDirection, 2);
+	
+	ImGui::RadioButton("Both", &VK::VulkanSceneRenderer::s_BloomPass.m_BloomDirection, 0); ImGui::SameLine();
+	ImGui::RadioButton("Horizontal", &VK::VulkanSceneRenderer::s_BloomPass.m_BloomDirection, 1); ImGui::SameLine();
+	ImGui::RadioButton("Vertical", &VK::VulkanSceneRenderer::s_BloomPass.m_BloomDirection, 2);
 
 	// Composite
 	ImGui::Text("Post");
-	ImGui::Checkbox("HDR Tone Mapping (Reinhard)", &GL::GLRenderer::s_PostProcessingpass.m_TonemappingEnabled);
-	ImGui::SliderFloat("Gamma Correction", &GL::GLRenderer::s_PostProcessingpass.m_GammaCorrectionFactor, 1.0, 3.0);
+	ImGui::Checkbox("HDR Tone Mapping (Reinhard)", &VK::VulkanSceneRenderer::s_PostProcessingRenderpass.m_Data.TonemappingEnabled);
+	ImGui::SliderFloat("Gamma Correction", &VK::VulkanSceneRenderer::s_PostProcessingRenderpass.m_Data.GammaCorrectionFactor, 1.0, 3.0);
 	ImGui::End();
 }

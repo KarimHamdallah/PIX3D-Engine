@@ -37,7 +37,40 @@ namespace PIX3D
             .AddShaderStorageBuffer(0, m_DataBuffer)
             .AddTexture(1, *m_Texture)
             .Build();
+    }
 
+    void SpriteMaterial::ChangeTexture(VK::VulkanTexture* new_texture)
+    {
+        // Destroy old descriptor set since we need to recreate it
+        m_DescriptorSet.Destroy();
+
+        // If texture was not a default texture, destroy it and clear pointer
+        if (m_Texture && m_Texture != VK::VulkanSceneRenderer::GetDefaultWhiteTexture())
+        {
+            m_Texture->Destroy();
+            delete m_Texture;
+        }
+
+        // Set new texture or default if null
+        if (new_texture)
+        {
+            m_Texture = new_texture;
+            m_Data->use_texture = 1.0f;
+        }
+        else
+        {
+            m_Texture = VK::VulkanSceneRenderer::GetDefaultWhiteTexture();
+            m_Data->use_texture = 0.0f;
+        }
+
+        // Recreate descriptor set with new texture
+        m_DescriptorSet
+            .Init(VK::VulkanSceneRenderer::s_SpriteRenderpass.DescriptorSetLayout)
+            .AddShaderStorageBuffer(0, m_DataBuffer)
+            .AddTexture(1, *m_Texture)
+            .Build();
+
+        // Update shader buffer with new data
         UpdateBuffer();
     }
 

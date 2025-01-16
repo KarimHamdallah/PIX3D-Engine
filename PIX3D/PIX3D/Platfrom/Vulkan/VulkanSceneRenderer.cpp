@@ -442,7 +442,7 @@ namespace PIX3D
 				/////////////// Pipeline Layout //////////////////////
 
 				VkPushConstantRange pushConstant{};
-				pushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+				pushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 				pushConstant.offset = 0;
 				pushConstant.size = sizeof(_ModelMatrixPushConstant);
 
@@ -611,7 +611,7 @@ namespace PIX3D
 		{
 			auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
 
-			s_BloomPass.RecordCommandBuffer(s_MainRenderpass.BloomBrightnessAttachmentTexture, s_MainRenderpass.CommandBuffers[s_ImageIndex], BLOOM_BLUR_ITERATIONS);
+			s_BloomPass.RecordCommandBuffer(s_MainRenderpass.BloomBrightnessAttachmentTexture, s_MainRenderpass.CommandBuffers[s_ImageIndex]);
 			s_PostProcessingRenderpass.RecordCommandBuffer(s_MainRenderpass.CommandBuffers[s_ImageIndex], s_ImageIndex);
 		}
 
@@ -790,7 +790,7 @@ namespace PIX3D
 						vkCmdBindDescriptorSets(s_MainRenderpass.CommandBuffers[s_ImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, s_MainRenderpass.PipelineLayout, 1, 1, &material_descriptor_set, 0, nullptr);
 					}
 
-					_ModelMatrixPushConstant pushData = { transform, s_CameraPosition, (float)SubMeshIndex };
+					_ModelMatrixPushConstant pushData = { transform, s_CameraPosition, (float)SubMeshIndex, s_BloomThreshold };
 					vkCmdPushConstants(s_MainRenderpass.CommandBuffers[s_ImageIndex], s_MainRenderpass.PipelineLayout,
 						VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
 						0, sizeof(_ModelMatrixPushConstant), &pushData);
@@ -849,9 +849,9 @@ namespace PIX3D
 					.pClearValues = ClearValue
 				};
 
-				_ModelMatrixPushConstant pushData = { s_Environment.CubemapTransform, s_CameraPosition, 0.0f };
+				_ModelMatrixPushConstant pushData = { s_Environment.CubemapTransform, s_CameraPosition, 0.0f, s_BloomThreshold };
 				vkCmdPushConstants(s_MainRenderpass.CommandBuffers[s_ImageIndex], s_SkyBoxPass.PipelineLayout,
-					VK_SHADER_STAGE_VERTEX_BIT,
+					VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
 					0, sizeof(_ModelMatrixPushConstant), &pushData);
 
 				RenderPassBeginInfo.framebuffer = s_SkyBoxPass.Framebuffer.GetVKFramebuffer();

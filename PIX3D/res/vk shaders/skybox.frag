@@ -11,7 +11,12 @@ layout (location = 0) in vec3 in_TextureCoords;
 
 layout (set = 1, binding = 0) uniform samplerCube u_CubemapTexture;
 
-const float BloomBrightnessCutoff = 1.0;
+layout(push_constant) uniform PushConstants {
+    mat4 model;
+   vec3 CameraPosition;
+   float MeshIndex;
+   float BloomThreshold;
+}push;
 
 void main()
 {
@@ -20,6 +25,5 @@ void main()
 	// bloom color output
 	// use greyscale conversion here because not all colors are equally "bright"
 	float greyscaleBrightness = dot(FragColor.rgb, GREYSCALE_WEIGHT_VECTOR);
-	//BloomColor = greyscaleBrightness > BloomBrightnessCutoff ? FragColor : vec4(0.0, 0.0, 0.0, 1.0);
-	BloomColor = vec4(0.0, 0.0, 0.0, 1.0);
+	BloomColor = greyscaleBrightness > push.BloomThreshold ? FragColor : vec4(0.0, 0.0, 0.0, 1.0);
 }

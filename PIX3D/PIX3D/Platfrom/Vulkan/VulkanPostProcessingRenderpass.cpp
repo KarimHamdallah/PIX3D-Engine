@@ -76,6 +76,11 @@ namespace PIX3D
 
 			// pipeline layout (descriptor sets or push constants)
 			{
+				VkPushConstantRange pushConstant{};
+				pushConstant.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+				pushConstant.offset = 0;
+				pushConstant.size = sizeof(PushConstant);
+
 				VkDescriptorSetLayout layouts[] =
 				{
 					m_DescriptorSetLayout.GetVkDescriptorSetLayout(),
@@ -86,8 +91,8 @@ namespace PIX3D
 				pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 				pipelineLayoutInfo.setLayoutCount = 1; // No descriptor sets
 				pipelineLayoutInfo.pSetLayouts = &layouts[0]; // Descriptor set layouts
-				pipelineLayoutInfo.pushConstantRangeCount = 0; // No push constants
-				pipelineLayoutInfo.pPushConstantRanges = nullptr; // Push constant ranges
+				pipelineLayoutInfo.pushConstantRangeCount = 1; // No push constants
+				pipelineLayoutInfo.pPushConstantRanges = &pushConstant; // Push constant ranges
 
 				if (vkCreatePipelineLayout(Context->m_Device, &pipelineLayoutInfo, nullptr, &m_PipelineLayout) != VK_SUCCESS)
 					PIX_ASSERT_MSG(false, "Failed to create pipeline layout!");
@@ -160,6 +165,14 @@ namespace PIX3D
 
 			auto descriptor_set = m_DescriptorSet.GetVkDescriptorSet();
 			vkCmdBindDescriptorSets(commandbuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 0, 1, &descriptor_set, 0, nullptr);
+
+			// Push model matrix
+			vkCmdPushConstants(commandbuffer,
+				m_PipelineLayout,
+				VK_SHADER_STAGE_FRAGMENT_BIT,
+				0,
+				sizeof(PushConstant),
+				&m_Data);
 
 			VkBuffer vertexBuffers[] = { m_QuadMesh.VertexBuffer.GetBuffer() };
 			VkDeviceSize offsets[] = { 0 };

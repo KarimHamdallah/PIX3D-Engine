@@ -23,6 +23,8 @@ namespace PIX3D
         void Create(VK::VulkanTexture* texture = nullptr);
         void Destroy();
 
+        void ChangeTexture(VK::VulkanTexture* new_texture);
+
         VK::VulkanTexture* GetTexture() { return m_Texture; }
         VkDescriptorSet GetVKDescriptorSet() { return m_DescriptorSet.GetVkDescriptorSet(); }
         void UpdateBuffer();

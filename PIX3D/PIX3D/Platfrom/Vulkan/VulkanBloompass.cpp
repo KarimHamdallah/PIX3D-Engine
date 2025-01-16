@@ -177,9 +177,9 @@ namespace PIX3D
                 .Build();
         }
 
-        void VulkanBloomPass::RecordCommandBuffer(VulkanTexture* bloom_brightness_texture, VkCommandBuffer commandBuffer, uint32_t numIterations)
+        void VulkanBloomPass::RecordCommandBuffer(VulkanTexture* bloom_brightness_texture, VkCommandBuffer commandBuffer)
         {
-            m_FinalResultBufferIndex = (numIterations % 2 == 0) ? 1 : 0;
+            m_FinalResultBufferIndex = (m_NumIterations % 2 == 0) ? 1 : 0;
 
             // First generate mipmaps for input brightness texture (down sampling)
             {
@@ -215,9 +215,7 @@ namespace PIX3D
                 uint32_t mipWidth = m_Width / std::pow(2, mipLevel);
                 uint32_t mipHeight = m_Height / std::pow(2, mipLevel);
 
-                // SetupFramebuffers(mipLevel); // draw to specific mip map
-
-                for (size_t i = 0; i < numIterations; i++)
+                for (size_t i = 0; i < m_NumIterations; i++)
                 {
                     // Horizontal Blur Pass
                     {
@@ -231,7 +229,24 @@ namespace PIX3D
                         renderPassInfo.clearValueCount = 1;
                         renderPassInfo.pClearValues = &clearValue;
 
-                        BloomPushConstant pushData = { glm::vec2(1.0f, 0.0f), mipLevel, 1 };
+                        auto bloom_dir = glm::vec2(1.0f, 0.0f);
+                        switch (m_BloomDirection)
+                        {
+                        case PIX3D::VK::BOTH:
+                            bloom_dir = glm::vec2(1.0f, 0.0f);
+                            break;
+                        case PIX3D::VK::HORIZONTAL:
+                            bloom_dir = glm::vec2(1.0f, 0.0f);
+                            break;
+                        case PIX3D::VK::VERTICAL:
+                            bloom_dir = glm::vec2(0.0f, 1.0f);
+                            break;
+                        default:
+                            PIX_ASSERT(false);
+                            break;
+                        }
+
+                        BloomPushConstant pushData = { bloom_dir, mipLevel, 1 };
                         vkCmdPushConstants(commandBuffer, m_PipelineLayouts[HORIZONTAL_BLUR_BUFFER_INDEX],
                             VK_SHADER_STAGE_FRAGMENT_BIT,
                             0, sizeof(BloomPushConstant), &pushData);
@@ -279,7 +294,26 @@ namespace PIX3D
                         renderPassInfo.clearValueCount = 1;
                         renderPassInfo.pClearValues = &clearValue;
 
-                        BloomPushConstant pushData = { glm::vec2(0.0f, 1.0f), mipLevel, 1 };
+
+                        auto bloom_dir = glm::vec2(1.0f, 0.0f);
+                        switch (m_BloomDirection)
+                        {
+                        case PIX3D::VK::BOTH:
+                            bloom_dir = glm::vec2(0.0f, 1.0f);
+                            break;
+                        case PIX3D::VK::HORIZONTAL:
+                            bloom_dir = glm::vec2(1.0f, 0.0f);
+                            break;
+                        case PIX3D::VK::VERTICAL:
+                            bloom_dir = glm::vec2(0.0f, 1.0f);
+                            break;
+                        default:
+                            PIX_ASSERT(false);
+                            break;
+                        }
+
+
+                        BloomPushConstant pushData = { bloom_dir, mipLevel, 1 };
                         vkCmdPushConstants(commandBuffer, m_PipelineLayouts[VERTICAL_BLUR_BUFFER_INDEX],
                             VK_SHADER_STAGE_FRAGMENT_BIT,
                             0, sizeof(BloomPushConstant), &pushData);

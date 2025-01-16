@@ -80,6 +80,7 @@ namespace PIX3D
 				glm::mat4 model;
 				glm::vec3 CameraPosition;
 				float MeshIndex;
+				float BloomThreshold;
 			};
 
 
@@ -87,8 +88,7 @@ namespace PIX3D
 
 			enum
 			{
-				BLOOM_DOWN_SAMPLES = 6,
-				BLOOM_BLUR_ITERATIONS = 10
+				BLOOM_DOWN_SAMPLES = 6
 			};
 
 			struct _ClearRenderpass
@@ -180,6 +180,7 @@ namespace PIX3D
 
 			inline static glm::vec3 s_CameraPosition;
 			inline static glm::mat4 s_CameraViewProjection;
+			inline static float s_BloomThreshold = 1.0f;
 		};
 	}
 }
