@@ -103,7 +103,7 @@ namespace PIX3D
                 .language = GLSLANG_SOURCE_GLSL,
                 .stage = _stage,
                 .client = GLSLANG_CLIENT_VULKAN,
-                .client_version = GLSLANG_TARGET_VULKAN_1_1,
+                .client_version = GLSLANG_TARGET_VULKAN_1_3,
                 .target_language = GLSLANG_TARGET_SPV,
                 .target_language_version = GLSLANG_TARGET_SPV_1_3,
                 .code = shaderCode,

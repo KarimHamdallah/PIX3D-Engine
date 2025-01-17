@@ -220,7 +220,7 @@ namespace PIX3D
 			AppInfo.applicationVersion = VK_MAKE_API_VERSION(0, 1, 0, 0);
 			AppInfo.pEngineName = "PiX 3D ENGINE";
 			AppInfo.engineVersion = VK_MAKE_API_VERSION(0, 1, 0, 0);
-			AppInfo.apiVersion = VK_API_VERSION_1_0;
+			AppInfo.apiVersion = VK_API_VERSION_1_3;
 
 			// setup vulkan instance (vulkan loader)
 			VkInstanceCreateInfo CreateInfo = {};
@@ -258,7 +258,7 @@ namespace PIX3D
 			MessengerCreateInfo.pfnUserCallback = &DebugCallback;
 			MessengerCreateInfo.pUserData = NULL;
 
-			// Get function pointer for debug messenger creation
+			// Get function pointer for debug messendger creation
 			PFN_vkCreateDebugUtilsMessengerEXT vkCreateDebugUtilsMessenger =
 				(PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(m_Instance, "vkCreateDebugUtilsMessengerEXT");
 
