@@ -1,5 +1,6 @@
 #include "Material.h"
 #include <Platfrom/Vulkan/VulkanSceneRenderer.h>
+#include <Engine/Engine.hpp>
 
 namespace PIX3D
 {
@@ -19,18 +20,13 @@ namespace PIX3D
         m_Data->uv_offset = { 0.0f, 0.0f };
         m_Data->uv_scale = { 1.0f, 1.0f };
         m_Data->apply_uv_scale_and_offset = 0;
+        m_Data->use_texture = 1.0f;
 
         // Set up texture
         if (texture)
-        {
             m_Texture = texture;
-            m_Data->use_texture = 1.0f;
-        }
         else
-        {
             m_Texture = VK::VulkanSceneRenderer::GetDefaultWhiteTexture();
-            m_Data->use_texture = 0.0f;
-        }
 
         m_DescriptorSet
             .Init(VK::VulkanSceneRenderer::s_SpriteRenderpass.DescriptorSetLayout)
@@ -41,17 +37,14 @@ namespace PIX3D
 
     void SpriteMaterial::ChangeTexture(VK::VulkanTexture* new_texture)
     {
+        auto* Context = (VK::VulkanGraphicsContext*)Engine::GetGraphicsContext();
+        vkQueueWaitIdle(Context->m_Queue.m_Queue);
+
         // Destroy old descriptor set since we need to recreate it
         m_DescriptorSet.Destroy();
 
-        // If texture was not a default texture, destroy it and clear pointer
-        if (m_Texture && m_Texture != VK::VulkanSceneRenderer::GetDefaultWhiteTexture())
-        {
-            m_Texture->Destroy();
-            delete m_Texture;
-        }
-
         // Set new texture or default if null
+        /*
         if (new_texture)
         {
             m_Texture = new_texture;
@@ -60,15 +53,24 @@ namespace PIX3D
         else
         {
             m_Texture = VK::VulkanSceneRenderer::GetDefaultWhiteTexture();
-            m_Data->use_texture = 0.0f;
+            m_Data->use_texture = 1.0f;
         }
+        */
 
         // Recreate descriptor set with new texture
         m_DescriptorSet
             .Init(VK::VulkanSceneRenderer::s_SpriteRenderpass.DescriptorSetLayout)
             .AddShaderStorageBuffer(0, m_DataBuffer)
-            .AddTexture(1, *m_Texture)
+            .AddTexture(1, *new_texture)
             .Build();
+
+        // If texture was not a default texture, destroy it and clear pointer
+        if (m_Texture)
+        {
+            m_Texture->Destroy();
+            delete m_Texture;
+            m_Texture = new_texture;
+        }
 
         // Update shader buffer with new data
         UpdateBuffer();

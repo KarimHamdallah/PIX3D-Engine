@@ -22,6 +22,7 @@ namespace PIX3D
         uint32_t AddSprite(const std::string& name, const TransformData& transform, const SpriteData& sprite);
         uint32_t AddPointLight(const std::string& name, const TransformData& transform, const glm::vec4& color);
         uint32_t AddDirectionalLight(const std::string& name, const TransformData& transform, const glm::vec4& color);
+        uint32_t AddSpriteAnimation(const std::string& name, const TransformData& transform, VK::VulkanTexture* spriteSheet, uint32_t frameCount, float frameTime);
 
         void OnStart();
         void OnUpdate(float dt);

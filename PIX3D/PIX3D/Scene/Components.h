@@ -107,19 +107,31 @@ namespace PIX3D
         SpriteAnimatorComponent() = default;
         SpriteAnimatorComponent(const SpriteAnimatorComponent& other) = default;
         SpriteAnimatorComponent(VK::VulkanTexture* spriteSheet, int frameCount, float frameTime)
-            : m_SpriteSheet(spriteSheet), m_FrameCount(frameCount), m_FrameTime(frameTime) {}
+            : m_FrameCount(frameCount), m_FrameTime(frameTime)
+        {
+            // Create sprite material with spritesheet texture
+            m_Material = new SpriteMaterial();
+            m_Material->Create(spriteSheet);
+            m_Material->m_Data->color = m_Color;
+            m_Material->m_Data->tiling_factor = m_TilingFactor;
+            m_Material->m_Data->flip = m_Flip;
+            m_Material->m_Data->uv_scale = { 1.0f / frameCount, 1.0f };
+            m_Material->m_Data->uv_offset = { 0.0f, 0.0f };
+            m_Material->m_Data->apply_uv_scale_and_offset = 1;
+            m_Material->UpdateBuffer();
+        }
 
         ~SpriteAnimatorComponent()
         {
-            if (m_SpriteSheet)
+            if (m_Material)
             {
-                m_SpriteSheet->Destroy();
-                delete m_SpriteSheet;
-                m_SpriteSheet = nullptr;
+                m_Material->Destroy();
+                delete m_Material;
+                m_Material = nullptr;
             }
         }
 
-        VK::VulkanTexture* m_SpriteSheet = nullptr;
+        SpriteMaterial* m_Material = nullptr;
         int m_FrameCount = 1;
         float m_FrameTime = 0.1f;
         float m_CurrentTime = 0.0f;
@@ -129,14 +141,5 @@ namespace PIX3D
         float m_TilingFactor = 1.0f;
         bool m_Flip = true;
         glm::vec4 m_Color = { 1.0f, 1.0f, 1.0f, 1.0f };
-
-        // GPU Data struct for uniform buffer
-        struct AnimationData
-        {
-            alignas(4) int currentFrame;
-            alignas(4) float tilingFactor;
-            alignas(4) int flip;
-            alignas(16) glm::vec4 color;
-        };
     };
 }

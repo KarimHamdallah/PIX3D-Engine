@@ -223,7 +223,7 @@ namespace PIX3D
                 attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
                 attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
                 attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-                attachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                attachment.initialLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
                 attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
                 VkAttachmentReference color_attachment = {};
@@ -481,31 +481,20 @@ namespace PIX3D
             vkCmdEndRenderPass(commandBuffer);
         }
 
-        void VulkanImGuiPass::BeginRecordCommandbuffer()
+        void VulkanImGuiPass::BeginRecordCommandbuffer(uint32_t ImageIndex)
         {
-            auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
-
-            /////////////// Acquire Next Frame Image /////////////////
-
-            s_ImageIndex = Context->m_Queue.AcquireNextImage();
-
             ////////////////// Begin Record CommandBuffer ////////////////
 
-            VK::VulkanHelper::BeginCommandBuffer(m_CommandBuffers[s_ImageIndex], VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
+            VK::VulkanHelper::BeginCommandBuffer(m_CommandBuffers[ImageIndex], VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
         }
 
-        void VulkanImGuiPass::EndRecordCommandbufferAndSubmit()
+        void VulkanImGuiPass::EndRecordCommandbufferAndSubmit(uint32_t ImageIndex, bool useLoadRenderPass)
         {
-            VK::VulkanImGuiPass::Render(m_CommandBuffers[s_ImageIndex], s_ImageIndex, false);
-            auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
-
+            VK::VulkanImGuiPass::Render(m_CommandBuffers[ImageIndex], ImageIndex, useLoadRenderPass);
             ////////////////// End Record CommandBuffer ////////////////
 
-            VkResult res = vkEndCommandBuffer(m_CommandBuffers[s_ImageIndex]);
+            VkResult res = vkEndCommandBuffer(m_CommandBuffers[ImageIndex]);
             VK_CHECK_RESULT(res, "vkEndCommandBuffer");
-
-            Context->m_Queue.SubmitAsync(m_CommandBuffers[s_ImageIndex]);
-            Context->m_Queue.Present(s_ImageIndex);
         }
     }
 }

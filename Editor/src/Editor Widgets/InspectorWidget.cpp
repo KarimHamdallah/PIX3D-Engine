@@ -170,18 +170,18 @@ void InspectorWidget::OnRender()
         // Sprite Component
         if (auto* sprite = m_Scene->m_Registry.try_get<SpriteComponent>(selectedEntity))
         {
+            bool data_changed = false;
             if (ImGui::CollapsingHeader("Sprite", ImGuiTreeNodeFlags_DefaultOpen))
             {
-                ImGui::ColorEdit4("Color", &sprite->m_Material->m_Data->color.x);
-                ImGui::DragFloat("Tiling Factor", &sprite->m_Material->m_Data->tiling_factor, 0.1f, 0.0f, 100.0f);
+                if (ImGui::ColorEdit4("Color", &sprite->m_Material->m_Data->color.x))
+                    data_changed = true;
+                if(ImGui::DragFloat("Tiling Factor", &sprite->m_Material->m_Data->tiling_factor, 0.1f, 0.0f, 100.0f))
+                    data_changed = true;
 
                 // Texture preview and change button
                 ImVec2 availableRegion = ImGui::GetContentRegionAvail();
-                if (sprite->m_Material->m_Data->use_texture)
-                {
-                    ImGui::Image((ImTextureID)sprite->m_Material->m_Texture->GetImGuiDescriptorSet(),
+                ImGui::Image((ImTextureID)sprite->m_Material->m_Texture->GetImGuiDescriptorSet(),
                         { 256.0f, 256.0f }, { 0, 0 }, { 1, 1 });
-                }
 
                 if (ImGui::Button("Set Texture"))
                 {
@@ -192,12 +192,21 @@ void InspectorWidget::OnRender()
                         auto* new_texture = new VK::VulkanTexture();
                         new_texture->LoadFromFile(filepath.string(), false, true);
                         sprite->m_Material->ChangeTexture(new_texture);
+                        data_changed = true;
                     }
                 }
+
                 ImGui::SameLine();
                 bool flip = sprite->m_Material->m_Data->flip;
                 if (ImGui::Checkbox("Flip", &flip))
+                {
                     sprite->m_Material->m_Data->flip = flip;
+                    data_changed = true;
+                }
+
+
+                if (data_changed)
+                    sprite->m_Material->UpdateBuffer();
             }
         }
 
@@ -239,34 +248,61 @@ void InspectorWidget::OnRender()
         {
             if (ImGui::CollapsingHeader("Sprite Animator", ImGuiTreeNodeFlags_DefaultOpen))
             {
-                // Texture preview and change button
-                if (animator->m_SpriteSheet)
+                bool data_changed = false;
+
+                // Texture preview
+                if (animator->m_Material && animator->m_Material->GetTexture())
                 {
-                    ImGui::Image((ImTextureID)animator->m_SpriteSheet->GetImGuiDescriptorSet(),
+                    ImGui::Image((ImTextureID)animator->m_Material->GetTexture()->GetImGuiDescriptorSet(),
                         { 256.0f, 64.0f }, { 0, 0 }, { 1, 1 });
                 }
 
-                ImGui::Checkbox("Flip", &animator->m_Flip);
-                
+                // Material properties
+                if (ImGui::ColorEdit4("Color", &animator->m_Color.x))
+                {
+                    animator->m_Material->m_Data->color = animator->m_Color;
+                    data_changed = true;
+                }
+
+                if (ImGui::DragFloat("Tiling Factor", &animator->m_TilingFactor, 0.1f, 0.0f, 100.0f))
+                {
+                    animator->m_Material->m_Data->tiling_factor = animator->m_TilingFactor;
+                    data_changed = true;
+                }
+
+                if (ImGui::Checkbox("Flip", &animator->m_Flip))
+                {
+                    animator->m_Material->m_Data->flip = animator->m_Flip;
+                    data_changed = true;
+                }
+
                 if (ImGui::Button("Set Sprite Sheet"))
                 {
                     auto* platform = PIX3D::Engine::GetPlatformLayer();
                     std::filesystem::path filepath = platform->OpenDialogue(PIX3D::FileDialougeFilter::PNG);
                     if (!filepath.empty())
                     {
-                        if (animator->m_SpriteSheet)
-                            animator->m_SpriteSheet->Destroy();
+                        auto* new_texture = new VK::VulkanTexture();
+                        new_texture->LoadFromFile(filepath.string(), false, true);
 
-                        delete animator->m_SpriteSheet;
-                        animator->m_SpriteSheet = new VK::VulkanTexture();
-                        animator->m_SpriteSheet->LoadFromFile(filepath.string(), false, true);
+                        // Update material's texture
+                        animator->m_Material->ChangeTexture(new_texture);
+
+                        // Reset animation
+                        animator->m_CurrentFrame = 0;
+                        animator->m_CurrentTime = 0.0f;
+
+                        data_changed = true;
                     }
                 }
 
                 // Animation controls
-                ImGui::ColorEdit4("Color", &animator->m_Color.x);
-                ImGui::DragFloat("Tiling Factor", &animator->m_TilingFactor, 0.1f, 0.0f, 100.0f);
-                ImGui::DragInt("Frame Count", &animator->m_FrameCount, 1, 1, 32);
+                if (ImGui::DragInt("Frame Count", &animator->m_FrameCount, 1, 1, 32))
+                {
+                    animator->m_Material->m_Data->uv_scale = { 1.0f / animator->m_FrameCount, 1.0f };
+                    data_changed = true;
+                }
+
                 ImGui::DragFloat("Frame Time", &animator->m_FrameTime, 0.01f, 0.01f, 1.0f, "%.3f");
 
                 // Playback controls
@@ -278,6 +314,8 @@ void InspectorWidget::OnRender()
                 {
                     animator->m_CurrentFrame = 0;
                     animator->m_CurrentTime = 0.0f;
+                    animator->m_Material->m_Data->uv_offset.x = 0.0f;
+                    data_changed = true;
                 }
 
                 ImGui::Checkbox("Loop", &animator->m_Loop);
@@ -285,6 +323,9 @@ void InspectorWidget::OnRender()
                 // Current frame display
                 ImGui::Text("Current Frame: %d/%d", animator->m_CurrentFrame + 1, animator->m_FrameCount);
                 ImGui::ProgressBar((float)animator->m_CurrentFrame / (float)(animator->m_FrameCount - 1));
+
+                if (data_changed)
+                    animator->m_Material->UpdateBuffer();
             }
         }
     }

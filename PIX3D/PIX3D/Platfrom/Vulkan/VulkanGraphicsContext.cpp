@@ -980,6 +980,26 @@ namespace PIX3D
 			VK_CHECK_RESULT(res, "vkQueueSubmit");
 		}
 
+		void VulkanQueue::SubmitAsyncBuffers(std::vector<VkCommandBuffer> CmbBufs)
+		{
+			VkPipelineStageFlags waitFlags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+
+			VkSubmitInfo SubmitInfo = {
+				.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+				.pNext = NULL,
+				.waitSemaphoreCount = 1,
+				.pWaitSemaphores = &m_PresentCompleteSem,
+				.pWaitDstStageMask = &waitFlags,
+				.commandBufferCount = (uint32_t)CmbBufs.size(),
+				.pCommandBuffers = CmbBufs.data(),
+				.signalSemaphoreCount = 1,
+				.pSignalSemaphores = &m_RenderCompleteSem
+			};
+
+			VkResult res = vkQueueSubmit(m_Queue, 1, &SubmitInfo, NULL);
+			VK_CHECK_RESULT(res, "vkQueueSubmit");
+		}
+
 
 		void VulkanQueue::Present(uint32_t ImageIndex)
 		{

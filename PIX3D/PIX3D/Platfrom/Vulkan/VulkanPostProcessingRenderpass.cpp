@@ -39,7 +39,7 @@ namespace PIX3D
 					VK_ATTACHMENT_LOAD_OP_CLEAR,
 					VK_ATTACHMENT_STORE_OP_STORE,
 					VK_IMAGE_LAYOUT_UNDEFINED,
-					VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) // change to present if no imgui after that
+					VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
 				.AddSubpass(VK_PIPELINE_BIND_POINT_GRAPHICS)
 				// Add initial dependency to wait for previous pass
 				.AddDependency(

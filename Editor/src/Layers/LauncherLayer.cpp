@@ -196,7 +196,12 @@ void LauncherLayer::RenderNewProjectDialog()
 
 void LauncherLayer::OnUpdate(float dt)
 {
-    VK::VulkanImGuiPass::BeginRecordCommandbuffer();
+    auto* Context = (VK::VulkanGraphicsContext*)Engine::GetGraphicsContext();
+
+    /////////////// Acquire Next Frame Image /////////////////
+    uint32_t ImageIndex = Context->m_Queue.AcquireNextImage();
+
+    VK::VulkanImGuiPass::BeginRecordCommandbuffer(ImageIndex);
 
     VK::VulkanImGuiPass::BeginFrame();
     VK::VulkanImGuiPass::StartDockSpace();
@@ -303,7 +308,7 @@ void LauncherLayer::OnUpdate(float dt)
 
     VK::VulkanImGuiPass::EndDockSpace();
     VK::VulkanImGuiPass::EndFrame();
-    VK::VulkanImGuiPass::EndRecordCommandbufferAndSubmit();
+    VK::VulkanImGuiPass::EndRecordCommandbufferAndSubmit(ImageIndex, false);
 
     if(m_ProjectLoaded)
         LayerManager::Get().GoToLayer(new EditorLayer());

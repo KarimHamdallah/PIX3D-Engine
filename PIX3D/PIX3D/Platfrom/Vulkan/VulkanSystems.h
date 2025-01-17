@@ -36,18 +36,17 @@ namespace PIX3D
     public:
         static void Update(entt::registry& registry, float deltaTime)
         {
-            auto view = registry.view<SpriteComponent, SpriteAnimatorComponent>();
-
-            view.each([deltaTime](SpriteComponent& sprite, SpriteAnimatorComponent& animator)
+            auto view = registry.view<SpriteAnimatorComponent>();
+            view.each([deltaTime](SpriteAnimatorComponent& animator)
                 {
-                    if (!animator.m_IsPlaying) return;
+                    if (!animator.m_IsPlaying || !animator.m_Material)
+                        return;
 
                     animator.m_CurrentTime += deltaTime;
                     if (animator.m_CurrentTime >= animator.m_FrameTime)
                     {
                         animator.m_CurrentTime = 0.0f;
                         animator.m_CurrentFrame++;
-
                         if (animator.m_CurrentFrame >= animator.m_FrameCount)
                         {
                             if (animator.m_Loop)
@@ -59,26 +58,25 @@ namespace PIX3D
                             }
                         }
 
-                        // Update material with new frame data
-                        if (sprite.m_Material)
-                        {
-                            float frameWidth = 1.0f / animator.m_FrameCount;
-                            sprite.m_Material->m_Data->uv_offset.x = frameWidth * animator.m_CurrentFrame;
-                            sprite.m_Material->m_Data->uv_scale.x = frameWidth;
-                            sprite.m_Material->m_Data->apply_uv_scale_and_offset = 1;
-                            sprite.m_Material->UpdateBuffer();
-                        }
+                        // Update material with new frame offset
+                        float frameWidth = 1.0f / animator.m_FrameCount;
+                        animator.m_Material->m_Data->uv_offset.x = frameWidth * animator.m_CurrentFrame;
+                        animator.m_Material->m_Data->uv_scale.x = frameWidth;
+                        animator.m_Material->m_Data->apply_uv_scale_and_offset = 1;
+                        animator.m_Material->UpdateBuffer();
                     }
                 });
         }
 
         static void Render(entt::registry& registry)
         {
-            auto view = registry.view<TransformComponent, SpriteComponent, SpriteAnimatorComponent>();
-
-            view.each([](TransformComponent& transform, SpriteComponent& sprite, SpriteAnimatorComponent& animator)
+            auto view = registry.view<TransformComponent, SpriteAnimatorComponent>();
+            view.each([](TransformComponent& transform, SpriteAnimatorComponent& animator)
                 {
-                    VK::VulkanSceneRenderer::RenderTexturedQuad(sprite.m_Material, transform.GetTransformMatrix());
+                    if (animator.m_Material)
+                    {
+                        VK::VulkanSceneRenderer::RenderTexturedQuad(animator.m_Material, transform.GetTransformMatrix());
+                    }
                 });
         }
     };

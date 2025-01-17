@@ -37,6 +37,7 @@ namespace PIX3D
         Material->Create(sprite.Texture);
         Material->m_Data->color = sprite.Color;
         Material->m_Data->tiling_factor = sprite.TilingFactor;
+        Material->UpdateBuffer();
 
         auto& spriteComp = m_Registry.emplace<SpriteComponent>(entity, Material);
 
@@ -58,6 +59,16 @@ namespace PIX3D
         m_Registry.emplace<TagComponent>(entity, name);
         m_Registry.emplace<TransformComponent>(entity, transform.Position, transform.Rotation, transform.Scale);
         m_Registry.emplace<DirectionalLightComponent>(entity, color);
+        return (uint32_t)entity;
+    }
+
+    uint32_t Scene::AddSpriteAnimation(const std::string& name, const TransformData& transform, VK::VulkanTexture* spriteSheet, uint32_t frameCount, float frameTime)
+    {
+        const auto entity = m_Registry.create();
+        m_Registry.emplace<TagComponent>(entity, name);
+        m_Registry.emplace<TransformComponent>(entity, transform.Position, transform.Rotation, transform.Scale);
+        auto& animatorComp = m_Registry.emplace<SpriteAnimatorComponent>(entity, spriteSheet, frameCount, frameTime);
+
         return (uint32_t)entity;
     }
 

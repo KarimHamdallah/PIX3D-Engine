@@ -274,6 +274,8 @@ namespace PIX3D
 
 			void SubmitAsync(VkCommandBuffer CmbBuf);
 
+			void SubmitAsyncBuffers(std::vector<VkCommandBuffer> CmbBufs);
+
 			void Present(uint32_t ImageIndex);
 
 			void WaitIdle();

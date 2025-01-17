@@ -42,16 +42,14 @@ void HierarchyWidget::OnRender()
 
         if (ImGui::MenuItem("Add Sprite Animation"))
         {
-            Transform transform;
-            GL::GLTexture spriteSheet;
+            TransformData transform;
+            VK::VulkanTexture* spriteSheet = new VK::VulkanTexture();
             auto* platform = PIX3D::Engine::GetPlatformLayer();
             std::filesystem::path filepath = platform->OpenDialogue(PIX3D::FileDialougeFilter::PNG);
             if (!filepath.empty())
             {
-                PIX_ASSERT(false);
-
-                spriteSheet.LoadFromFile(filepath.string(), true);
-                //m_Scene->AddSpriteAnimation("New Animation", transform, spriteSheet, 4, 0.1f); // Default 4 frames at 0.1s each
+                spriteSheet->LoadFromFile(filepath.string(), true);
+                m_Scene->AddSpriteAnimation("New Animation", transform, spriteSheet, 4, 0.1f); // Default 4 frames at 0.1s each
             }
         }
         ImGui::EndPopup();

@@ -40,8 +40,6 @@ void main()
         }
         color *= texture(u_texture, TexCoords * sprite.tiling_factor);
         
-        if(color.a < 0.1) discard;
-        
         FragColor = vec4(color);
     }
     else

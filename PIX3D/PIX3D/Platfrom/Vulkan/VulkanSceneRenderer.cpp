@@ -613,22 +613,17 @@ namespace PIX3D
 
 			s_BloomPass.RecordCommandBuffer(s_MainRenderpass.BloomBrightnessAttachmentTexture, s_MainRenderpass.CommandBuffers[s_ImageIndex]);
 			s_PostProcessingRenderpass.RecordCommandBuffer(s_MainRenderpass.CommandBuffers[s_ImageIndex], s_ImageIndex);
-		}
-
-		void VulkanSceneRenderer::Submit(bool render_imgui)
-		{
-			if(render_imgui)
-				VK::VulkanImGuiPass::Render(s_MainRenderpass.CommandBuffers[s_ImageIndex], s_ImageIndex);
-
-			auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
 
 			////////////////// End Record CommandBuffer ////////////////
 
 			VkResult res = vkEndCommandBuffer(s_MainRenderpass.CommandBuffers[s_ImageIndex]);
 			VK_CHECK_RESULT(res, "vkEndCommandBuffer");
+		}
 
+		void VulkanSceneRenderer::Submit()
+		{
+			auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
 			Context->m_Queue.SubmitAsync(s_MainRenderpass.CommandBuffers[s_ImageIndex]);
-			Context->m_Queue.Present(s_ImageIndex);
 		}
 
 

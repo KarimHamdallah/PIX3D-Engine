@@ -20,8 +20,8 @@ namespace PIX3D
             static void StartDockSpace();
             static void EndDockSpace();
 
-            static void BeginRecordCommandbuffer();
-            static void EndRecordCommandbufferAndSubmit();
+            static void BeginRecordCommandbuffer(uint32_t ImageIndex);
+            static void EndRecordCommandbufferAndSubmit(uint32_t ImageIndex, bool useLoadRenderPass = true);
         private:
             static void CreateDescriptorPool();
             static void CreateRenderPasses();
@@ -31,8 +31,9 @@ namespace PIX3D
             inline static VkRenderPass m_ClearRenderPass = VK_NULL_HANDLE;   // For standalone UI
             inline static std::vector<VkFramebuffer> m_LoadFramebuffers;     // Framebuffers for overlay
             inline static std::vector<VkFramebuffer> m_ClearFramebuffers;    // Framebuffers for standalone
+            
+        public:
             inline static std::vector<VkCommandBuffer> m_CommandBuffers;
-            inline static uint32_t s_ImageIndex = 0;
         };
     }
 }

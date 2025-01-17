@@ -28,7 +28,7 @@ namespace PIX3D
 			static void RenderTexturedQuad(SpriteMaterial* material, const glm::mat4& transform);
 			static void RenderSkyBox();
 			static void End();
-			static void Submit(bool render_imgui = false);
+			static void Submit();
 
 			static void OnResize(uint32_t width, uint32_t height);
 

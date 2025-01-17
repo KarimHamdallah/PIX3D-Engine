@@ -33,6 +33,9 @@ void EditorLayer::OnUpdate(float dt)
     // Render the scene
     m_Scene->OnRender();
 
+    uint32_t ImageIndex = VK::VulkanSceneRenderer::s_ImageIndex;
+
+    VK::VulkanImGuiPass::BeginRecordCommandbuffer(ImageIndex);
     VK::VulkanImGuiPass::BeginFrame();
 
     // Render UI
@@ -40,7 +43,16 @@ void EditorLayer::OnUpdate(float dt)
     RenderWidgets();
 
     VK::VulkanImGuiPass::EndFrame();
-    VK::VulkanSceneRenderer::Submit(true);
+    VK::VulkanImGuiPass::EndRecordCommandbufferAndSubmit(ImageIndex);
+
+    auto* Context = (VK::VulkanGraphicsContext*)Engine::GetGraphicsContext();
+
+    Context->m_Queue.SubmitAsyncBuffers(
+        {
+            VK::VulkanSceneRenderer::s_MainRenderpass.CommandBuffers[ImageIndex],
+            VK::VulkanImGuiPass::m_CommandBuffers[ImageIndex]
+        });
+    Context->m_Queue.Present(VK::VulkanSceneRenderer::s_ImageIndex);
 }
 
 void EditorLayer::OnDestroy()

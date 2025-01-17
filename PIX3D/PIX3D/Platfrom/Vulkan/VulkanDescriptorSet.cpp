@@ -80,10 +80,16 @@ namespace PIX3D
 
         VulkanDescriptorSet& VulkanDescriptorSet::AddTexture(uint32_t binding, const VulkanTexture& texture)
         {
+            /*
             VkDescriptorImageInfo imageInfo{};
             imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             imageInfo.imageView = texture.GetImageView();
             imageInfo.sampler = texture.GetSampler();
+            */
+            VkDescriptorImageInfo imageInfo{};
+            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            imageInfo.imageView = VulkanTextureHelper::CreateImageView(texture.GetImage(), texture.GetFormat());
+            imageInfo.sampler = VulkanTextureHelper::CreateSampler();
 
             m_ImageBindings[binding] = imageInfo;
             return *this;
