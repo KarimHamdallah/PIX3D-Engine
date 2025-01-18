@@ -1,6 +1,7 @@
 #pragma once
 #include <Platfrom/Vulkan/VulkanDescriptorSet.h>
 #include <glm/glm.hpp>
+#include <vector>
 
 namespace PIX3D
 {
@@ -28,10 +29,13 @@ namespace PIX3D
         VK::VulkanTexture* GetTexture() { return m_Texture; }
         VkDescriptorSet GetVKDescriptorSet() { return m_DescriptorSet.GetVkDescriptorSet(); }
         void UpdateBuffer();
+        void DestroyAccumelatedTextures();
     public:
         _ShadereData* m_Data;
         VK::VulkanTexture* m_Texture = nullptr;
         VK::VulkanDescriptorSet m_DescriptorSet;
         VK::VulkanShaderStorageBuffer m_DataBuffer;
+
+        std::vector<VK::VulkanTexture*> m_AccumelatedTextures;
     };
 }

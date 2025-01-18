@@ -56,7 +56,7 @@ namespace PIX3D
         {
         public:
             VulkanTexture() = default;
-            ~VulkanTexture() {}
+            ~VulkanTexture() = default;
 
             bool LoadFromFile(const std::filesystem::path& FilePath, bool gen_mips = true, bool IsSRGB = false);
 
@@ -95,7 +95,7 @@ namespace PIX3D
             VkFormat m_Format = VK_FORMAT_R8G8B8A8_UNORM;
             uint32_t m_MipLevels = 1;
             bool m_SamplerClampToEdge = false;
-
+        public:
             VkDescriptorSet m_ImGuiDescriptorset = nullptr;
         };
     }

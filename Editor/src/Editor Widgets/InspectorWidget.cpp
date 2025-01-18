@@ -185,15 +185,8 @@ void InspectorWidget::OnRender()
 
                 if (ImGui::Button("Set Texture"))
                 {
-                    auto* platform = PIX3D::Engine::GetPlatformLayer();
-                    std::filesystem::path filepath = platform->OpenDialogue(PIX3D::FileDialougeFilter::PNG);
-                    if (!filepath.empty())
-                    {
-                        auto* new_texture = new VK::VulkanTexture();
-                        new_texture->LoadFromFile(filepath.string(), false, true);
-                        sprite->m_Material->ChangeTexture(new_texture);
-                        data_changed = true;
-                    }
+                    SpriteComponentChangeTexture = true;
+                    data_changed = true;
                 }
 
                 ImGui::SameLine();
@@ -253,8 +246,13 @@ void InspectorWidget::OnRender()
                 // Texture preview
                 if (animator->m_Material && animator->m_Material->GetTexture())
                 {
-                    ImGui::Image((ImTextureID)animator->m_Material->GetTexture()->GetImGuiDescriptorSet(),
-                        { 256.0f, 64.0f }, { 0, 0 }, { 1, 1 });
+                    ImGui::Image
+                    (
+                        (ImTextureID)animator->m_Material->GetTexture()->GetImGuiDescriptorSet(),
+                        { 256.0f, 64.0f },
+                        { 0, 0 },
+                        { 1, 1 }
+                    );
                 }
 
                 // Material properties
@@ -278,22 +276,8 @@ void InspectorWidget::OnRender()
 
                 if (ImGui::Button("Set Sprite Sheet"))
                 {
-                    auto* platform = PIX3D::Engine::GetPlatformLayer();
-                    std::filesystem::path filepath = platform->OpenDialogue(PIX3D::FileDialougeFilter::PNG);
-                    if (!filepath.empty())
-                    {
-                        auto* new_texture = new VK::VulkanTexture();
-                        new_texture->LoadFromFile(filepath.string(), false, true);
-
-                        // Update material's texture
-                        animator->m_Material->ChangeTexture(new_texture);
-
-                        // Reset animation
-                        animator->m_CurrentFrame = 0;
-                        animator->m_CurrentTime = 0.0f;
-
-                        data_changed = true;
-                    }
+                    SpriteAnimatorComponentChangeTexture = true;
+                    data_changed = true;
                 }
 
                 // Animation controls
@@ -331,4 +315,53 @@ void InspectorWidget::OnRender()
     }
 
     ImGui::End();
+}
+
+void InspectorWidget::PostFrameProcesses()
+{
+
+    auto selectedEntity = m_HierarchyWidget->GetSelectedEntity();
+
+    if (selectedEntity != entt::null)
+    {
+        if (SpriteAnimatorComponentChangeTexture)
+        {
+            if (auto* animator = m_Scene->m_Registry.try_get<SpriteAnimatorComponent>(selectedEntity))
+            {
+                auto* platform = PIX3D::Engine::GetPlatformLayer();
+                std::filesystem::path filepath = platform->OpenDialogue(PIX3D::FileDialougeFilter::PNG);
+                if (!filepath.empty())
+                {
+                    auto* new_texture = new VK::VulkanTexture();
+                    new_texture->LoadFromFile(filepath.string(), false, true);
+
+                    // Update material's texture
+                    animator->m_Material->ChangeTexture(new_texture);
+                    
+                    // Reset animation
+                    animator->m_CurrentFrame = 0;
+                    animator->m_CurrentTime = 0.0f;
+                }
+
+                SpriteAnimatorComponentChangeTexture = false;
+            }
+        }
+
+        if (SpriteComponentChangeTexture)
+        {
+            if (auto* sprite = m_Scene->m_Registry.try_get<SpriteComponent>(selectedEntity))
+            {
+                auto* platform = PIX3D::Engine::GetPlatformLayer();
+                std::filesystem::path filepath = platform->OpenDialogue(PIX3D::FileDialougeFilter::PNG);
+                if (!filepath.empty())
+                {
+                    auto* new_texture = new VK::VulkanTexture();
+                    new_texture->LoadFromFile(filepath.string(), false, true);
+                    sprite->m_Material->ChangeTexture(new_texture);
+                }
+
+                SpriteComponentChangeTexture = false;
+            }
+        }
+    }
 }

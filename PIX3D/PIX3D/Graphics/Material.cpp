@@ -1,6 +1,7 @@
 #include "Material.h"
 #include <Platfrom/Vulkan/VulkanSceneRenderer.h>
 #include <Engine/Engine.hpp>
+#include <imgui_impl_vulkan.h>
 
 namespace PIX3D
 {
@@ -43,20 +44,6 @@ namespace PIX3D
         // Destroy old descriptor set since we need to recreate it
         m_DescriptorSet.Destroy();
 
-        // Set new texture or default if null
-        /*
-        if (new_texture)
-        {
-            m_Texture = new_texture;
-            m_Data->use_texture = 1.0f;
-        }
-        else
-        {
-            m_Texture = VK::VulkanSceneRenderer::GetDefaultWhiteTexture();
-            m_Data->use_texture = 1.0f;
-        }
-        */
-
         // Recreate descriptor set with new texture
         m_DescriptorSet
             .Init(VK::VulkanSceneRenderer::s_SpriteRenderpass.DescriptorSetLayout)
@@ -64,13 +51,12 @@ namespace PIX3D
             .AddTexture(1, *new_texture)
             .Build();
 
+        m_Texture->Destroy();
+        delete m_Texture;
+        m_Texture = new_texture;
+
         // If texture was not a default texture, destroy it and clear pointer
-        if (m_Texture)
-        {
-            m_Texture->Destroy();
-            delete m_Texture;
-            m_Texture = new_texture;
-        }
+        //ImGui_ImplVulkan_RemoveTexture(m_Texture->GetImGuiDescriptorSet());
 
         // Update shader buffer with new data
         UpdateBuffer();
@@ -79,6 +65,17 @@ namespace PIX3D
     void SpriteMaterial::UpdateBuffer()
     {
         m_DataBuffer.UpdateData(m_Data, sizeof(_ShadereData));
+    }
+
+    void SpriteMaterial::DestroyAccumelatedTextures()
+    {
+        for (size_t i = 0; i < m_AccumelatedTextures.size(); i++)
+        {
+            m_AccumelatedTextures[i]->Destroy();
+            delete m_AccumelatedTextures[i];
+        }
+
+        m_AccumelatedTextures.clear();
     }
 
     void SpriteMaterial::Destroy()

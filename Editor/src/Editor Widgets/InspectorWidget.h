@@ -1,5 +1,6 @@
 #pragma once
 #include "HierarchyWidget.h"
+#include <imgui.h>
 
 class InspectorWidget
 {
@@ -9,7 +10,13 @@ public:
 
     void OnRender();
 
+    void PostFrameProcesses();
 private:
     Scene* m_Scene;
     HierarchyWidget* m_HierarchyWidget;
+    std::vector<VK::VulkanTexture*> m_TexturesToFree;
+
+
+    bool SpriteAnimatorComponentChangeTexture = false;
+    bool SpriteComponentChangeTexture = false;
 };

@@ -53,6 +53,8 @@ void EditorLayer::OnUpdate(float dt)
             VK::VulkanImGuiPass::m_CommandBuffers[ImageIndex]
         });
     Context->m_Queue.Present(VK::VulkanSceneRenderer::s_ImageIndex);
+
+    m_InspectorWidget->PostFrameProcesses();
 }
 
 void EditorLayer::OnDestroy()
