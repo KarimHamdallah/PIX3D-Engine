@@ -1,0 +1,445 @@
+{
+  "accessors": [
+    {
+      "bufferView": 1,
+      "componentType": 5126,
+      "count": 1313,
+      "max": [
+        0.9978258609771729,
+        0.9568564295768738,
+        0.9978256821632385
+      ],
+      "min": [
+        -0.997825562953949,
+        -0.6323513388633728,
+        -0.9978258609771729
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 1,
+      "byteOffset": 15756,
+      "componentType": 5126,
+      "count": 1313,
+      "max": [
+        0.9997249841690063,
+        1.0,
+        0.9997249841690063
+      ],
+      "min": [
+        -0.9997249841690063,
+        -0.4356326162815094,
+        -0.9997249841690063
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 0,
+      "componentType": 5125,
+      "count": 7680,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 1,
+      "byteOffset": 31512,
+      "componentType": 5126,
+      "count": 3648,
+      "max": [
+        0.832892656326294,
+        -0.6063016653060913,
+        0.8328925967216492
+      ],
+      "min": [
+        -0.8328923583030701,
+        -1.910580039024353,
+        -0.8328927159309387
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 1,
+      "byteOffset": 75288,
+      "componentType": 5126,
+      "count": 3648,
+      "max": [
+        1.0,
+        0.99578458070755,
+        1.0
+      ],
+      "min": [
+        -1.0,
+        -0.9999784231185913,
+        -1.0
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 0,
+      "byteOffset": 30720,
+      "componentType": 5125,
+      "count": 21504,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 1,
+      "byteOffset": 119064,
+      "componentType": 5126,
+      "count": 18427,
+      "max": [
+        0.43196409940719604,
+        -1.0785475969314575,
+        0.43138763308525085
+      ],
+      "min": [
+        -0.4324991703033447,
+        -1.9163484573364258,
+        -0.43303564190864563
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 1,
+      "byteOffset": 340188,
+      "componentType": 5126,
+      "count": 18427,
+      "max": [
+        0.9999966025352478,
+        0.9999931454658508,
+        0.999999463558197
+      ],
+      "min": [
+        -0.9999945163726807,
+        -1.0,
+        -0.9999994039535522
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 0,
+      "byteOffset": 116736,
+      "componentType": 5125,
+      "count": 104544,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 1,
+      "byteOffset": 561312,
+      "componentType": 5126,
+      "count": 3024,
+      "max": [
+        0.2924236059188843,
+        -1.7462619543075562,
+        0.291537344455719
+      ],
+      "min": [
+        -0.2926177978515625,
+        -1.889901876449585,
+        -0.29350408911705017
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 1,
+      "byteOffset": 597600,
+      "componentType": 5126,
+      "count": 3024,
+      "max": [
+        0.8068758845329285,
+        -0.5906844735145569,
+        0.8068780303001404
+      ],
+      "min": [
+        -0.8068743348121643,
+        -0.9998607039451599,
+        -0.8068808317184448
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 0,
+      "byteOffset": 534912,
+      "componentType": 5125,
+      "count": 17280,
+      "type": "SCALAR"
+    }
+  ],
+  "asset": {
+    "extras": {
+      "author": "Jeferson Camargo Brasil (https://sketchfab.com/sidbeyond)",
+      "license": "SKETCHFAB Standard (https://sketchfab.com/licenses)",
+      "source": "https://sketchfab.com/3d-models/led-light-bulb-9w-e4bfd2128ae14774ae64e25a5eb81408",
+      "title": "Led Light Bulb 9w"
+    },
+    "generator": "Sketchfab-15.50.0",
+    "version": "2.0"
+  },
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteLength": 604032,
+      "name": "floatBufferViews",
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteLength": 633888,
+      "byteOffset": 604032,
+      "byteStride": 12,
+      "name": "floatBufferViews",
+      "target": 34962
+    }
+  ],
+  "buffers": [
+    {
+      "byteLength": 1237920,
+      "uri": "scene.bin"
+    }
+  ],
+  "materials": [
+    {
+      "doubleSided": true,
+      "name": "bulb",
+      "pbrMetallicRoughness": {
+        "metallicFactor": 0.0,
+        "roughnessFactor": 0.0
+      }
+    },
+    {
+      "doubleSided": true,
+      "name": "body",
+      "pbrMetallicRoughness": {
+        "metallicFactor": 0.0,
+        "roughnessFactor": 0.5
+      }
+    },
+    {
+      "doubleSided": true,
+      "name": "metal",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.8,
+          0.8,
+          0.8,
+          1.0
+        ],
+        "roughnessFactor": 0.2
+      }
+    },
+    {
+      "doubleSided": true,
+      "name": "body_2",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.8,
+          0.8,
+          0.8,
+          1.0
+        ],
+        "metallicFactor": 0.0,
+        "roughnessFactor": 0.5
+      }
+    }
+  ],
+  "meshes": [
+    {
+      "name": "Object_0",
+      "primitives": [
+        {
+          "attributes": {
+            "NORMAL": 1,
+            "POSITION": 0
+          },
+          "indices": 2,
+          "material": 0,
+          "mode": 4
+        }
+      ]
+    },
+    {
+      "name": "Object_1",
+      "primitives": [
+        {
+          "attributes": {
+            "NORMAL": 4,
+            "POSITION": 3
+          },
+          "indices": 5,
+          "material": 1,
+          "mode": 4
+        }
+      ]
+    },
+    {
+      "name": "Object_2",
+      "primitives": [
+        {
+          "attributes": {
+            "NORMAL": 7,
+            "POSITION": 6
+          },
+          "indices": 8,
+          "material": 2,
+          "mode": 4
+        }
+      ]
+    },
+    {
+      "name": "Object_3",
+      "primitives": [
+        {
+          "attributes": {
+            "NORMAL": 10,
+            "POSITION": 9
+          },
+          "indices": 11,
+          "material": 3,
+          "mode": 4
+        }
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "children": [
+        1
+      ],
+      "matrix": [
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        2.220446049250313e-16,
+        -1.0,
+        0.0,
+        0.0,
+        1.0,
+        2.220446049250313e-16,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "name": "Sketchfab_model"
+    },
+    {
+      "children": [
+        2
+      ],
+      "name": "root"
+    },
+    {
+      "children": [
+        3,
+        5,
+        7,
+        9
+      ],
+      "matrix": [
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        2.220446049250313e-16,
+        1.0,
+        0.0,
+        0.0,
+        -1.0,
+        2.220446049250313e-16,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "name": "GLTF_SceneRootNode"
+    },
+    {
+      "children": [
+        4
+      ],
+      "matrix": [
+        1.0371153354644775,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0371153354644775,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0371153354644775,
+        0.0,
+        0.0,
+        0.8921241760253906,
+        0.0,
+        1.0
+      ],
+      "name": "Esfera UV.001_0"
+    },
+    {
+      "mesh": 0,
+      "name": "Object_4"
+    },
+    {
+      "children": [
+        6
+      ],
+      "matrix": [
+        1.0371153354644775,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0371153354644775,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0371153354644775,
+        0.0,
+        0.0,
+        0.8921241760253906,
+        0.0,
+        1.0
+      ],
+      "name": "Esfera UV_1"
+    },
+    {
+      "mesh": 1,
+      "name": "Object_6"
+    },
+    {
+      "children": [
+        8
+      ],
+      "name": "Bolt.002_2"
+    },
+    {
+      "mesh": 2,
+      "name": "Object_8"
+    },
+    {
+      "children": [
+        10
+      ],
+      "name": "Bolt.001_3"
+    },
+    {
+      "mesh": 3,
+      "name": "Object_10"
+    }
+  ],
+  "scene": 0,
+  "scenes": [
+    {
+      "name": "Sketchfab_Scene",
+      "nodes": [
+        0
+      ]
+    }
+  ]
+}

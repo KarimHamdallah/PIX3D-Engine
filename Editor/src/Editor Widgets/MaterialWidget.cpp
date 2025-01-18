@@ -19,6 +19,7 @@ void MaterialWidget::OnRender()
         // Header with mesh info
         if (auto* tag = m_Scene->m_Registry.try_get<PIX3D::TagComponent>(m_HierarchyWidget->GetSelectedEntity()))
         {
+            ImGui::PushID(tag->m_UUID);
             ImGui::Text("Materials for: %s", tag->m_Tag.c_str());
             ImGui::Separator();
         }
@@ -30,15 +31,22 @@ void MaterialWidget::OnRender()
             if (subMesh.MaterialIndex < 0)
                 continue;
 
+            ImGui::PushID(static_cast<int>(i));
             auto& material = meshComponent->m_Mesh.m_Materials[subMesh.MaterialIndex];
-            DrawMaterialUI(material);
+            DrawMaterialUI(meshComponent, material, i);
+            ImGui::PopID();
+        }
+
+        if (auto* tag = m_Scene->m_Registry.try_get<PIX3D::TagComponent>(m_HierarchyWidget->GetSelectedEntity()))
+        {
+            ImGui::PopID();
         }
     }
 
     ImGui::End();
 }
 
-void MaterialWidget::DrawMaterialUI(PIX3D::VulkanBaseColorMaterial& material)
+void MaterialWidget::DrawMaterialUI(StaticMeshComponent* meshComponent, PIX3D::VulkanBaseColorMaterial& material, size_t submeshIndex)
 {
     if (!ImGui::CollapsingHeader(material.Name.c_str(), ImGuiTreeNodeFlags_DefaultOpen))
         return;
@@ -59,48 +67,39 @@ void MaterialWidget::DrawMaterialUI(PIX3D::VulkanBaseColorMaterial& material)
     {
         materialModified |= ImGui::ColorEdit4("Color", &material.BaseColor.x);
 
-        ImGui::Checkbox("Use Albedo Map", &material.UseAlbedoTexture);
+        materialModified |= ImGui::Checkbox("Use Albedo Map", &material.UseAlbedoTexture);
         if (material.UseAlbedoTexture)
         {
             ImGui::SameLine();
             if (ImGui::Button("Load##Albedo"))
             {
-                auto* platform = PIX3D::Engine::GetPlatformLayer();
-                std::filesystem::path filepath = platform->OpenDialogue(PIX3D::FileDialougeFilter::PNG);
-                if (!filepath.empty())
-                {
-                    material.AlbedoTexture->Destroy();
-
-                    material.AlbedoTexture = new VK::VulkanTexture();
-                    material.AlbedoTexture->LoadFromFile(filepath.string(), true, true);
-                }
+                PendingTextureLoad load;
+                load.submeshIndex = submeshIndex;
+                load.materialIndex = meshComponent->m_Mesh.m_SubMeshes[submeshIndex].MaterialIndex;
+                load.type = PendingTextureLoad::TextureType::Albedo;
+                m_PendingTextureLoads.push_back(load);
             }
 
-            ImGui::Image((ImTextureID)material.AlbedoTexture->GetImGuiDescriptorSet(), ImVec2(128, 128), ImVec2(0, 0), ImVec2(1, 1));
+            ImGui::Image((ImTextureID)material.AlbedoTexture->GetImGuiDescriptorSet(),
+                ImVec2(128, 128), ImVec2(0, 0), ImVec2(1, 1));
         }
         ImGui::TreePop();
     }
 
-    ImGui::Separator();
-
     // Normal Map Section
     if (ImGui::TreeNodeEx("Normal Map", ImGuiTreeNodeFlags_DefaultOpen))
     {
-        ImGui::Checkbox("Use Normal Map", &material.UseNormalTexture);
+        materialModified |= ImGui::Checkbox("Use Normal Map", &material.UseNormalTexture);
         if (material.UseNormalTexture)
         {
             ImGui::SameLine();
             if (ImGui::Button("Load##Normal"))
             {
-                auto* platform = PIX3D::Engine::GetPlatformLayer();
-                std::filesystem::path filepath = platform->OpenDialogue(PIX3D::FileDialougeFilter::PNG);
-                if (!filepath.empty())
-                {
-                    material.NormalTexture->Destroy();
-
-                    material.NormalTexture = new VK::VulkanTexture();
-                    material.NormalTexture->LoadFromFile(filepath.string());
-                }
+                PendingTextureLoad load;
+                load.submeshIndex = submeshIndex;
+                load.materialIndex = meshComponent->m_Mesh.m_SubMeshes[submeshIndex].MaterialIndex;
+                load.type = PendingTextureLoad::TextureType::Normal;
+                m_PendingTextureLoads.push_back(load);
             }
 
             ImGui::Image((ImTextureID)material.NormalTexture->GetImGuiDescriptorSet(),
@@ -109,29 +108,23 @@ void MaterialWidget::DrawMaterialUI(PIX3D::VulkanBaseColorMaterial& material)
         ImGui::TreePop();
     }
 
-    ImGui::Separator();
-
     // Metallic/Roughness Section
     if (ImGui::TreeNodeEx("Metallic/Roughness", ImGuiTreeNodeFlags_DefaultOpen))
     {
         materialModified |= ImGui::DragFloat("Metallic", &material.Metalic, 0.01f, 0.0f, 1.0f);
         materialModified |= ImGui::DragFloat("Roughness", &material.Roughness, 0.01f, 0.0f, 1.0f);
 
-        ImGui::Checkbox("Use Metal-Rough Map", &material.UseMetallicRoughnessTexture);
+        materialModified |= ImGui::Checkbox("Use Metal-Rough Map", &material.UseMetallicRoughnessTexture);
         if (material.UseMetallicRoughnessTexture)
         {
             ImGui::SameLine();
             if (ImGui::Button("Load##MetalRough"))
             {
-                auto* platform = PIX3D::Engine::GetPlatformLayer();
-                std::filesystem::path filepath = platform->OpenDialogue(PIX3D::FileDialougeFilter::PNG);
-                if (!filepath.empty())
-                {
-                    material.MetalRoughnessTexture->Destroy();
-
-                    material.MetalRoughnessTexture = new VK::VulkanTexture();
-                    material.MetalRoughnessTexture->LoadFromFile(filepath.string());
-                }
+                PendingTextureLoad load;
+                load.submeshIndex = submeshIndex;
+                load.materialIndex = meshComponent->m_Mesh.m_SubMeshes[submeshIndex].MaterialIndex;
+                load.type = PendingTextureLoad::TextureType::MetallicRoughness;
+                m_PendingTextureLoads.push_back(load);
             }
 
             ImGui::Image((ImTextureID)material.MetalRoughnessTexture->GetImGuiDescriptorSet(),
@@ -140,28 +133,22 @@ void MaterialWidget::DrawMaterialUI(PIX3D::VulkanBaseColorMaterial& material)
         ImGui::TreePop();
     }
 
-    ImGui::Separator();
-
-    // Ambient Occlusion Section
+    // AO Section
     if (ImGui::TreeNodeEx("Ambient Occlusion", ImGuiTreeNodeFlags_DefaultOpen))
     {
         materialModified |= ImGui::DragFloat("AO", &material.Ao, 0.01f, 0.0f, 1.0f);
 
-        ImGui::Checkbox("Use AO Map", &material.useAoTexture);
+        materialModified |= ImGui::Checkbox("Use AO Map", &material.useAoTexture);
         if (material.useAoTexture)
         {
             ImGui::SameLine();
             if (ImGui::Button("Load##AO"))
             {
-                auto* platform = PIX3D::Engine::GetPlatformLayer();
-                std::filesystem::path filepath = platform->OpenDialogue(PIX3D::FileDialougeFilter::PNG);
-                if (!filepath.empty())
-                {
-                    material.AoTexture->Destroy();
-
-                    material.AoTexture = new VK::VulkanTexture();
-                    material.AoTexture->LoadFromFile(filepath.string());
-                }
+                PendingTextureLoad load;
+                load.submeshIndex = submeshIndex;
+                load.materialIndex = meshComponent->m_Mesh.m_SubMeshes[submeshIndex].MaterialIndex;
+                load.type = PendingTextureLoad::TextureType::AO;
+                m_PendingTextureLoads.push_back(load);
             }
 
             ImGui::Image((ImTextureID)material.AoTexture->GetImGuiDescriptorSet(),
@@ -170,29 +157,22 @@ void MaterialWidget::DrawMaterialUI(PIX3D::VulkanBaseColorMaterial& material)
         ImGui::TreePop();
     }
 
-    ImGui::Separator();
-
     // Emissive Section
     if (ImGui::TreeNodeEx("Emissive", ImGuiTreeNodeFlags_DefaultOpen))
     {
         materialModified |= ImGui::ColorEdit4("Color", &material.EmissiveColor.x);
 
-        ImGui::Checkbox("Use Emissive Map", &material.UseEmissiveTexture);
+        materialModified |= ImGui::Checkbox("Use Emissive Map", &material.UseEmissiveTexture);
         if (material.UseEmissiveTexture)
         {
             ImGui::SameLine();
             if (ImGui::Button("Load##Emissive"))
             {
-                auto* platform = PIX3D::Engine::GetPlatformLayer();
-                std::filesystem::path filepath = platform->OpenDialogue(PIX3D::FileDialougeFilter::PNG);
-                if (!filepath.empty())
-                {
-                    material.EmissiveTexture->Destroy();
-
-                    material.EmissiveTexture = new VK::VulkanTexture();
-                    material.EmissiveTexture->LoadFromFile(filepath.string());
-                    materialModified = true;
-                }
+                PendingTextureLoad load;
+                load.submeshIndex = submeshIndex;
+                load.materialIndex = meshComponent->m_Mesh.m_SubMeshes[submeshIndex].MaterialIndex;
+                load.type = PendingTextureLoad::TextureType::Emissive;
+                m_PendingTextureLoads.push_back(load);
             }
 
             ImGui::Image((ImTextureID)material.EmissiveTexture->GetImGuiDescriptorSet(),
@@ -201,10 +181,6 @@ void MaterialWidget::DrawMaterialUI(PIX3D::VulkanBaseColorMaterial& material)
         ImGui::TreePop();
     }
 
-    ImGui::Separator();
-
-    /*
-    // Update material buffer if any changes were made
     if (materialModified)
     {
         if (auto* meshComp = m_Scene->m_Registry.try_get<PIX3D::StaticMeshComponent>(m_HierarchyWidget->GetSelectedEntity()))
@@ -212,5 +188,82 @@ void MaterialWidget::DrawMaterialUI(PIX3D::VulkanBaseColorMaterial& material)
             meshComp->m_Mesh.FillMaterialBuffer();
         }
     }
-    */
+}
+
+void MaterialWidget::PostFrameProcesses()
+{
+    if (m_PendingTextureLoads.empty())
+        return;
+
+    auto selectedEntity = m_HierarchyWidget->GetSelectedEntity();
+    if (selectedEntity == entt::null)
+        return;
+
+    auto* meshComponent = m_Scene->m_Registry.try_get<PIX3D::StaticMeshComponent>(selectedEntity);
+    if (!meshComponent)
+        return;
+
+    auto* platform = PIX3D::Engine::GetPlatformLayer();
+
+    for (const auto& load : m_PendingTextureLoads)
+    {
+        // Validate indices
+        if (load.submeshIndex >= meshComponent->m_Mesh.m_SubMeshes.size())
+            continue;
+
+        auto& subMesh = meshComponent->m_Mesh.m_SubMeshes[load.submeshIndex];
+        if (subMesh.MaterialIndex < 0 || subMesh.MaterialIndex != load.materialIndex)
+            continue;
+
+        auto& material = meshComponent->m_Mesh.m_Materials[subMesh.MaterialIndex];
+
+        // Open file dialog
+        std::filesystem::path filepath = platform->OpenDialogue(PIX3D::FileDialougeFilter::PNG);
+        if (filepath.empty())
+            continue;
+
+        // Load the appropriate texture based on type
+        switch (load.type)
+        {
+        case PendingTextureLoad::TextureType::Albedo:
+        {
+            material.AlbedoTexture->Destroy();
+            material.AlbedoTexture = new VK::VulkanTexture();
+            material.AlbedoTexture->LoadFromFile(filepath.string(), true, true);
+            break;
+        }
+        case PendingTextureLoad::TextureType::Normal:
+        {
+            material.NormalTexture->Destroy();
+            material.NormalTexture = new VK::VulkanTexture();
+            material.NormalTexture->LoadFromFile(filepath.string());
+            break;
+        }
+        case PendingTextureLoad::TextureType::MetallicRoughness:
+        {
+            material.MetalRoughnessTexture->Destroy();
+            material.MetalRoughnessTexture = new VK::VulkanTexture();
+            material.MetalRoughnessTexture->LoadFromFile(filepath.string());
+            break;
+        }
+        case PendingTextureLoad::TextureType::AO:
+        {
+            material.AoTexture->Destroy();
+            material.AoTexture = new VK::VulkanTexture();
+            material.AoTexture->LoadFromFile(filepath.string());
+            break;
+        }
+        case PendingTextureLoad::TextureType::Emissive:
+        {
+            material.EmissiveTexture->Destroy();
+            material.EmissiveTexture = new VK::VulkanTexture();
+            material.EmissiveTexture->LoadFromFile(filepath.string());
+            break;
+        }
+        }
+
+        meshComponent->m_Mesh.FillMaterialBuffer();
+    }
+
+    m_PendingTextureLoads.clear();
 }

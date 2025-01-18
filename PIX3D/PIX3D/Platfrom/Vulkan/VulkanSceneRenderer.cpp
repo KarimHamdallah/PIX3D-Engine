@@ -83,6 +83,9 @@ namespace PIX3D
 				.AddBinding(5, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
 				.Build();
 
+			s_PointLightsDescriptorSetLayout
+				.AddBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT)
+				.Build();
 
 			/////////////// Environment Maps //////////////////
 
@@ -201,7 +204,7 @@ namespace PIX3D
 						Context->m_SupportedDepthFormat,
 						VK_SAMPLE_COUNT_1_BIT,
 						VK_ATTACHMENT_LOAD_OP_LOAD,
-						VK_ATTACHMENT_STORE_OP_DONT_CARE,
+						VK_ATTACHMENT_STORE_OP_STORE,
 						VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
 						VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
 
@@ -251,13 +254,14 @@ namespace PIX3D
 				{
 					s_CameraDescriptorSetLayout.GetVkDescriptorSetLayout(),
 					VulkanSceneRenderer::GetVulkanStaticMeshMaterialDescriptorSetLayout(),
-					s_EnvironmetDescriptorSetLayout.GetVkDescriptorSetLayout()
+					s_EnvironmetDescriptorSetLayout.GetVkDescriptorSetLayout(),
+					s_PointLightsDescriptorSetLayout.GetVkDescriptorSetLayout()
 				};
 
 
 				VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
 				pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-				pipelineLayoutInfo.setLayoutCount = 3;
+				pipelineLayoutInfo.setLayoutCount = 4;
 				pipelineLayoutInfo.pSetLayouts = layouts;
 				pipelineLayoutInfo.pushConstantRangeCount = 1;
 				pipelineLayoutInfo.pPushConstantRanges = &pushConstant;
@@ -277,13 +281,12 @@ namespace PIX3D
 					.AddVertexInputState(&VertexBindingDescription, VertexAttributeDescriptions.data(), 1, VertexAttributeDescriptions.size())
 					.AddViewportState(width, height)
 					.AddInputAssemblyState(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, VK_FALSE)
-					.AddRasterizationState(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE)
+					.AddRasterizationState(VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE)
 					.AddMultisampleState(VK_SAMPLE_COUNT_1_BIT)
 					.AddDepthStencilState(true, true)
 					.AddColorBlendState(true, 2)
 					.SetPipelineLayout(s_MainRenderpass.PipelineLayout)
 					.Build();
-
 
 				/////////////// Command Buffers //////////////////////
 
@@ -708,7 +711,7 @@ namespace PIX3D
 			vkCmdEndRenderPass(s_MainRenderpass.CommandBuffers[s_ImageIndex]);
 		}
 
-		void VulkanSceneRenderer::RenderMesh(VulkanStaticMesh& mesh, const glm::mat4& transform)
+		void VulkanSceneRenderer::RenderMesh(Scene* scene, VulkanStaticMesh& mesh, const glm::mat4& transform)
 		{
 			auto* Context = (VK::VulkanGraphicsContext*)Engine::GetGraphicsContext();
 			auto specs = Engine::GetApplicationSpecs();
@@ -785,13 +788,16 @@ namespace PIX3D
 						vkCmdBindDescriptorSets(s_MainRenderpass.CommandBuffers[s_ImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, s_MainRenderpass.PipelineLayout, 1, 1, &material_descriptor_set, 0, nullptr);
 					}
 
-					_ModelMatrixPushConstant pushData = { transform, s_CameraPosition, (float)SubMeshIndex, s_BloomThreshold };
+					_ModelMatrixPushConstant pushData = { transform, s_CameraPosition, (float)SubMeshIndex, s_BloomThreshold, (float)scene->m_PointLightsCount };
 					vkCmdPushConstants(s_MainRenderpass.CommandBuffers[s_ImageIndex], s_MainRenderpass.PipelineLayout,
 						VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
 						0, sizeof(_ModelMatrixPushConstant), &pushData);
 
 					auto environment_descriptor_set = s_EnvironmetDescriptorSet.GetVkDescriptorSet();
 					vkCmdBindDescriptorSets(s_MainRenderpass.CommandBuffers[s_ImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, s_MainRenderpass.PipelineLayout, 2, 1, &environment_descriptor_set, 0, nullptr);
+
+					auto point_lights_descriptor_set = scene->PointLightsDescriptorSet.GetVkDescriptorSet();
+					vkCmdBindDescriptorSets(s_MainRenderpass.CommandBuffers[s_ImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, s_MainRenderpass.PipelineLayout, 3, 1, &point_lights_descriptor_set, 0, nullptr);
 
 					// Draw the submesh using its base vertex and index offsets
 					vkCmdDrawIndexed(s_MainRenderpass.CommandBuffers[s_ImageIndex],

@@ -165,6 +165,7 @@
     <ClCompile Include="PIX3D\Core\Application.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="PIX3D\Core\Input.cpp" />
+    <ClCompile Include="PIX3D\Core\UUID.cpp" />
     <ClCompile Include="PIX3D\glad.c" />
     <ClCompile Include="PIX3D\Graphics\Camera2D.cpp" />
     <ClCompile Include="PIX3D\Graphics\Camera3D.cpp" />
@@ -240,6 +241,7 @@
     <ClInclude Include="PIX3D\Core\Input.h" />
     <ClInclude Include="PIX3D\Core\Key.h" />
     <ClInclude Include="PIX3D\Core\Timer.h" />
+    <ClInclude Include="PIX3D\Core\UUID.h" />
     <ClInclude Include="PIX3D\Engine\Engine.hpp" />
     <ClInclude Include="PIX3D\Graphics\Camera2D.h" />
     <ClInclude Include="PIX3D\Graphics\Camera3D.h" />

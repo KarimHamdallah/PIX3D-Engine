@@ -55,6 +55,7 @@ void EditorLayer::OnUpdate(float dt)
     Context->m_Queue.Present(VK::VulkanSceneRenderer::s_ImageIndex);
 
     m_InspectorWidget->PostFrameProcesses();
+    m_MaterialWidget->PostFrameProcesses();
 }
 
 void EditorLayer::OnDestroy()

@@ -23,6 +23,8 @@ namespace
         PIX3D::Engine::SetWindowWidth(width);
         PIX3D::Engine::SetWindowHeight(height);
 
+        PIX3D::Engine::s_WindowMinimized = width == 0 || height == 0;
+
         auto* Context = (PIX3D::VK::VulkanGraphicsContext*)PIX3D::Engine::GetGraphicsContext();
         Context->Resize(width, height);
 

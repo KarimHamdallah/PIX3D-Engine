@@ -11,6 +11,7 @@
 #include <Graphics/Camera3D.h>
 #include <Graphics/Material.h>
 #include <Scene/SceneStructures.h>
+#include <Scene/Scene.h>
 
 namespace PIX3D
 {
@@ -24,7 +25,7 @@ namespace PIX3D
 
 			static void Begin(Camera3D& cam);
 			static void RenderClearPass(const glm::vec4& clearColor);
-			static void RenderMesh(VulkanStaticMesh& mesh, const glm::mat4& transform);
+			static void RenderMesh(Scene* scene, VulkanStaticMesh& mesh, const glm::mat4& transform);
 			static void RenderTexturedQuad(SpriteMaterial* material, const glm::mat4& transform);
 			static void RenderSkyBox();
 			static void End();
@@ -81,6 +82,7 @@ namespace PIX3D
 				glm::vec3 CameraPosition;
 				float MeshIndex;
 				float BloomThreshold;
+				float PointLightCount;
 			};
 
 
@@ -120,7 +122,7 @@ namespace PIX3D
 
 			inline static _MainRenderpass s_MainRenderpass;
 
-
+			inline static VK::VulkanDescriptorSetLayout s_PointLightsDescriptorSetLayout;
 
 
 			struct _SkyBoxPass

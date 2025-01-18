@@ -1,11 +1,12 @@
 #pragma once
 #include <string>
-#include <glm/glm.hpp>
 #include <Graphics/VulkanStaticMesh.h>
 #include <Graphics/Material.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+
+#include <Core/UUID.h>
 
 namespace PIX3D
 {
@@ -16,6 +17,7 @@ namespace PIX3D
         TagComponent(const std::string& tag) : m_Tag(tag) {}
 
         std::string m_Tag;
+        PIX3D::UUID m_UUID;
     };
 
     struct TransformComponent

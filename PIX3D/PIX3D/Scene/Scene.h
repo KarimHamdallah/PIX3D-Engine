@@ -7,9 +7,21 @@
 #include "Components.h"
 
 #include "SceneStructures.h"
+#include <vector>
+
+#define MAX_POINT_LIGHTS 200
 
 namespace PIX3D
 {
+    struct _PointLightShaderData
+    {
+        glm::vec4 LightPosition;
+        glm::vec4 LightColor;
+        float Intensity;  // Controls the brightness of the light
+        float Radius;     // Controls the maximum range of the light
+        float Falloff;      // Controls the falloff curve
+    };
+
     class Scene
     {
     public:
@@ -40,6 +52,13 @@ namespace PIX3D
     public:
         std::string m_Name;
         entt::registry m_Registry;
+
+        uint32_t m_PointLightsCount = 0;
+        std::vector<_PointLightShaderData> m_PointLightsData;
+        VK::VulkanShaderStorageBuffer m_PointLightsShaderBuffer;
+        VK::VulkanDescriptorSet PointLightsDescriptorSet;
+
+        VulkanStaticMesh m_LightBulbMesh;
 
         friend class SceneSerializer;
     };

@@ -8,12 +8,12 @@ namespace PIX3D
     class StaticMeshRendererSystem
     {
     public:
-        static void Render(entt::registry& registry)
+        static void Render(Scene* scene)
         {
-            auto view = registry.view<TransformComponent, StaticMeshComponent>();
-            view.each([](TransformComponent& transform, StaticMeshComponent& mesh)
+            auto view = scene->m_Registry.view<TransformComponent, StaticMeshComponent>();
+            view.each([scene](TransformComponent& transform, StaticMeshComponent& mesh)
                 {
-                    VK::VulkanSceneRenderer::RenderMesh(mesh.m_Mesh, transform.GetTransformMatrix());
+                    VK::VulkanSceneRenderer::RenderMesh(scene, mesh.m_Mesh, transform.GetTransformMatrix());
                 });
         }
     };

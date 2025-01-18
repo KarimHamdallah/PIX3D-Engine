@@ -58,7 +58,27 @@ layout(push_constant) uniform PushConstants
    vec3 CameraPosition;
    float MeshIndex;
    float BloomThreshold;
+   float PointLightCount;
 }push;
+
+
+////////////////// Point Lights /////////////////////////
+
+
+struct PointLightStruct
+{
+    vec4 LightPosition;
+	vec4 LightColor;
+	float Intensity;  // Controls the brightness of the light
+    float Radius;     // Controls the maximum range of the light
+	float Falloff;      // Controls the falloff curve
+};
+
+
+layout(std430, set = 3, binding = 0) readonly buffer PointLightsBuffer
+{
+	 PointLightStruct Data[];
+}pointlights_info;
 
 
 // PBR
@@ -232,8 +252,9 @@ void main()
 	
 	// Sum up the radiance contributions of each light source.
 	// This loop is essentially the integral of the rendering equation.
-	/*
-	for (int i = 0; i < u_PointLightsCount; i++)
+
+	int PointLightsCount = int(push.PointLightCount);
+	for (int i = 0; i < PointLightsCount; i++)
 	{
 		vec3 l = normalize(pointlights_info.Data[i].LightPosition.xyz - in_WorldCoordinates); // light vector
 		vec3 h = normalize(v + l);
@@ -295,7 +316,6 @@ void main()
 		// Finally, the rendering equation!
 		Lo += cookTorranceBrdf * radiance * nDotL;
 	}
-	*/
 
 	// Add directional lights contribution
     /*

@@ -76,6 +76,20 @@ namespace PIX3D
     {
         // Initialize camera
         m_Cam3D.Init({ 0.0f, 0.0f, 5.0f });
+
+        //////////////////// Point Lights Data ///////////////////////////
+        {
+            m_LightBulbMesh.Load("res/led_light_bulb_9w/scene.gltf", 0.05f);
+
+            m_PointLightsShaderBuffer.Create(MAX_POINT_LIGHTS * sizeof(_PointLightShaderData));
+
+            m_PointLightsData.resize(MAX_POINT_LIGHTS);
+
+            PointLightsDescriptorSet
+                .Init(VK::VulkanSceneRenderer::s_PointLightsDescriptorSetLayout)
+                .AddShaderStorageBuffer(0, m_PointLightsShaderBuffer)
+                .Build();
+        }
     }
 
     void Scene::OnUpdate(float dt)
@@ -83,6 +97,26 @@ namespace PIX3D
         m_Cam3D.Update(dt);
 
         SpriteAnimatorSystem::Update(m_Registry, dt);
+
+
+        ///////////// Update Point Lights Shader Buffer ////////////////
+        {
+            int light_index = 0;
+            auto view = m_Registry.view<TransformComponent, PointLightComponent>();
+            view.each([this, &light_index](TransformComponent& transform, PointLightComponent& light)
+                {
+                    _PointLightShaderData light_data;
+                    light_data.LightColor = light.m_Color;
+                    light_data.LightPosition = { transform.m_Position.x, transform.m_Position.y, transform.m_Position.z, 1.0f };
+                    light_data.Radius = light.m_Radius;
+                    light_data.Intensity = light.m_Intensity;
+                    light_data.Falloff = light.m_Falloff;
+
+                    m_PointLightsData[light_index++] = light_data;
+                });
+            m_PointLightsCount = light_index;
+            m_PointLightsShaderBuffer.UpdateData(m_PointLightsData.data(), MAX_POINT_LIGHTS * sizeof(_PointLightShaderData));
+        }
     }
 
     void Scene::OnRender()
@@ -95,13 +129,22 @@ namespace PIX3D
             VK::VulkanSceneRenderer::RenderSkyBox();
 
         // Render static meshes
-        StaticMeshRendererSystem::Render(m_Registry);
+        StaticMeshRendererSystem::Render(this);
 
         // Render sprites
         SpriteRendererSystem::Render(m_Registry);
 
         // Render animated sprites
         SpriteAnimatorSystem::Render(m_Registry);
+
+        // Render Point Lights
+        {
+            auto view = m_Registry.view<TransformComponent, PointLightComponent>();
+            view.each([this](TransformComponent& transform, PointLightComponent& light)
+                {
+                    VK::VulkanSceneRenderer::RenderMesh(this, m_LightBulbMesh, transform.GetTransformMatrix());
+                });
+        }
 
         VK::VulkanSceneRenderer::End();
     }

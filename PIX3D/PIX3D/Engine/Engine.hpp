@@ -113,7 +113,8 @@ namespace PIX3D
 				// Poll Events
 				s_Platform->PollEvents();
 				
-				s_Application->OnUpdate(s_DeltaTime);
+				if(!s_WindowMinimized)
+					s_Application->OnUpdate(s_DeltaTime);
 
 				s_GraphicsContext->SwapBuffers(s_Platform->GetNativeWindowHandel());
 
@@ -202,5 +203,8 @@ namespace PIX3D
 
 		// project
 		inline static Project s_CurrentProject;
+
+		public:
+		inline static bool s_WindowMinimized = false;
 	};
 }

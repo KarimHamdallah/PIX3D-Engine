@@ -30,6 +30,7 @@ layout(push_constant) uniform PushConstants
    vec3 CameraPosition;
    float MeshIndex;
    float BloomThreshold;
+   float PointLightCount;
 }push;
 
 void main()
