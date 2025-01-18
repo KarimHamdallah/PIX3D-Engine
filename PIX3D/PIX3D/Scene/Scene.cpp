@@ -79,7 +79,7 @@ namespace PIX3D
 
         //////////////////// Point Lights Data ///////////////////////////
         {
-            m_LightBulbMesh.Load("res/led_light_bulb_9w/scene.gltf", 0.05f);
+            m_LightBulbMesh.Load("res/led_light_bulb_9w/scene.gltf", 0.02f);
 
             m_PointLightsShaderBuffer.Create(MAX_POINT_LIGHTS * sizeof(_PointLightShaderData));
 

@@ -99,8 +99,8 @@ void EditorLayer::SaveSceneDialogue()
     std::filesystem::path ScenePath = PlatformLayer->SaveDialogue(FileDialougeFilter::PIXSCENE);
     if (!ScenePath.string().empty())
     {
-        PIX_ASSERT(false);
-        //SceneSerializer::SaveScene_Text(m_Scene, ScenePath);
+        PIX3D::SceneSerializer serializer(m_Scene);
+        serializer.Serialize(ScenePath.string());
     }
 }
 
@@ -111,8 +111,8 @@ void EditorLayer::LoadSceneDialogue()
     std::filesystem::path ScenePath = PlatformLayer->OpenDialogue(FileDialougeFilter::PIXSCENE);
     if (!ScenePath.string().empty() && ScenePath.extension().string() == ".pixscene")
     {
-        PIX_ASSERT(false);
-        //SceneSerializer::LoadScene_Text(m_Scene, ScenePath);
+        PIX3D::SceneSerializer serializer(m_Scene);
+        serializer.Deserialize(ScenePath.string());
     }
 }
 

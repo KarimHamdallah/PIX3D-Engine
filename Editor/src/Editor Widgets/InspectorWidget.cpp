@@ -87,6 +87,9 @@ void InspectorWidget::OnRender()
         // Tag Component
         if (auto* tag = m_Scene->m_Registry.try_get<TagComponent>(selectedEntity))
         {
+            std::string uuidDisplay = "UUID: " + std::to_string(tag->m_UUID);
+            ImGui::TextDisabled("%s", uuidDisplay.c_str());
+
             char buffer[256];
             strcpy_s(buffer, sizeof(buffer), tag->m_Tag.c_str());
             if (ImGui::InputText("Tag", buffer, sizeof(buffer)))

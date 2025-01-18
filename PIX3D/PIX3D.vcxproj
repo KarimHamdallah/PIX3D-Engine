@@ -79,7 +79,7 @@
     <LibraryPath>$(SolutionDir)\Vendor\assimp\bin\windows\Release;$(SolutionDir)\Vendor\Mono\lib;$(SolutionDir)\Vendor\glfw\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(VULKAN_SDK)\Include;$(SolutionDir)\Vendor\assimp\include;$(SolutionDir)\Vendor\tiny gltf;$(SolutionDir)\PIX3D\imgui;$(SolutionDir)\Vendor\glm;$(SolutionDir)\Vendor\glad\include;$(SolutionDir)\Vendor\Mono\include;$(SolutionDir)\PIX3D\PIX3D;$(SolutionDir)\Vendor\glfw\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)\Vendor\cereal;$(VULKAN_SDK)\Include;$(SolutionDir)\Vendor\assimp\include;$(SolutionDir)\Vendor\tiny gltf;$(SolutionDir)\PIX3D\imgui;$(SolutionDir)\Vendor\glm;$(SolutionDir)\Vendor\glad\include;$(SolutionDir)\Vendor\Mono\include;$(SolutionDir)\PIX3D\PIX3D;$(SolutionDir)\Vendor\glfw\include;$(IncludePath)</IncludePath>
     <LibraryPath>$(VULKAN_SDK)\Lib;$(SolutionDir)\Vendor\assimp\bin\windows\Release;$(SolutionDir)\Vendor\Mono\lib;$(SolutionDir)\Vendor\glfw\Debug\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
