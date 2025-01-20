@@ -57,6 +57,7 @@ namespace PIX3D
             m_Width = static_cast<uint32_t>(texWidth);
             m_Height = static_cast<uint32_t>(texHeight);
             m_Format = IsSRGB ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
+            m_IsSRGB = IsSRGB;
 
             VkDeviceSize imageSize = m_Width * m_Height * 4; // 4 bytes per RGBA pixel
 

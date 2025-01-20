@@ -133,19 +133,6 @@ namespace PIX3D
 
         VK::VulkanDescriptorSet& GetDescriptorSet(size_t index) { return m_DescriptorSets[index]; }
 
-        virtual void Serialize(json& j) const override
-        {
-            j["path"] = m_Path.string();
-            j["scale"] = m_Scale;
-        }
-
-        virtual void Deserialize(const json& j) override
-        {
-            std::string path = j["path"].get<std::string>();
-            float scale = j["scale"].get<float>();
-            Load(path, scale);
-        }
-
     private:
         void ProcessNode(aiNode* node, const aiScene* scene);
         VulkanStaticSubMesh ProcessMesh(aiMesh* mesh, const aiScene* scene);

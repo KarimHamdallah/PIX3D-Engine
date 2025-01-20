@@ -2,6 +2,7 @@
 #include <vulkan/vulkan.h>
 #include <filesystem>
 #include <vector>
+#include <Asset/Asset.h>
 
 namespace PIX3D
 {
@@ -52,7 +53,7 @@ namespace PIX3D
             static uint32_t CalculateMipLevels(uint32_t width, uint32_t height);
         };
 
-        class VulkanTexture
+        class VulkanTexture : public PIX3D::Asset
         {
         public:
             VulkanTexture() = default;
@@ -83,8 +84,6 @@ namespace PIX3D
             VkDescriptorSet GetImGuiDescriptorSet();
 
         private:
-            std::filesystem::path m_Path;
-
             VkImage m_Image = VK_NULL_HANDLE;
             VkDeviceMemory m_ImageMemory = VK_NULL_HANDLE;
             VkImageView m_ImageView = VK_NULL_HANDLE;
@@ -95,6 +94,7 @@ namespace PIX3D
             VkFormat m_Format = VK_FORMAT_R8G8B8A8_UNORM;
             uint32_t m_MipLevels = 1;
             bool m_SamplerClampToEdge = false;
+            bool m_IsSRGB = false;
         public:
             VkDescriptorSet m_ImGuiDescriptorset = nullptr;
         };

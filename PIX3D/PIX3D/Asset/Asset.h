@@ -28,9 +28,6 @@ namespace PIX3D
         AssetType GetType() const { return m_Type; }
         const std::filesystem::path& GetPath() const { return m_Path; }
 
-        virtual void Serialize(json& j) const = 0;
-        virtual void Deserialize(const json& j) = 0;
-
     protected:
         UUID m_UUID;
         AssetType m_Type = AssetType::None;

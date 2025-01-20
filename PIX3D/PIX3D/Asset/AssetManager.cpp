@@ -38,7 +38,7 @@ namespace PIX3D
         return mesh;
     }
 
-    VulkanStaticMesh* AssetManager::GetStaticMesh(const UUID& uuid)
+    VulkanStaticMesh* AssetManager::GetStaticMesh(const PIX3D::UUID& uuid)
     {
         auto it = m_StaticMeshes.find(uuid);
         if (it != m_StaticMeshes.end())
@@ -46,7 +46,7 @@ namespace PIX3D
         return nullptr;
     }
 
-    void AssetManager::UnloadStaticMesh(const UUID& uuid)
+    void AssetManager::UnloadStaticMesh(const PIX3D::UUID& uuid)
     {
         auto it = m_StaticMeshes.find(uuid);
         if (it != m_StaticMeshes.end())
@@ -56,50 +56,55 @@ namespace PIX3D
         }
     }
 
-    void AssetManager::SerializeRegistry(const std::string& filepath)
+    VK::VulkanTexture* AssetManager::LoadTexture(const std::string& path, bool genMips, bool isSRGB)
     {
-        json j;
-        j["staticMeshes"] = json::array();
-
-        for (const auto& pair : m_StaticMeshes)
+        // Check if texture is already loaded
+        for (const auto& pair : m_Textures)
         {
-            json meshJson;
-            meshJson["uuid"] = (uint64_t)pair.first;
-            pair.second->Serialize(meshJson);
-            j["staticMeshes"].push_back(meshJson);
+            if (pair.second->GetPath() == path)
+                return pair.second;
         }
 
-        std::ofstream file(filepath);
-        if (file.is_open())
-        {
-            file << std::setw(4) << j << std::endl;
-            file.close();
-        }
+        // Create and load new texture
+        auto* texture = new VK::VulkanTexture();
+        texture->LoadFromFile(path, genMips, isSRGB);
+        m_Textures[texture->GetUUID()] = texture;
+        return texture;
     }
 
-    void AssetManager::DeserializeRegistry(const std::string& filepath)
+    VK::VulkanTexture* AssetManager::LoadTextureUUID(UUID uuid, const std::string& path, bool genMips, bool isSRGB)
     {
-        std::ifstream file(filepath);
-        if (!file.is_open())
-            return;
-
-        try
+        // Check if texture is already loaded
+        for (const auto& pair : m_Textures)
         {
-            json j;
-            file >> j;
-            file.close();
-
-            for (const auto& meshJson : j["staticMeshes"])
-            {
-                std::string path = meshJson["path"].get<std::string>();
-                float scale = meshJson["scale"].get<float>();
-                LoadStaticMesh(path, scale);
-            }
+            if (pair.second->GetPath() == path)
+                return pair.second;
         }
-        catch (const std::exception& e)
+
+        // Create and load new texture
+        auto* texture = new VK::VulkanTexture();
+        texture->LoadFromFile(path, genMips, isSRGB);
+        texture->SetUUID(uuid);
+        m_Textures[texture->GetUUID()] = texture;
+        return texture;
+    }
+
+    VK::VulkanTexture* AssetManager::GetTexture(const UUID& uuid)
+    {
+        auto it = m_Textures.find(uuid);
+        if (it != m_Textures.end())
+            return it->second;
+        return nullptr;
+    }
+
+    void AssetManager::UnloadTexture(const UUID& uuid)
+    {
+        auto it = m_Textures.find(uuid);
+        if (it != m_Textures.end())
         {
-            // Handle JSON parsing errors
-            PIX_DEBUG_ERROR_FORMAT("Failed to parse asset registry: {0}", e.what());
+            it->second->Destroy();
+            delete it->second;
+            m_Textures.erase(it);
         }
     }
 
@@ -112,5 +117,13 @@ namespace PIX3D
             delete pair.second;
         }
         m_StaticMeshes.clear();
+
+        // Clean up all textures
+        for (const auto& pair : m_Textures)
+        {
+            pair.second->Destroy();
+            delete pair.second;
+        }
+        m_Textures.clear();
     }
 }

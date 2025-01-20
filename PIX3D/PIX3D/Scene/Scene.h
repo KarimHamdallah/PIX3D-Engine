@@ -49,12 +49,6 @@ namespace PIX3D
 
         // Registry access
         entt::registry& GetRegistry() { return m_Registry; }
-
-        // New functions for asset management
-        void CollectReferencedAssets();
-        void SerializeReferencedAssets();
-        void LoadReferencedAssets();
-
     public:
         std::string m_Name;
         entt::registry m_Registry;
@@ -65,8 +59,6 @@ namespace PIX3D
         VK::VulkanDescriptorSet PointLightsDescriptorSet;
 
         VulkanStaticMesh m_LightBulbMesh;
-
-        std::unordered_set<uint64_t> m_ReferencedAssets;
         friend class SceneSerializer;
     };
 }
