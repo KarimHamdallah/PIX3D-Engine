@@ -8,6 +8,7 @@
 
 #include "SceneStructures.h"
 #include <vector>
+#include <unordered_set>
 
 #define MAX_POINT_LIGHTS 200
 
@@ -30,7 +31,7 @@ namespace PIX3D
 
         // Entity Management
         uint32_t AddGameObject(const std::string& name, const TransformData& transform);
-        uint32_t AddStaticMesh(const std::string& name, const TransformData& transform, VulkanStaticMesh& mesh);
+        uint32_t AddStaticMesh(const std::string& name, const TransformData& transform, PIX3D::UUID asset_id = 0);
         uint32_t AddSprite(const std::string& name, const TransformData& transform, const SpriteData& sprite);
         uint32_t AddPointLight(const std::string& name, const TransformData& transform, const glm::vec4& color);
         uint32_t AddDirectionalLight(const std::string& name, const TransformData& transform, const glm::vec4& color);
@@ -49,6 +50,11 @@ namespace PIX3D
         // Registry access
         entt::registry& GetRegistry() { return m_Registry; }
 
+        // New functions for asset management
+        void CollectReferencedAssets();
+        void SerializeReferencedAssets();
+        void LoadReferencedAssets();
+
     public:
         std::string m_Name;
         entt::registry m_Registry;
@@ -60,6 +66,7 @@ namespace PIX3D
 
         VulkanStaticMesh m_LightBulbMesh;
 
+        std::unordered_set<uint64_t> m_ReferencedAssets;
         friend class SceneSerializer;
     };
 }

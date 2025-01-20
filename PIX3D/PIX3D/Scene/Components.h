@@ -69,14 +69,10 @@ namespace PIX3D
     {
         StaticMeshComponent() = default;
         StaticMeshComponent(const StaticMeshComponent& other) = default;
-        StaticMeshComponent(const VulkanStaticMesh& mesh) : m_Mesh(mesh) {}
+        StaticMeshComponent(PIX3D::UUID asset_id) : m_AssetID(asset_id) {}
+        ~StaticMeshComponent() {}
 
-        ~StaticMeshComponent()
-        {
-            m_Mesh.Destroy();
-        }
-
-        VulkanStaticMesh m_Mesh;
+        PIX3D::UUID m_AssetID = 0;
     };
 
     struct PointLightComponent

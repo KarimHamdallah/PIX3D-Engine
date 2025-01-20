@@ -20,6 +20,7 @@
 #include <Platfrom/Vulkan/VulkanGraphicsContext.h>
 #include <Platfrom/Vulkan/VulkanSceneRenderer.h>
 #include <Platfrom/Vulkan/VulkanImGuiPass.h>
+#include <Asset/AssetManager.h>
 
 namespace PIX3D
 {
@@ -125,6 +126,8 @@ namespace PIX3D
 		static void Destroy()
 		{
 			s_Application->OnDestroy();
+
+			PIX3D::AssetManager::Get().Destroy();
 
 			if (s_EngineSpecs.API == GraphicsAPI::OPENGL)
 			{

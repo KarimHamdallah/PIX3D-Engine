@@ -12,6 +12,8 @@ void EditorLayer::OnStart()
     m_HierarchyWidget = new HierarchyWidget(m_Scene);
     m_InspectorWidget = new InspectorWidget(m_Scene, m_HierarchyWidget);
     m_MaterialWidget = new MaterialWidget(m_Scene, m_HierarchyWidget);
+    m_AssetWidget = new AssetWidget();
+
 
     auto& CurrentProj = Engine::GetCurrentProjectRef();
     int x = 0;
@@ -27,6 +29,22 @@ void EditorLayer::OnUpdate(float dt)
         ShowMouseCursor = false;
     else if (PIX3D::Input::IsKeyPressed(PIX3D::KeyCode::Escape))
         ShowMouseCursor = true;
+
+    // Check for widget toggles using IsKeyPressedOnce
+    if (Input::IsKeyPressedOnce(KeyCode::KB_1))
+        m_ShowLightningWidget = !m_ShowLightningWidget;
+
+    if (Input::IsKeyPressedOnce(KeyCode::KB_2))
+        m_ShowHierarchyWidget = !m_ShowHierarchyWidget;
+
+    if (Input::IsKeyPressedOnce(KeyCode::KB_3))
+        m_ShowInspectorWidget = !m_ShowInspectorWidget;
+
+    if (Input::IsKeyPressedOnce(KeyCode::KB_4))
+        m_ShowMaterialWidget = !m_ShowMaterialWidget;
+
+    if (Input::IsKeyPressedOnce(KeyCode::KB_5))
+        m_ShowAssetWidget = !m_ShowAssetWidget;
 
     PIX3D::Engine::GetPlatformLayer()->ShowCursor(ShowMouseCursor);
 
@@ -68,6 +86,8 @@ void EditorLayer::OnDestroy()
     m_InspectorWidget = nullptr;
     delete m_MaterialWidget;
     m_MaterialWidget = nullptr;
+    delete m_AssetWidget;
+    m_AssetWidget = nullptr;
     delete m_Scene;
     m_Scene = nullptr;
 }
@@ -165,6 +185,13 @@ void EditorLayer::RenderMenuBar()
             }
             ImGui::PopStyleColor();
 
+            ImGui::PushStyleColor(ImGuiCol_Text, m_ShowAssetWidget ? ImVec4(1.0f, 0.0f, 0.0f, 1.0f) : ImVec4(0.0f, 1.0f, 0.0f, 1.0f));
+            if (ImGui::MenuItem("Asset"))
+            {
+                m_ShowAssetWidget = !m_ShowAssetWidget;
+            }
+            ImGui::PopStyleColor();
+
             ImGui::EndMenu();
         }
 
@@ -182,4 +209,6 @@ void EditorLayer::RenderWidgets()
         m_InspectorWidget->OnRender();
     if (m_ShowMaterialWidget)
         m_MaterialWidget->OnRender();
+    if (m_ShowAssetWidget)
+        m_AssetWidget->OnRender();
 }

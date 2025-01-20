@@ -9,6 +9,7 @@ namespace PIX3D
 {
     void VulkanStaticMesh::Load(const std::string& path, float scale)
     {
+        m_Type = AssetType::StaticMesh;
         m_Path = path;
         m_Scale = scale;
 

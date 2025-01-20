@@ -3,6 +3,7 @@
 #include "../Editor Widgets/LightningWidget.h"
 #include "../Editor Widgets/InspectorWidget.h"
 #include "../Editor Widgets/MaterialWidget.h"
+#include "../Editor Widgets/AssetWidget.h"
 #include "../Layers/LauncherLayer.h"
 
 class EditorLayer : public Layer
@@ -25,12 +26,14 @@ private:
     bool m_ShowHierarchyWidget = false;
     bool m_ShowInspectorWidget = false;
     bool m_ShowMaterialWidget = false;
+    bool m_ShowAssetWidget = false;
 
     PIX3D::Scene* m_Scene = nullptr;
     LightningWidget* m_LightningWidget = nullptr;
     HierarchyWidget* m_HierarchyWidget = nullptr;
     InspectorWidget* m_InspectorWidget = nullptr;
     MaterialWidget* m_MaterialWidget = nullptr;
+    AssetWidget* m_AssetWidget = nullptr;
 
     bool ShowMouseCursor = true;
 };

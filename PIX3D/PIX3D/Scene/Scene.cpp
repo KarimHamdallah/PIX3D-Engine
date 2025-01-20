@@ -1,5 +1,7 @@
 #include "Scene.h"
 #include <Platfrom/Vulkan/VulkanSystems.h>
+#include <Engine/Engine.hpp>
+#include <fstream>
 
 namespace PIX3D
 {
@@ -16,12 +18,12 @@ namespace PIX3D
         return (uint32_t)entity;
     }
 
-    uint32_t Scene::AddStaticMesh(const std::string& name, const TransformData& transform, VulkanStaticMesh& mesh)
+    uint32_t Scene::AddStaticMesh(const std::string& name, const TransformData& transform, PIX3D::UUID asset_id)
     {
         const auto entity = m_Registry.create();
         m_Registry.emplace<TagComponent>(entity, name);
         m_Registry.emplace<TransformComponent>(entity, transform.Position, transform.Rotation, transform.Scale);
-        m_Registry.emplace<StaticMeshComponent>(entity, mesh);
+        m_Registry.emplace<StaticMeshComponent>(entity, asset_id);
 
         return (uint32_t)entity;
     }
@@ -147,5 +149,78 @@ namespace PIX3D
         }
 
         VK::VulkanSceneRenderer::End();
+    }
+
+    void Scene::CollectReferencedAssets()
+    {
+        m_ReferencedAssets.clear();
+
+        // Collect all static mesh assets
+        auto view = m_Registry.view<StaticMeshComponent>();
+        for (auto entity : view)
+        {
+            auto& meshComp = view.get<StaticMeshComponent>(entity);
+            if (meshComp.m_AssetID != 0)
+            {
+                m_ReferencedAssets.insert(meshComp.m_AssetID);
+            }
+        }
+    }
+
+    void Scene::SerializeReferencedAssets()
+    {
+        auto& project = PIX3D::Engine::GetCurrentProjectRef();
+        auto assetPath = project.GetAssetsPath();
+
+        // First collect all referenced assets
+        CollectReferencedAssets();
+
+        // Save each referenced asset
+        for (const auto& assetID : m_ReferencedAssets)
+        {
+            if (auto* mesh = AssetManager::Get().GetStaticMesh(assetID))
+            {
+                // Create assets folder if it doesn't exist
+                std::filesystem::create_directories(assetPath);
+
+                // Copy the original file to project's asset folder
+                std::filesystem::path originalPath = mesh->GetPath();
+                std::filesystem::path destPath = assetPath / originalPath.filename();
+
+                if (!std::filesystem::exists(destPath))
+                {
+                    try
+                    {
+                        std::filesystem::copy_file(originalPath, destPath,
+                            std::filesystem::copy_options::overwrite_existing);
+                    }
+                    catch (const std::exception& e)
+                    {
+                        PIX_DEBUG_ERROR_FORMAT("Failed to copy asset file: {0}", e.what());
+                    }
+                }
+            }
+        }
+
+        // Save asset manifest
+        json assetManifest;
+        assetManifest["assets"] = json::array();
+
+        for (const auto& assetID : m_ReferencedAssets)
+        {
+            if (auto* mesh = AssetManager::Get().GetStaticMesh(assetID))
+            {
+                json assetEntry;
+                assetEntry["uuid"] = (uint64_t)assetID;
+                assetEntry["type"] = "StaticMesh";
+                assetEntry["path"] = mesh->GetPath().filename().string();
+                assetEntry["scale"] = mesh->m_Scale;
+                assetManifest["assets"].push_back(assetEntry);
+            }
+        }
+
+        // Save manifest to project
+        std::ofstream manifestFile(assetPath / "asset_manifest.json");
+        manifestFile << std::setw(4) << assetManifest << std::endl;
     }
 }

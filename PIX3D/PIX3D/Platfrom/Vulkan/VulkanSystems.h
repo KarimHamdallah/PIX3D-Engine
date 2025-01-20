@@ -2,6 +2,8 @@
 #include <Utils/entt.hpp>
 #include <Scene/Scene.h>
 #include "VulkanSceneRenderer.h"
+#include <Asset/AssetManager.h>
+#include <Core/Core.h>
 
 namespace PIX3D
 {
@@ -13,7 +15,13 @@ namespace PIX3D
             auto view = scene->m_Registry.view<TransformComponent, StaticMeshComponent>();
             view.each([scene](TransformComponent& transform, StaticMeshComponent& mesh)
                 {
-                    VK::VulkanSceneRenderer::RenderMesh(scene, mesh.m_Mesh, transform.GetTransformMatrix());
+                    if (mesh.m_AssetID != 0) // valid asset
+                    {
+                        VulkanStaticMesh* StaticMesh = AssetManager::Get().GetStaticMesh(mesh.m_AssetID);
+                        PIX_ASSERT(StaticMesh);
+                        if(StaticMesh)
+                            VK::VulkanSceneRenderer::RenderMesh(scene, *StaticMesh, transform.GetTransformMatrix());
+                    }
                 });
         }
     };

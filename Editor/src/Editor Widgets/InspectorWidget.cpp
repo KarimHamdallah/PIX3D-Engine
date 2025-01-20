@@ -2,6 +2,7 @@
 //#include <imGuIZMO.quat/imGuIZMOquat.h>
 #include <imgui.h>
 #include <imgui_internal.h>
+#include <Asset/AssetManager.h>
 
 namespace
 {
@@ -157,15 +158,58 @@ void InspectorWidget::OnRender()
         {
             if (ImGui::CollapsingHeader("Static Mesh", ImGuiTreeNodeFlags_DefaultOpen))
             {
-                // Add mesh properties like path, scale factor etc.
-                if (ImGui::Button("Load Mesh"))
+                // Get current mesh info and setup colors
+                std::string buttonLabel = "Drop Mesh Here";
+                bool hasMesh = false;
+
+                if (auto* currentMesh = AssetManager::Get().GetStaticMesh(mesh->m_AssetID))
                 {
-                    auto* platform = PIX3D::Engine::GetPlatformLayer();
-                    std::filesystem::path filepath = platform->OpenDialogue(PIX3D::FileDialougeFilter::GLTF);
-                    if (!filepath.empty())
+                    buttonLabel = currentMesh->GetPath().filename().string();
+                    hasMesh = true;
+                }
+
+                // Drop target button with mesh name or default text
+                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10, 10));
+
+                // Color based on mesh presence
+                if (hasMesh)
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.7f, 0.2f, 1.0f));  // Green for valid mesh
+                else
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.7f, 0.2f, 0.2f, 1.0f));  // Red for no mesh
+
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.3f, 0.3f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.25f, 0.25f, 0.25f, 1.0f));
+
+                ImGui::Button(buttonLabel.c_str(), ImVec2(ImGui::GetContentRegionAvail().x, 40));
+
+                ImGui::PopStyleColor(3);
+                ImGui::PopStyleVar();
+
+                // Handle drag and drop
+                if (ImGui::BeginDragDropTarget())
+                {
+                    if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_STATIC_MESH"))
                     {
-                        mesh->m_Mesh.Load(filepath.string(), 1.0f);
+                        PIX3D::UUID* draggedAssetId = (PIX3D::UUID*)payload->Data;
+                        mesh->m_AssetID = *draggedAssetId;
                     }
+                    ImGui::EndDragDropTarget();
+                }
+
+                // Only show Clear button if we have a mesh
+                if (hasMesh)
+                {
+                    float clearButtonWidth = 60.0f;
+                    ImGui::SetCursorPosX(ImGui::GetContentRegionAvail().x - clearButtonWidth);
+
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.7f, 0.1f, 0.3f, 1.0f));  // Unique color for clear
+                    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f, 0.2f, 0.4f, 1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.6f, 0.1f, 0.2f, 1.0f));
+
+                    if (ImGui::Button("Clear", ImVec2(clearButtonWidth, 0)))
+                        mesh->m_AssetID = 0;
+
+                    ImGui::PopStyleColor(3);
                 }
             }
         }
@@ -178,13 +222,13 @@ void InspectorWidget::OnRender()
             {
                 if (ImGui::ColorEdit4("Color", &sprite->m_Material->m_Data->color.x))
                     data_changed = true;
-                if(ImGui::DragFloat("Tiling Factor", &sprite->m_Material->m_Data->tiling_factor, 0.1f, 0.0f, 100.0f))
+                if (ImGui::DragFloat("Tiling Factor", &sprite->m_Material->m_Data->tiling_factor, 0.1f, 0.0f, 100.0f))
                     data_changed = true;
 
                 // Texture preview and change button
                 ImVec2 availableRegion = ImGui::GetContentRegionAvail();
                 ImGui::Image((ImTextureID)sprite->m_Material->m_Texture->GetImGuiDescriptorSet(),
-                        { 256.0f, 256.0f }, { 0, 0 }, { 1, 1 });
+                    { 256.0f, 256.0f }, { 0, 0 }, { 1, 1 });
 
                 if (ImGui::Button("Set Texture"))
                 {

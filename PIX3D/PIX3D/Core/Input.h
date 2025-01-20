@@ -23,10 +23,14 @@ namespace PIX3D
 		static glm::vec2 GetMouseScroll() { return MouseScroll; }
 
 		static void ResetInput();
+
+		static bool IsKeyPressedOnce(KeyCode keycode);
 	
 	private:
 		inline static glm::vec2 MousePosition;
 		inline static glm::vec2 MouseOffset;
 		inline static glm::vec2 MouseScroll;
+
+		inline static std::unordered_map<int, bool> s_LastFrameKeys;
 	};
 }

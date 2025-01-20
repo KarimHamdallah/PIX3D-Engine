@@ -10,15 +10,8 @@ void HierarchyWidget::OnRender()
     {
         if (ImGui::MenuItem("Add Static Mesh"))
         {
-            auto* platform = PIX3D::Engine::GetPlatformLayer();
-            std::filesystem::path filepath = platform->OpenDialogue(PIX3D::FileDialougeFilter::GLTF);
-            if (!filepath.empty() && (filepath.extension().string() == ".gltf" || filepath.extension().string() == ".glb" || filepath.extension().string() == ".obj"))
-            {
-                VulkanStaticMesh mesh;
-                mesh.Load(filepath.string(), 1.0f);
-                TransformData transform;
-                m_Scene->AddStaticMesh("New Mesh", transform, mesh);
-            }
+            TransformData transform;
+            m_Scene->AddStaticMesh("New Mesh", transform);
         }
 
         if (ImGui::MenuItem("Add Sprite"))

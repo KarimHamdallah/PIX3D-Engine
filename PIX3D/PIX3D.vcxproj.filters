@@ -222,6 +222,9 @@
     <ClCompile Include="PIX3D\Scene\SceneSerializer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="PIX3D\Asset\AssetManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="PIX3D\Platfrom\Platform.h">
@@ -495,6 +498,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="PIX3D\Core\UUID.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PIX3D\Asset\Asset.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PIX3D\Asset\AssetManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

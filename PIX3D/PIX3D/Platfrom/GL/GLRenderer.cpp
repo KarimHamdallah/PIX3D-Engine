@@ -111,6 +111,7 @@ namespace PIX3D
 						s_DirShadowpass.m_SimpleDepthShader.Bind();
 						s_DirShadowpass.m_SimpleDepthShader.SetMat4("model", transform.GetTransformMatrix());
 
+						/*
 						// draw meshes
 						for (size_t i = 0; i < mesh.m_Mesh.m_SubMeshes.size(); i++)
 						{
@@ -119,6 +120,7 @@ namespace PIX3D
 							//mesh.m_Mesh.GetVertexArray().Bind();
 							PIX3D::GL::GLCommands::DrawIndexedBaseVertex(PIX3D::GL::Primitive::TRIANGLES, submesh.IndicesCount, submesh.BaseIndex, submesh.BaseVertex);
 						}
+						*/
 					});
 			}
 			s_DirShadowpass.EndRender();

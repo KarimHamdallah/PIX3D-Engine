@@ -7,6 +7,7 @@
 #include <Platfrom/Vulkan/VulkanDescriptorSetLayout.h>
 #include <Platfrom/Vulkan/VulkanDescriptorSet.h>
 #include <Platfrom/Vulkan/VulkanIndexBuffer.h>
+#include <Asset/Asset.h>
 
 namespace PIX3D
 {
@@ -115,7 +116,7 @@ namespace PIX3D
         uint32_t MaterialIndex = 0;
     };
 
-    class VulkanStaticMesh
+    class VulkanStaticMesh : public Asset
     {
     public:
         VulkanStaticMesh() = default;
@@ -132,13 +133,25 @@ namespace PIX3D
 
         VK::VulkanDescriptorSet& GetDescriptorSet(size_t index) { return m_DescriptorSets[index]; }
 
+        virtual void Serialize(json& j) const override
+        {
+            j["path"] = m_Path.string();
+            j["scale"] = m_Scale;
+        }
+
+        virtual void Deserialize(const json& j) override
+        {
+            std::string path = j["path"].get<std::string>();
+            float scale = j["scale"].get<float>();
+            Load(path, scale);
+        }
+
     private:
         void ProcessNode(aiNode* node, const aiScene* scene);
         VulkanStaticSubMesh ProcessMesh(aiMesh* mesh, const aiScene* scene);
         void LoadGpuData();
 
     public:
-        std::filesystem::path m_Path;
         float m_Scale = 1.0f;
 
         std::vector<VulkanStaticMeshVertex> m_Vertices;

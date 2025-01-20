@@ -1,4 +1,5 @@
 #include "MaterialWidget.h"
+#include <Asset/AssetManager.h>
 #include <imgui.h>
 
 void MaterialWidget::OnRender()
@@ -24,15 +25,17 @@ void MaterialWidget::OnRender()
             ImGui::Separator();
         }
 
+        auto& m_Mesh = *PIX3D::AssetManager::Get().GetStaticMesh(meshComponent->m_AssetID);
+
         // Display materials for each submesh
-        for (size_t i = 0; i < meshComponent->m_Mesh.m_SubMeshes.size(); i++)
+        for (size_t i = 0; i < m_Mesh.m_SubMeshes.size(); i++)
         {
-            auto& subMesh = meshComponent->m_Mesh.m_SubMeshes[i];
+            auto& subMesh = m_Mesh.m_SubMeshes[i];
             if (subMesh.MaterialIndex < 0)
                 continue;
 
             ImGui::PushID(static_cast<int>(i));
-            auto& material = meshComponent->m_Mesh.m_Materials[subMesh.MaterialIndex];
+            auto& material = m_Mesh.m_Materials[subMesh.MaterialIndex];
             DrawMaterialUI(meshComponent, material, i);
             ImGui::PopID();
         }
@@ -48,6 +51,8 @@ void MaterialWidget::OnRender()
 
 void MaterialWidget::DrawMaterialUI(StaticMeshComponent* meshComponent, PIX3D::VulkanBaseColorMaterial& material, size_t submeshIndex)
 {
+    auto& m_Mesh = *PIX3D::AssetManager::Get().GetStaticMesh(meshComponent->m_AssetID);
+
     if (!ImGui::CollapsingHeader(material.Name.c_str(), ImGuiTreeNodeFlags_DefaultOpen))
         return;
 
@@ -75,7 +80,7 @@ void MaterialWidget::DrawMaterialUI(StaticMeshComponent* meshComponent, PIX3D::V
             {
                 PendingTextureLoad load;
                 load.submeshIndex = submeshIndex;
-                load.materialIndex = meshComponent->m_Mesh.m_SubMeshes[submeshIndex].MaterialIndex;
+                load.materialIndex = m_Mesh.m_SubMeshes[submeshIndex].MaterialIndex;
                 load.type = PendingTextureLoad::TextureType::Albedo;
                 m_PendingTextureLoads.push_back(load);
             }
@@ -97,7 +102,7 @@ void MaterialWidget::DrawMaterialUI(StaticMeshComponent* meshComponent, PIX3D::V
             {
                 PendingTextureLoad load;
                 load.submeshIndex = submeshIndex;
-                load.materialIndex = meshComponent->m_Mesh.m_SubMeshes[submeshIndex].MaterialIndex;
+                load.materialIndex = m_Mesh.m_SubMeshes[submeshIndex].MaterialIndex;
                 load.type = PendingTextureLoad::TextureType::Normal;
                 m_PendingTextureLoads.push_back(load);
             }
@@ -122,7 +127,7 @@ void MaterialWidget::DrawMaterialUI(StaticMeshComponent* meshComponent, PIX3D::V
             {
                 PendingTextureLoad load;
                 load.submeshIndex = submeshIndex;
-                load.materialIndex = meshComponent->m_Mesh.m_SubMeshes[submeshIndex].MaterialIndex;
+                load.materialIndex = m_Mesh.m_SubMeshes[submeshIndex].MaterialIndex;
                 load.type = PendingTextureLoad::TextureType::MetallicRoughness;
                 m_PendingTextureLoads.push_back(load);
             }
@@ -146,7 +151,7 @@ void MaterialWidget::DrawMaterialUI(StaticMeshComponent* meshComponent, PIX3D::V
             {
                 PendingTextureLoad load;
                 load.submeshIndex = submeshIndex;
-                load.materialIndex = meshComponent->m_Mesh.m_SubMeshes[submeshIndex].MaterialIndex;
+                load.materialIndex = m_Mesh.m_SubMeshes[submeshIndex].MaterialIndex;
                 load.type = PendingTextureLoad::TextureType::AO;
                 m_PendingTextureLoads.push_back(load);
             }
@@ -170,7 +175,7 @@ void MaterialWidget::DrawMaterialUI(StaticMeshComponent* meshComponent, PIX3D::V
             {
                 PendingTextureLoad load;
                 load.submeshIndex = submeshIndex;
-                load.materialIndex = meshComponent->m_Mesh.m_SubMeshes[submeshIndex].MaterialIndex;
+                load.materialIndex = m_Mesh.m_SubMeshes[submeshIndex].MaterialIndex;
                 load.type = PendingTextureLoad::TextureType::Emissive;
                 m_PendingTextureLoads.push_back(load);
             }
@@ -183,9 +188,11 @@ void MaterialWidget::DrawMaterialUI(StaticMeshComponent* meshComponent, PIX3D::V
 
     if (materialModified)
     {
+
         if (auto* meshComp = m_Scene->m_Registry.try_get<PIX3D::StaticMeshComponent>(m_HierarchyWidget->GetSelectedEntity()))
         {
-            meshComp->m_Mesh.FillMaterialBuffer();
+            auto& m_Mesh = *PIX3D::AssetManager::Get().GetStaticMesh(meshComponent->m_AssetID);
+            m_Mesh.FillMaterialBuffer();
         }
     }
 }
@@ -208,14 +215,17 @@ void MaterialWidget::PostFrameProcesses()
     for (const auto& load : m_PendingTextureLoads)
     {
         // Validate indices
-        if (load.submeshIndex >= meshComponent->m_Mesh.m_SubMeshes.size())
+
+        auto& m_Mesh = *PIX3D::AssetManager::Get().GetStaticMesh(meshComponent->m_AssetID);
+
+        if (load.submeshIndex >= m_Mesh.m_SubMeshes.size())
             continue;
 
-        auto& subMesh = meshComponent->m_Mesh.m_SubMeshes[load.submeshIndex];
+        auto& subMesh = m_Mesh.m_SubMeshes[load.submeshIndex];
         if (subMesh.MaterialIndex < 0 || subMesh.MaterialIndex != load.materialIndex)
             continue;
 
-        auto& material = meshComponent->m_Mesh.m_Materials[subMesh.MaterialIndex];
+        auto& material = m_Mesh.m_Materials[subMesh.MaterialIndex];
 
         // Open file dialog
         std::filesystem::path filepath = platform->OpenDialogue(PIX3D::FileDialougeFilter::PNG);
@@ -262,7 +272,7 @@ void MaterialWidget::PostFrameProcesses()
         }
         }
 
-        meshComponent->m_Mesh.FillMaterialBuffer();
+        m_Mesh.FillMaterialBuffer();
     }
 
     m_PendingTextureLoads.clear();
