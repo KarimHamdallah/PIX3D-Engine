@@ -217,33 +217,86 @@ void InspectorWidget::OnRender()
         // Sprite Component
         if (auto* sprite = m_Scene->m_Registry.try_get<SpriteComponent>(selectedEntity))
         {
-            bool data_changed = false;
             if (ImGui::CollapsingHeader("Sprite", ImGuiTreeNodeFlags_DefaultOpen))
             {
+                bool data_changed = false;
+
                 if (ImGui::ColorEdit4("Color", &sprite->m_Material->m_Data->color.x))
                     data_changed = true;
                 if (ImGui::DragFloat("Tiling Factor", &sprite->m_Material->m_Data->tiling_factor, 0.1f, 0.0f, 100.0f))
                     data_changed = true;
 
-                // Texture preview and change button
-                ImVec2 availableRegion = ImGui::GetContentRegionAvail();
-                ImGui::Image((ImTextureID)sprite->m_Material->m_Texture->GetImGuiDescriptorSet(),
-                    { 256.0f, 256.0f }, { 0, 0 }, { 1, 1 });
+                ImGui::Separator();
 
-                if (ImGui::Button("Set Texture"))
+                // Preview area with drag/drop
+                ImVec2 availableRegion = ImGui::GetContentRegionAvail();
+                auto* texture = sprite->m_Material->GetTexture();
+
+                // Calculate centered position
+                float previewSize = 64.0f;
+                float aspect = texture ? ((float)texture->GetWidth() / texture->GetHeight()) : 1.0f;
+                float previewWidth = previewSize;
+                float previewHeight = previewSize / aspect;
+                float centerX = ImGui::GetCursorPosX() + (availableRegion.x - previewWidth) * 0.5f;
+                ImGui::SetCursorPosX(centerX);
+
+                // Draw image with border if no texture
+                if (!texture)
                 {
-                    SpriteComponentChangeTexture = true;
-                    data_changed = true;
+                    ImGui::GetWindowDrawList()->AddRect(
+                        ImGui::GetCursorScreenPos(),
+                        ImVec2(ImGui::GetCursorScreenPos().x + previewWidth, ImGui::GetCursorScreenPos().y + previewHeight),
+                        ImGui::GetColorU32(ImVec4(0.7f, 0.2f, 0.2f, 1.0f)),
+                        0.0f, 0, 2.0f
+                    );
+                    ImGui::Dummy(ImVec2(previewWidth, previewHeight));
+                }
+                else
+                {
+                    ImGui::Image((ImTextureID)texture->GetImGuiDescriptorSet(),
+                        ImVec2(previewWidth, previewHeight));
                 }
 
-                ImGui::SameLine();
+                // Make the image area droppable
+                if (ImGui::BeginDragDropTarget())
+                {
+                    if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_TEXTURE"))
+                    {
+                        PIX3D::UUID* draggedTextureId = (PIX3D::UUID*)payload->Data;
+                        m_DroppedTextureUUID = *draggedTextureId;
+                        m_SpriteTextureDropped = true;
+                        data_changed = true;
+                    }
+                    ImGui::EndDragDropTarget();
+                }
+
+                // Clear button
+                if (texture)
+                {
+                    float clearButtonWidth = 60.0f;
+                    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + availableRegion.x - clearButtonWidth);
+
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.7f, 0.1f, 0.3f, 1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f, 0.2f, 0.4f, 1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.6f, 0.1f, 0.2f, 1.0f));
+
+                    if (ImGui::Button("Clear"))
+                    {
+                        m_DroppedTextureUUID = 0;
+                        m_SpriteTextureDropped = true;
+                        data_changed = true;
+                    }
+                    ImGui::PopStyleColor(3);
+                }
+
+                ImGui::Separator();
+
                 bool flip = sprite->m_Material->m_Data->flip;
                 if (ImGui::Checkbox("Flip", &flip))
                 {
                     sprite->m_Material->m_Data->flip = flip;
                     data_changed = true;
                 }
-
 
                 if (data_changed)
                     sprite->m_Material->UpdateBuffer();
@@ -284,25 +337,13 @@ void InspectorWidget::OnRender()
             }
         }
 
+        // Sprite Animator Component
         if (auto* animator = m_Scene->m_Registry.try_get<SpriteAnimatorComponent>(selectedEntity))
         {
             if (ImGui::CollapsingHeader("Sprite Animator", ImGuiTreeNodeFlags_DefaultOpen))
             {
                 bool data_changed = false;
 
-                // Texture preview
-                if (animator->m_Material && animator->m_Material->GetTexture())
-                {
-                    ImGui::Image
-                    (
-                        (ImTextureID)animator->m_Material->GetTexture()->GetImGuiDescriptorSet(),
-                        { 256.0f, 64.0f },
-                        { 0, 0 },
-                        { 1, 1 }
-                    );
-                }
-
-                // Material properties
                 if (ImGui::ColorEdit4("Color", &animator->m_Color.x))
                 {
                     animator->m_Material->m_Data->color = animator->m_Color;
@@ -315,17 +356,72 @@ void InspectorWidget::OnRender()
                     data_changed = true;
                 }
 
-                if (ImGui::Checkbox("Flip", &animator->m_Flip))
+                ImGui::Separator();
+
+                // Preview area with drag/drop
+                ImVec2 availableRegion = ImGui::GetContentRegionAvail();
+                auto* texture = animator->m_Material->GetTexture();
+
+                float previewHeight = 30.0f;
+                float aspect = texture ? ((float)texture->GetWidth() / texture->GetHeight()) : 4.0f;
+                float previewWidth = 350;//previewHeight * aspect;
+                float centerX = ImGui::GetCursorPosX() + (availableRegion.x - previewWidth) * 0.5f;
+                ImGui::SetCursorPosX(centerX);
+
+                // Draw placeholder if no texture
+                if (!texture)
                 {
-                    animator->m_Material->m_Data->flip = animator->m_Flip;
-                    data_changed = true;
+                    ImGui::GetWindowDrawList()->AddRect(
+                        ImGui::GetCursorScreenPos(),
+                        ImVec2(ImGui::GetCursorScreenPos().x + previewWidth, ImGui::GetCursorScreenPos().y + previewHeight),
+                        ImGui::GetColorU32(ImVec4(0.7f, 0.2f, 0.2f, 1.0f)),
+                        0.0f, 0, 2.0f
+                    );
+                    ImGui::Dummy(ImVec2(previewWidth, previewHeight));
+                }
+                else
+                {
+                    ImGui::Image((ImTextureID)texture->GetImGuiDescriptorSet(),
+                        ImVec2(previewWidth, previewHeight));
                 }
 
-                if (ImGui::Button("Set Sprite Sheet"))
+                // Make the image area droppable
+                if (ImGui::BeginDragDropTarget())
                 {
-                    SpriteAnimatorComponentChangeTexture = true;
-                    data_changed = true;
+                    if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_TEXTURE"))
+                    {
+                        PIX3D::UUID* draggedTextureId = (PIX3D::UUID*)payload->Data;
+                        m_DroppedTextureUUID = *draggedTextureId;
+                        m_SpriteAnimatorTextureDropped = true;
+                        animator->m_CurrentFrame = 0;
+                        animator->m_CurrentTime = 0.0f;
+                        data_changed = true;
+                    }
+                    ImGui::EndDragDropTarget();
                 }
+
+                // Clear button if we have a texture
+                if (texture)
+                {
+                    float clearButtonWidth = 60.0f;
+                    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + availableRegion.x - clearButtonWidth);
+
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.7f, 0.1f, 0.3f, 1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f, 0.2f, 0.4f, 1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.6f, 0.1f, 0.2f, 1.0f));
+
+                    if (ImGui::Button("Clear"))
+                    {
+                        m_DroppedTextureUUID = 0;
+                        m_SpriteAnimatorTextureDropped = true;
+                        animator->m_CurrentFrame = 0;
+                        animator->m_CurrentTime = 0.0f;
+                        data_changed = true;
+                    }
+                    ImGui::PopStyleColor(3);
+                }
+
+                ImGui::Separator();
 
                 // Animation controls
                 if (ImGui::DragInt("Frame Count", &animator->m_FrameCount, 1, 1, 32))
@@ -335,6 +431,14 @@ void InspectorWidget::OnRender()
                 }
 
                 ImGui::DragFloat("Frame Time", &animator->m_FrameTime, 0.01f, 0.01f, 1.0f, "%.3f");
+
+                if (ImGui::Checkbox("Flip", &animator->m_Flip))
+                {
+                    animator->m_Material->m_Data->flip = animator->m_Flip;
+                    data_changed = true;
+                }
+
+                ImGui::Separator();
 
                 // Playback controls
                 if (ImGui::Button(animator->m_IsPlaying ? "Pause" : "Play"))
@@ -349,6 +453,7 @@ void InspectorWidget::OnRender()
                     data_changed = true;
                 }
 
+                ImGui::SameLine();
                 ImGui::Checkbox("Loop", &animator->m_Loop);
 
                 // Current frame display
@@ -366,49 +471,27 @@ void InspectorWidget::OnRender()
 
 void InspectorWidget::PostFrameProcesses()
 {
-
     auto selectedEntity = m_HierarchyWidget->GetSelectedEntity();
-
     if (selectedEntity != entt::null)
     {
-        if (SpriteAnimatorComponentChangeTexture)
-        {
-            if (auto* animator = m_Scene->m_Registry.try_get<SpriteAnimatorComponent>(selectedEntity))
-            {
-                auto* platform = PIX3D::Engine::GetPlatformLayer();
-                std::filesystem::path filepath = platform->OpenDialogue(PIX3D::FileDialougeFilter::PNG);
-                if (!filepath.empty())
-                {
-                    auto* new_texture = new VK::VulkanTexture();
-                    new_texture->LoadFromFile(filepath.string(), false, true);
-
-                    // Update material's texture
-                    animator->m_Material->ChangeTexture(new_texture);
-                    
-                    // Reset animation
-                    animator->m_CurrentFrame = 0;
-                    animator->m_CurrentTime = 0.0f;
-                }
-
-                SpriteAnimatorComponentChangeTexture = false;
-            }
-        }
-
-        if (SpriteComponentChangeTexture)
+        if (m_SpriteTextureDropped)
         {
             if (auto* sprite = m_Scene->m_Registry.try_get<SpriteComponent>(selectedEntity))
             {
-                auto* platform = PIX3D::Engine::GetPlatformLayer();
-                std::filesystem::path filepath = platform->OpenDialogue(PIX3D::FileDialougeFilter::PNG);
-                if (!filepath.empty())
-                {
-                    auto* new_texture = new VK::VulkanTexture();
-                    new_texture->LoadFromFile(filepath.string(), false, true);
-                    sprite->m_Material->ChangeTexture(new_texture);
-                }
-
-                SpriteComponentChangeTexture = false;
+                sprite->m_Material->ChangeTexture(m_DroppedTextureUUID);
             }
+            m_SpriteTextureDropped = false;
+        }
+
+        if (m_SpriteAnimatorTextureDropped)
+        {
+            if (auto* animator = m_Scene->m_Registry.try_get<SpriteAnimatorComponent>(selectedEntity))
+            {
+                animator->m_Material->ChangeTexture(m_DroppedTextureUUID);
+                animator->m_CurrentFrame = 0;
+                animator->m_CurrentTime = 0.0f;
+            }
+            m_SpriteAnimatorTextureDropped = false;
         }
     }
 }

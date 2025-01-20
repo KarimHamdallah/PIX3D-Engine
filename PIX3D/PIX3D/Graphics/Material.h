@@ -21,18 +21,18 @@ namespace PIX3D
             alignas(4) int apply_uv_scale_and_offset; // 4 bytes
         };
     public:
-        void Create(VK::VulkanTexture* texture = nullptr);
+        void Create(PIX3D::UUID uuid);
         void Destroy();
 
-        void ChangeTexture(VK::VulkanTexture* new_texture);
+        void ChangeTexture(PIX3D::UUID uuid);
+        VK::VulkanTexture* GetTexture();
 
-        VK::VulkanTexture* GetTexture() { return m_Texture; }
         VkDescriptorSet GetVKDescriptorSet() { return m_DescriptorSet.GetVkDescriptorSet(); }
         void UpdateBuffer();
         void DestroyAccumelatedTextures();
     public:
         _ShadereData* m_Data;
-        VK::VulkanTexture* m_Texture = nullptr;
+        PIX3D::UUID m_TextureUUID;
         VK::VulkanDescriptorSet m_DescriptorSet;
         VK::VulkanShaderStorageBuffer m_DataBuffer;
 

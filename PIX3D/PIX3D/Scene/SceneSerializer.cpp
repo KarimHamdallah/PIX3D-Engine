@@ -20,6 +20,28 @@ namespace PIX3D
             }
         }
 
+        // Collect all sprite textures
+        auto spriteView = m_Scene->m_Registry.view<SpriteComponent>();
+        for (auto entity : spriteView)
+        {
+            auto& spriteComp = spriteView.get<SpriteComponent>(entity);
+            if (spriteComp.m_Material->m_TextureUUID != PIX3D::UUID(0))
+            {
+                m_ReferencedAssets.insert(spriteComp.m_Material->m_TextureUUID);
+            }
+        }
+
+        // Collect all sprite animator textures
+        auto animView = m_Scene->m_Registry.view<SpriteAnimatorComponent>();
+        for (auto entity : animView)
+        {
+            auto& animComp = animView.get<SpriteAnimatorComponent>(entity);
+            if (animComp.m_Material->m_TextureUUID != PIX3D::UUID(0))
+            {
+                m_ReferencedAssets.insert(animComp.m_Material->m_TextureUUID);
+            }
+        }
+
         // Get project asset path
         auto& project = Engine::GetCurrentProjectRef();
         auto assetPath = project.GetAssetsPath();
@@ -38,34 +60,30 @@ namespace PIX3D
         // Save each referenced asset
         for (const auto& assetID : m_ReferencedAssets)
         {
+            json assetEntry;
+            bool validAsset = false;
+
+            // Try as mesh
             if (auto* mesh = AssetManager::Get().GetStaticMesh(assetID))
             {
-                // Copy asset file to project
-                std::filesystem::path originalPath = mesh->GetPath();
-                std::filesystem::path destPath = assetPath / originalPath.filename();
+                assetEntry["uuid"] = (uint64_t)assetID;
+                assetEntry["type"] = "StaticMesh";
+                assetEntry["path"] = mesh->GetPath().string();
+                assetEntry["scale"] = mesh->m_Scale;
+                validAsset = true;
+            }
+            // Try as texture
+            else if (auto* texture = AssetManager::Get().GetTexture(assetID))
+            {
+                assetEntry["uuid"] = (uint64_t)assetID;
+                assetEntry["type"] = "Texture";
+                assetEntry["path"] = texture->GetPath().string();
+                validAsset = true;
+            }
 
-                try
-                {
-                    /*
-                    if (!std::filesystem::exists(destPath))
-                    {
-                        std::filesystem::copy_file(originalPath, destPath,
-                            std::filesystem::copy_options::overwrite_existing);
-                    }
-                    */
-
-                    // Add to manifest
-                    json assetEntry;
-                    assetEntry["uuid"] = (uint64_t)assetID;
-                    assetEntry["type"] = "StaticMesh";
-                    assetEntry["path"] = originalPath.string();
-                    assetEntry["scale"] = mesh->m_Scale;
-                    assetManifest["assets"].push_back(assetEntry);
-                }
-                catch (const std::exception& e)
-                {
-                    PIX_DEBUG_ERROR_FORMAT("Failed to copy asset {0}: {1}", originalPath.string(), e.what());
-                }
+            if (validAsset)
+            {
+                assetManifest["assets"].push_back(assetEntry);
             }
         }
 
@@ -97,11 +115,15 @@ namespace PIX3D
                 PIX3D::UUID uuid = assetEntry["uuid"].get<uint64_t>();
                 std::string type = assetEntry["type"].get<std::string>();
                 std::filesystem::path assetFilePath = assetEntry["path"].get<std::string>();
-                float scale = assetEntry["scale"].get<float>();
 
-                if (type == "StaticMesh" && std::filesystem::exists(assetFilePath))
+                if (type == "StaticMesh" && FileExists(assetFilePath.string()))
                 {
+                    float scale = assetEntry["scale"].get<float>();
                     AssetManager::Get().LoadStaticMeshUUID(uuid, assetFilePath.string(), scale);
+                }
+                else if (type == "Texture" && FileExists(assetFilePath.string()))
+                {
+                    AssetManager::Get().LoadTextureUUID(uuid, assetFilePath.string(), true, true);
                 }
             }
         }
@@ -211,7 +233,7 @@ namespace PIX3D
                     sprite->m_Material->m_Data->color.a
                 }},
                 {"tilingFactor", sprite->m_Material->m_Data->tiling_factor},
-                {"texturePath", sprite->m_Material->GetTexture()->GetPath().string()}
+                {"asset_id", (uint64_t)sprite->m_Material->m_TextureUUID}
             };
         }
 
@@ -248,7 +270,7 @@ namespace PIX3D
         {
             outJson["type"] = "SpriteAnimation";
             outJson["spriteAnimation"] = {
-                {"spriteSheetPath", spriteAnim->m_Material->m_Texture->GetPath().string()},
+                {"asset_id", (uint64_t)spriteAnim->m_Material->m_TextureUUID},
                 {"frameCount", spriteAnim->m_FrameCount},
                 {"frameTime", spriteAnim->m_FrameTime}
             };
@@ -287,13 +309,12 @@ namespace PIX3D
         {
             const auto& spriteData = entityJson["sprite"];
             const auto& color = spriteData["color"];
+
             SpriteData sprite;
             sprite.Color = { color[0], color[1], color[2], color[3] };
             sprite.TilingFactor = spriteData["tilingFactor"];
-
-            VK::VulkanTexture* texture = new VK::VulkanTexture();
-            texture->LoadFromFile(spriteData["texturePath"], true);
-            sprite.Texture = texture;
+            int64_t texture_uuid = spriteData["asset_id"];
+            sprite.TextureUUID = texture_uuid;
 
             entity = m_Scene->AddSprite(tag, transform, sprite);
         }
@@ -323,13 +344,12 @@ namespace PIX3D
         else if (type == "SpriteAnimation")
         {
             const auto& animData = entityJson["spriteAnimation"];
-            VK::VulkanTexture* spriteSheet = new VK::VulkanTexture();
-            spriteSheet->LoadFromFile(animData["spriteSheetPath"], true);
+            uint64_t texture_uuid = animData["asset_id"];
 
             entity = m_Scene->AddSpriteAnimation(
                 tag,
                 transform,
-                spriteSheet,
+                texture_uuid,
                 animData["frameCount"],
                 animData["frameTime"]
             );

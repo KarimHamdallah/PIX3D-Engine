@@ -14,9 +14,8 @@ public:
 private:
     Scene* m_Scene;
     HierarchyWidget* m_HierarchyWidget;
-    std::vector<VK::VulkanTexture*> m_TexturesToFree;
 
-
-    bool SpriteAnimatorComponentChangeTexture = false;
-    bool SpriteComponentChangeTexture = false;
+    bool m_SpriteTextureDropped = false;
+    bool m_SpriteAnimatorTextureDropped = false;
+    PIX3D::UUID m_DroppedTextureUUID;
 };

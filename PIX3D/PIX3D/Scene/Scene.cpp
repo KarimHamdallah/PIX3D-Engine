@@ -36,7 +36,7 @@ namespace PIX3D
 
 
         SpriteMaterial* Material = new SpriteMaterial();
-        Material->Create(sprite.Texture);
+        Material->Create(sprite.TextureUUID);
         Material->m_Data->color = sprite.Color;
         Material->m_Data->tiling_factor = sprite.TilingFactor;
         Material->UpdateBuffer();
@@ -64,7 +64,7 @@ namespace PIX3D
         return (uint32_t)entity;
     }
 
-    uint32_t Scene::AddSpriteAnimation(const std::string& name, const TransformData& transform, VK::VulkanTexture* spriteSheet, uint32_t frameCount, float frameTime)
+    uint32_t Scene::AddSpriteAnimation(const std::string& name, const TransformData& transform, PIX3D::UUID spriteSheet, uint32_t frameCount, float frameTime)
     {
         const auto entity = m_Registry.create();
         m_Registry.emplace<TagComponent>(entity, name);

@@ -50,7 +50,10 @@ namespace PIX3D
     {
         SpriteComponent() = default;
         SpriteComponent(const SpriteComponent& other) = default;
-        SpriteComponent(SpriteMaterial* material) : m_Material(material) {}
+        SpriteComponent(SpriteMaterial* material)
+            : m_Material(material)
+        {
+        }
 
         ~SpriteComponent()
         {
@@ -104,7 +107,7 @@ namespace PIX3D
     {
         SpriteAnimatorComponent() = default;
         SpriteAnimatorComponent(const SpriteAnimatorComponent& other) = default;
-        SpriteAnimatorComponent(VK::VulkanTexture* spriteSheet, int frameCount, float frameTime)
+        SpriteAnimatorComponent(PIX3D::UUID spriteSheet, int frameCount, float frameTime)
             : m_FrameCount(frameCount), m_FrameTime(frameTime)
         {
             // Create sprite material with spritesheet texture

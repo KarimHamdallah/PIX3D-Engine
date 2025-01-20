@@ -2,10 +2,11 @@
 #include <Platfrom/Vulkan/VulkanSceneRenderer.h>
 #include <Engine/Engine.hpp>
 #include <imgui_impl_vulkan.h>
+#include <Asset/AssetManager.h>
 
 namespace PIX3D
 {
-    void SpriteMaterial::Create(VK::VulkanTexture* texture)
+    void SpriteMaterial::Create(PIX3D::UUID uuid)
     {
         // Create shader storage buffer
         m_DataBuffer.Create(sizeof(_ShadereData));
@@ -23,20 +24,25 @@ namespace PIX3D
         m_Data->apply_uv_scale_and_offset = 0;
         m_Data->use_texture = 1.0f;
 
+        m_TextureUUID = uuid;
+
         // Set up texture
-        if (texture)
-            m_Texture = texture;
+        VK::VulkanTexture* Texture = nullptr;
+        auto* loaded_texture = AssetManager::Get().GetTexture(uuid);
+        
+        if (loaded_texture)
+            Texture = loaded_texture;
         else
-            m_Texture = VK::VulkanSceneRenderer::GetDefaultWhiteTexture();
+            Texture = VK::VulkanSceneRenderer::GetDefaultWhiteTexture();
 
         m_DescriptorSet
             .Init(VK::VulkanSceneRenderer::s_SpriteRenderpass.DescriptorSetLayout)
             .AddShaderStorageBuffer(0, m_DataBuffer)
-            .AddTexture(1, *m_Texture)
+            .AddTexture(1, *Texture)
             .Build();
     }
 
-    void SpriteMaterial::ChangeTexture(VK::VulkanTexture* new_texture)
+    void SpriteMaterial::ChangeTexture(PIX3D::UUID uuid)
     {
         auto* Context = (VK::VulkanGraphicsContext*)Engine::GetGraphicsContext();
         vkQueueWaitIdle(Context->m_Queue.m_Queue);
@@ -44,22 +50,37 @@ namespace PIX3D
         // Destroy old descriptor set since we need to recreate it
         m_DescriptorSet.Destroy();
 
+        m_TextureUUID = uuid;
+        VK::VulkanTexture* Texture = nullptr;
+        auto* loaded_texture = AssetManager::Get().GetTexture(uuid);
+
+        if (loaded_texture)
+            Texture = loaded_texture;
+        else
+            Texture = VK::VulkanSceneRenderer::GetDefaultWhiteTexture();
+
         // Recreate descriptor set with new texture
         m_DescriptorSet
             .Init(VK::VulkanSceneRenderer::s_SpriteRenderpass.DescriptorSetLayout)
             .AddShaderStorageBuffer(0, m_DataBuffer)
-            .AddTexture(1, *new_texture)
+            .AddTexture(1, *Texture)
             .Build();
-
-        m_Texture->Destroy();
-        delete m_Texture;
-        m_Texture = new_texture;
-
-        // If texture was not a default texture, destroy it and clear pointer
-        //ImGui_ImplVulkan_RemoveTexture(m_Texture->GetImGuiDescriptorSet());
 
         // Update shader buffer with new data
         UpdateBuffer();
+    }
+
+    VK::VulkanTexture* SpriteMaterial::GetTexture()
+    {
+        VK::VulkanTexture* Texture = nullptr;
+        auto* loaded_texture = AssetManager::Get().GetTexture(m_TextureUUID);
+
+        if (loaded_texture)
+            Texture = loaded_texture;
+        else
+            Texture = VK::VulkanSceneRenderer::GetDefaultWhiteTexture();
+
+        return Texture;
     }
 
     void SpriteMaterial::UpdateBuffer()
@@ -80,12 +101,6 @@ namespace PIX3D
 
     void SpriteMaterial::Destroy()
     {
-        if (m_Texture)
-        {
-            m_Texture->Destroy();
-            m_Texture = nullptr;
-        }
-
         if (m_Data)
         {
             delete m_Data;
