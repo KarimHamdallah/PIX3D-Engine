@@ -21,6 +21,7 @@ private:
 private:
     void RenderMenuBar();
     void RenderWidgets();
+    void RenderToolbar();
 
     bool m_ShowLightningWidget = false;
     bool m_ShowHierarchyWidget = false;
@@ -36,4 +37,11 @@ private:
     AssetWidget* m_AssetWidget = nullptr;
 
     bool ShowMouseCursor = true;
+
+
+
+    ////////// Run Time ////////////
+    VK::VulkanTexture* m_PlayIcon = nullptr;
+    VK::VulkanTexture* m_StopIcon = nullptr;
+    bool m_IsPlaying = false;
 };

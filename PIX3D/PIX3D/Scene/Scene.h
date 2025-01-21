@@ -36,10 +36,15 @@ namespace PIX3D
         uint32_t AddPointLight(const std::string& name, const TransformData& transform, const glm::vec4& color);
         uint32_t AddDirectionalLight(const std::string& name, const TransformData& transform, const glm::vec4& color);
         uint32_t AddSpriteAnimation(const std::string& name, const TransformData& transform, PIX3D::UUID spriteSheet, uint32_t frameCount, float frameTime);
+        uint32_t AddScript(const std::string& name, const TransformData& transform, const std::string& NameSpaceName, const std::string& ScriptClassName);
 
         void OnStart();
         void OnUpdate(float dt);
         void OnRender();
+
+        void OnScriptCreate();
+        void OnScriptUpdate(float dt);
+        void OnScriptDestroy();
 
         // Scene Properties
         bool m_UseSkybox = true;

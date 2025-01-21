@@ -2,10 +2,8 @@
 #include <string>
 #include <Graphics/VulkanStaticMesh.h>
 #include <Graphics/Material.h>
-
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-
 #include <Core/UUID.h>
 
 namespace PIX3D
@@ -142,5 +140,18 @@ namespace PIX3D
         float m_TilingFactor = 1.0f;
         bool m_Flip = true;
         glm::vec4 m_Color = { 1.0f, 1.0f, 1.0f, 1.0f };
+    };
+
+    struct ScriptInstance;
+    struct ScriptComponentCSharp
+    {
+        ScriptComponentCSharp() = default;
+        ScriptComponentCSharp(const ScriptComponentCSharp& other) = default;
+        ScriptComponentCSharp(const std::string name_space_name, const std::string class_name) : NameSpaceName(name_space_name), ClassName(class_name) {}
+
+        std::string ClassName;
+        std::string NameSpaceName;
+        ScriptInstance* Script = nullptr;
+        bool OnStartCalled = false;
     };
 }

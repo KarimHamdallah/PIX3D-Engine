@@ -45,8 +45,8 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(SolutionDir)\Vendor\cereal;$(VULKAN_SDK)\Include;$(SolutionDir)\PIX3D\PIX3D;$(SolutionDir)\Vendor\glm;$(SolutionDir)\Vendor\glfw\include;$(SolutionDir)\Editor\imgui;$(SolutionDir)\Vendor\assimp\include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(VULKAN_SDK)\Lib;$(SolutionDir)\Vendor\glfw\lib\Debug;$(SolutionDir)\Vendor\assimp\bin\windows\Release;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)\Vendor\Mono\include;$(SolutionDir)\Vendor\cereal;$(VULKAN_SDK)\Include;$(SolutionDir)\PIX3D\PIX3D;$(SolutionDir)\Vendor\glm;$(SolutionDir)\Vendor\glfw\include;$(SolutionDir)\Editor\imgui;$(SolutionDir)\Vendor\assimp\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)\Vendor\Mono\lib;$(VULKAN_SDK)\Lib;$(SolutionDir)\Vendor\glfw\lib\Debug;$(SolutionDir)\Vendor\assimp\bin\windows\Release;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
@@ -67,7 +67,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>F:\Projects\PIX3D Engine\Vendor\glfw\lib;F:\Projects\PIX3D Engine\Vendor\assimp\bin\windows\Release;</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glfw3.lib;opengl32.lib;assimp-vc143-mt.lib;%(AdditionalDependencies);vulkan-1.lib;SPIRVd.lib;SPIRV-Toolsd.lib;SPIRV-Tools-optd.lib;glslangd.lib;OSDependentd.lib;GenericCodeGend.lib;MachineIndependentd.lib;glslang-default-resource-limitsd.lib</AdditionalDependencies>
+      <AdditionalDependencies>glfw3.lib;opengl32.lib;assimp-vc143-mt.lib;mono-2.0-sgen.lib;%(AdditionalDependencies);vulkan-1.lib;SPIRVd.lib;SPIRV-Toolsd.lib;SPIRV-Tools-optd.lib;glslangd.lib;OSDependentd.lib;GenericCodeGend.lib;MachineIndependentd.lib;glslang-default-resource-limitsd.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

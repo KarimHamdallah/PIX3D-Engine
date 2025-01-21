@@ -1,5 +1,6 @@
 #include "EditorLayer.h"
 #include <imgui.h>
+#include <Scripting Engine/ScriptingEngine.h>
 
 void EditorLayer::OnStart()
 {
@@ -15,8 +16,32 @@ void EditorLayer::OnStart()
     m_AssetWidget = new AssetWidget();
 
 
+    ////////// Run Time ////////////
+    m_PlayIcon = new VK::VulkanTexture();
+    m_PlayIcon->LoadFromFile("res/icons/PlayButton.png", false);
+
+    m_StopIcon = new VK::VulkanTexture();
+    m_StopIcon->LoadFromFile("res/icons/PauseButton.png", false);
+
     auto& CurrentProj = Engine::GetCurrentProjectRef();
     int x = 0;
+
+    std::filesystem::path corePath = "../PIX3D/Resources/Debug/net8.0/PIXScriptCore.dll";
+    std::filesystem::path gamePath = "../PIX3D/Resources/Debug/net8.0/ExampleGame.dll";
+
+    if (!ScriptEngine::Init(corePath))
+    {
+        PIX_DEBUG_ERROR("Failed to initialize scripting system!");
+        return;
+    }
+
+    if (!ScriptEngine::LoadAppAssembly(gamePath))
+    {
+        PIX_DEBUG_ERROR("Failed to Load game script!");
+        return;
+    }
+    
+    ScriptEngine::OnRuntimeStart(m_Scene);
 }
 
 void EditorLayer::OnUpdate(float dt)
@@ -59,6 +84,7 @@ void EditorLayer::OnUpdate(float dt)
     // Render UI
     RenderMenuBar();
     RenderWidgets();
+    RenderToolbar();
 
     VK::VulkanImGuiPass::EndFrame();
     VK::VulkanImGuiPass::EndRecordCommandbufferAndSubmit(ImageIndex);
@@ -211,4 +237,55 @@ void EditorLayer::RenderWidgets()
         m_MaterialWidget->OnRender();
     if (m_ShowAssetWidget)
         m_AssetWidget->OnRender();
+}
+
+void EditorLayer::RenderToolbar()
+{
+    ImGuiWindowFlags window_flags =
+        ImGuiWindowFlags_NoCollapse |
+        ImGuiWindowFlags_NoResize |
+        ImGuiWindowFlags_NoScrollbar;
+
+    ImGui::Begin("Debug", nullptr, window_flags);
+    {
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6, 6));
+
+        // Play Button
+        ImVec4 buttonColor = m_IsPlaying ? ImVec4(0.3f, 0.8f, 0.3f, 1.0f) : ImVec4(0.3f, 0.3f, 0.3f, 1.0f);
+        ImGui::PushStyleColor(ImGuiCol_Button, buttonColor);
+
+        if (ImGui::ImageButton("Play", (ImTextureID)m_PlayIcon->GetImGuiDescriptorSet(),
+            ImVec2(24, 24), ImVec2(0, 0), ImVec2(1, 1)))
+        {
+            if (!m_IsPlaying)
+            {
+                m_IsPlaying = true;
+            }
+        }
+        ImGui::PopStyleColor();
+
+        ImGui::SameLine();
+
+        // Stop Button
+        if (m_IsPlaying)
+        {
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.3f, 0.3f, 1.0f));
+            if (ImGui::ImageButton("Stop", (ImTextureID)m_StopIcon->GetImGuiDescriptorSet(),
+                ImVec2(24, 24), ImVec2(0, 0), ImVec2(1, 1)))
+            {
+                m_IsPlaying = false;
+            }
+            ImGui::PopStyleColor();
+        }
+        else
+        {
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.3f, 0.3f, 0.5f));
+            ImGui::ImageButton("Stop", (ImTextureID)m_StopIcon->GetImGuiDescriptorSet(),
+                ImVec2(24, 24), ImVec2(0, 0), ImVec2(1, 1));
+            ImGui::PopStyleColor();
+        }
+
+        ImGui::PopStyleVar();
+    }
+    ImGui::End();
 }

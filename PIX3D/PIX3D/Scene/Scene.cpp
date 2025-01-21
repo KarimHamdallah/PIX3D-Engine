@@ -2,6 +2,7 @@
 #include <Platfrom/Vulkan/VulkanSystems.h>
 #include <Engine/Engine.hpp>
 #include <fstream>
+#include <Scripting Engine/ScriptingEngine.h>
 
 namespace PIX3D
 {
@@ -71,6 +72,15 @@ namespace PIX3D
         m_Registry.emplace<TransformComponent>(entity, transform.Position, transform.Rotation, transform.Scale);
         auto& animatorComp = m_Registry.emplace<SpriteAnimatorComponent>(entity, spriteSheet, frameCount, frameTime);
 
+        return (uint32_t)entity;
+    }
+
+    uint32_t Scene::AddScript(const std::string& name, const TransformData& transform, const std::string& NameSpaceName, const std::string& ScriptClassName)
+    {
+        const auto entity = m_Registry.create();
+        m_Registry.emplace<TagComponent>(entity, name);
+        m_Registry.emplace<TransformComponent>(entity, transform.Position, transform.Rotation, transform.Scale);
+        m_Registry.emplace<ScriptComponentCSharp>(entity, NameSpaceName, ScriptClassName);
         return (uint32_t)entity;
     }
 
@@ -149,5 +159,34 @@ namespace PIX3D
         }
 
         VK::VulkanSceneRenderer::End();
+    }
+
+    void Scene::OnScriptCreate()
+    {
+        auto view = m_Registry.view<TagComponent, ScriptComponentCSharp>();
+
+        view.each([](const TagComponent& tag, ScriptComponentCSharp& scriptComp)
+            {
+                ScriptEngine::OnCreateEntity(&scriptComp, tag.m_UUID);
+            });
+    }
+
+    void Scene::OnScriptUpdate(float dt)
+    {
+        auto view = m_Registry.view<TagComponent, ScriptComponentCSharp>();
+
+        view.each([dt](const TagComponent& tag, ScriptComponentCSharp& scriptComp)
+            {
+                ScriptEngine::OnUpdateEntity(&scriptComp, tag.m_UUID, dt);
+            });
+    }
+
+    void Scene::OnScriptDestroy()
+    {
+        auto view = m_Registry.view<TagComponent, ScriptComponentCSharp>();
+        view.each([](const TagComponent& tag, ScriptComponentCSharp& scriptComp)
+            {
+                ScriptEngine::OnDestroyEntity(&scriptComp, tag.m_UUID);
+            });
     }
 }

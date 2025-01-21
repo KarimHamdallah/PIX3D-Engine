@@ -1,0 +1,12 @@
+F:\Projects\PIX3D-Engine\PIXScriptCore\obj\Debug\net8.0\PIXScriptCore.GeneratedMSBuildEditorConfig.editorconfig
+F:\Projects\PIX3D-Engine\PIXScriptCore\obj\Debug\net8.0\PIXScriptCore.AssemblyInfoInputs.cache
+F:\Projects\PIX3D-Engine\PIXScriptCore\obj\Debug\net8.0\PIXScriptCore.AssemblyInfo.cs
+F:\Projects\PIX3D-Engine\PIXScriptCore\obj\Debug\net8.0\PIXScriptCore.csproj.CoreCompileInputs.cache
+F:\Projects\PIX3D-Engine\PIXScriptCore\obj\Debug\net8.0\PIXScriptCore.sourcelink.json
+F:\Projects\PIX3D-Engine\PIX3D\Resources\Debug\net8.0\PIXScriptCore.deps.json
+F:\Projects\PIX3D-Engine\PIX3D\Resources\Debug\net8.0\PIXScriptCore.dll
+F:\Projects\PIX3D-Engine\PIX3D\Resources\Debug\net8.0\PIXScriptCore.pdb
+F:\Projects\PIX3D-Engine\PIXScriptCore\obj\Debug\net8.0\PIXScriptCore.dll
+F:\Projects\PIX3D-Engine\PIXScriptCore\obj\Debug\net8.0\refint\PIXScriptCore.dll
+F:\Projects\PIX3D-Engine\PIXScriptCore\obj\Debug\net8.0\PIXScriptCore.pdb
+F:\Projects\PIX3D-Engine\PIXScriptCore\obj\Debug\net8.0\ref\PIXScriptCore.dll

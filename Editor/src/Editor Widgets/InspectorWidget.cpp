@@ -3,6 +3,7 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <Asset/AssetManager.h>
+#include <Scripting Engine/ScriptingEngine.h>
 
 namespace
 {
@@ -138,6 +139,11 @@ void InspectorWidget::OnRender()
             {
                 if (!m_Scene->m_Registry.try_get<SpriteAnimatorComponent>(selectedEntity))
                     m_Scene->m_Registry.emplace<SpriteAnimatorComponent>(selectedEntity);
+            }
+            if (ImGui::MenuItem("C# Script"))
+            {
+                if (!m_Scene->m_Registry.try_get<ScriptComponentCSharp>(selectedEntity))
+                    m_Scene->m_Registry.emplace<ScriptComponentCSharp>(selectedEntity);
             }
             ImGui::EndPopup();
         }
@@ -462,6 +468,55 @@ void InspectorWidget::OnRender()
 
                 if (data_changed)
                     animator->m_Material->UpdateBuffer();
+            }
+        }
+    }
+
+    // C# Script Component
+    if (auto* scriptComp = m_Scene->m_Registry.try_get<ScriptComponentCSharp>(selectedEntity))
+    {
+        if (ImGui::CollapsingHeader("C# Script", ImGuiTreeNodeFlags_DefaultOpen))
+        {
+            // Buffer for text inputs
+            char nameSpaceBuffer[256];
+            strcpy_s(nameSpaceBuffer, sizeof(nameSpaceBuffer), scriptComp->NameSpaceName.c_str());
+
+            char classNameBuffer[256];
+            strcpy_s(classNameBuffer, sizeof(classNameBuffer), scriptComp->ClassName.c_str());
+
+            // Check if script exists
+            bool scriptExists = ScriptEngine::EntityClassExists(scriptComp->ClassName);
+
+            // Namespace input
+            if (!scriptExists)
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.9f, 0.2f, 0.2f, 1.0f));  // Red text if script not found
+
+            if (ImGui::InputText("Namespace", nameSpaceBuffer, sizeof(nameSpaceBuffer)))
+            {
+                scriptComp->NameSpaceName = std::string(nameSpaceBuffer);
+            }
+
+            // Class name input
+            if (ImGui::InputText("Class Name", classNameBuffer, sizeof(classNameBuffer)))
+            {
+                scriptComp->ClassName = std::string(classNameBuffer);
+            }
+
+            if (!scriptExists)
+            {
+                ImGui::PopStyleColor();
+                ImGui::TextColored(ImVec4(0.9f, 0.2f, 0.2f, 1.0f), "Script class not found!");
+            }
+
+            // Display some script info if it exists
+            if (scriptComp->Script)
+            {
+                ImGui::Text("Status: Running");
+                ImGui::Text("OnStart Called: %s", scriptComp->OnStartCalled ? "Yes" : "No");
+            }
+            else
+            {
+                ImGui::Text("Status: Not initialized");
             }
         }
     }
