@@ -26,28 +26,38 @@ void EditorLayer::OnStart()
     auto& CurrentProj = Engine::GetCurrentProjectRef();
     int x = 0;
 
-    std::filesystem::path corePath = "../PIX3D/Resources/Debug/net8.0/PIXScriptCore.dll";
-    std::filesystem::path gamePath = "../PIX3D/Resources/Debug/net8.0/ExampleGame.dll";
-
-    if (!ScriptEngine::Init(corePath))
+    // Init Scripting Engine
     {
-        PIX_DEBUG_ERROR("Failed to initialize scripting system!");
-        return;
-    }
+        std::filesystem::path corePath = "../PIX3D/Resources/Debug/net8.0/PIXScriptCore.dll";
+        std::filesystem::path gamePath = "../PIX3D/Resources/Debug/net8.0/ExampleGame.dll";
 
-    if (!ScriptEngine::LoadAppAssembly(gamePath))
-    {
-        PIX_DEBUG_ERROR("Failed to Load game script!");
-        return;
+        if (!ScriptEngine::Init(corePath))
+        {
+            PIX_DEBUG_ERROR("Failed to initialize scripting system!");
+            return;
+        }
+
+        if (!ScriptEngine::LoadAppAssembly(gamePath))
+        {
+            PIX_DEBUG_ERROR("Failed to Load game script!");
+            return;
+        }
+
+        ScriptEngine::OnRuntimeStart(m_Scene);
     }
-    
-    ScriptEngine::OnRuntimeStart(m_Scene);
 }
 
 void EditorLayer::OnUpdate(float dt)
 {
     // Update the scene
-    m_Scene->OnUpdate(dt);
+    if (m_IsPlaying)
+    {
+        m_Scene->OnRunTimeUpdate(dt);
+    }
+    else
+    {
+        m_Scene->OnUpdate(dt);
+    }
 
     // Handle input for mouse cursor visibility
     if (PIX3D::Input::IsKeyPressed(PIX3D::KeyCode::RightShift))
@@ -74,7 +84,14 @@ void EditorLayer::OnUpdate(float dt)
     PIX3D::Engine::GetPlatformLayer()->ShowCursor(ShowMouseCursor);
 
     // Render the scene
-    m_Scene->OnRender();
+    if (m_IsPlaying)
+    {
+        m_Scene->OnRunTimeRender();
+    }
+    else
+    {
+        m_Scene->OnRender();
+    }
 
     uint32_t ImageIndex = VK::VulkanSceneRenderer::s_ImageIndex;
 
@@ -260,6 +277,8 @@ void EditorLayer::RenderToolbar()
             if (!m_IsPlaying)
             {
                 m_IsPlaying = true;
+                // Call OnCreate For All Scripts
+                m_Scene->OnRunTimeStart();
             }
         }
         ImGui::PopStyleColor();
@@ -274,6 +293,8 @@ void EditorLayer::RenderToolbar()
                 ImVec2(24, 24), ImVec2(0, 0), ImVec2(1, 1)))
             {
                 m_IsPlaying = false;
+                // Call OnDestroy For All Scripts
+                m_Scene->OnRunTimeEnd();
             }
             ImGui::PopStyleColor();
         }

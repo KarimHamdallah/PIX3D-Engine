@@ -42,6 +42,12 @@ namespace PIX3D
         void OnUpdate(float dt);
         void OnRender();
 
+
+        void OnRunTimeStart();
+        void OnRunTimeUpdate(float dt);
+        void OnRunTimeRender();
+        void OnRunTimeEnd();
+
         void OnScriptCreate();
         void OnScriptUpdate(float dt);
         void OnScriptDestroy();

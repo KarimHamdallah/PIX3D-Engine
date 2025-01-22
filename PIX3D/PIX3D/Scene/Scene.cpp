@@ -161,6 +161,30 @@ namespace PIX3D
         VK::VulkanSceneRenderer::End();
     }
 
+    void Scene::OnRunTimeStart()
+    {
+        OnScriptCreate();
+    }
+
+    void Scene::OnRunTimeUpdate(float dt)
+    {
+        // update scripts
+        OnScriptUpdate(dt);
+        
+        // update scene
+        OnUpdate(dt);
+    }
+
+    void Scene::OnRunTimeRender()
+    {
+        OnRender();
+    }
+
+    void Scene::OnRunTimeEnd()
+    {
+        OnScriptDestroy();
+    }
+
     void Scene::OnScriptCreate()
     {
         auto view = m_Registry.view<TagComponent, ScriptComponentCSharp>();

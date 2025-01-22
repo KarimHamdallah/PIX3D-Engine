@@ -202,30 +202,33 @@ namespace PIX3D
 
     void SceneSerializer::SerializeEntity(entt::entity entity, json& outJson)
     {
+        // Tag is required for all entities
         const auto& tag = m_Scene->m_Registry.get<TagComponent>(entity);
         outJson["tag"] = tag.m_Tag;
+        outJson["components"] = json::object();
 
+        // Transform component
         if (auto* transform = m_Scene->m_Registry.try_get<TransformComponent>(entity))
         {
-            outJson["transform"] = {
+            outJson["components"]["transform"] = {
                 {"position", {transform->m_Position.x, transform->m_Position.y, transform->m_Position.z}},
                 {"rotation", {transform->m_Rotation.x, transform->m_Rotation.y, transform->m_Rotation.z}},
                 {"scale", {transform->m_Scale.x, transform->m_Scale.y, transform->m_Scale.z}}
             };
         }
 
+        // Static Mesh component
         if (auto* staticMesh = m_Scene->m_Registry.try_get<StaticMeshComponent>(entity))
         {
-            outJson["type"] = "StaticMesh";
-            outJson["staticMesh"] = {
+            outJson["components"]["staticMesh"] = {
                 {"asset_id", (uint64_t)staticMesh->m_AssetID}
             };
         }
 
+        // Sprite component
         if (auto* sprite = m_Scene->m_Registry.try_get<SpriteComponent>(entity))
         {
-            outJson["type"] = "Sprite";
-            outJson["sprite"] = {
+            outJson["components"]["sprite"] = {
                 {"color", {
                     sprite->m_Material->m_Data->color.r,
                     sprite->m_Material->m_Data->color.g,
@@ -237,10 +240,10 @@ namespace PIX3D
             };
         }
 
+        // Point Light component
         if (auto* pointLight = m_Scene->m_Registry.try_get<PointLightComponent>(entity))
         {
-            outJson["type"] = "PointLight";
-            outJson["pointLight"] = {
+            outJson["components"]["pointLight"] = {
                 {"color", {
                     pointLight->m_Color.r,
                     pointLight->m_Color.g,
@@ -253,10 +256,10 @@ namespace PIX3D
             };
         }
 
+        // Directional Light component
         if (auto* dirLight = m_Scene->m_Registry.try_get<DirectionalLightComponent>(entity))
         {
-            outJson["type"] = "DirectionalLight";
-            outJson["directionalLight"] = {
+            outJson["components"]["directionalLight"] = {
                 {"color", {
                     dirLight->m_Color.r,
                     dirLight->m_Color.g,
@@ -266,98 +269,131 @@ namespace PIX3D
             };
         }
 
+        // Sprite Animator component
         if (auto* spriteAnim = m_Scene->m_Registry.try_get<SpriteAnimatorComponent>(entity))
         {
-            outJson["type"] = "SpriteAnimation";
-            outJson["spriteAnimation"] = {
+            outJson["components"]["spriteAnimator"] = {
                 {"asset_id", (uint64_t)spriteAnim->m_Material->m_TextureUUID},
                 {"frameCount", spriteAnim->m_FrameCount},
                 {"frameTime", spriteAnim->m_FrameTime}
+            };
+        }
+
+        // Script component
+        if (auto* script = m_Scene->m_Registry.try_get<ScriptComponentCSharp>(entity))
+        {
+            outJson["components"]["script"] = {
+                {"nameSpace", script->NameSpaceName},
+                {"className", script->ClassName}
             };
         }
     }
 
     void SceneSerializer::DeserializeEntity(const json& entityJson)
     {
-        std::string type = entityJson.value("type", "");
-        std::string tag = entityJson["tag"];
 
-        // Parse transform data
-        TransformData transform;
-        if (entityJson.contains("transform"))
+        // Get the components object
+        const auto& components = entityJson["components"];
+
+        uint32_t entity = 0;
+
+        // Transform component
+        if (components.contains("transform"))
         {
-            const auto& t = entityJson["transform"];
+            std::string tag = entityJson["tag"];
+            
+            const auto& t = components["transform"];
             const auto& pos = t["position"];
             const auto& rot = t["rotation"];
             const auto& scale = t["scale"];
 
+            TransformData transform;
             transform.Position = { pos[0], pos[1], pos[2] };
             transform.Rotation = { rot[0], rot[1], rot[2] };
             transform.Scale = { scale[0], scale[1], scale[2] };
+
+            entity = m_Scene->AddGameObject(tag, transform);
         }
 
-        uint32_t entity = 0;
-
-        if (type == "StaticMesh")
+        // Static Mesh component
+        if (components.contains("staticMesh"))
         {
-            const auto& meshData = entityJson["staticMesh"];
+            const auto& meshData = components["staticMesh"];
             const uint64_t asset_id = meshData["asset_id"];
-            entity = m_Scene->AddGameObject(tag, transform);
             m_Scene->m_Registry.emplace<StaticMeshComponent>((entt::entity)entity, PIX3D::UUID(asset_id));
         }
-        else if (type == "Sprite")
+
+        // Sprite component
+        if (components.contains("sprite"))
         {
-            const auto& spriteData = entityJson["sprite"];
+            const auto& spriteData = components["sprite"];
             const auto& color = spriteData["color"];
 
-            SpriteData sprite;
-            sprite.Color = { color[0], color[1], color[2], color[3] };
-            sprite.TilingFactor = spriteData["tilingFactor"];
-            int64_t texture_uuid = spriteData["asset_id"];
-            sprite.TextureUUID = texture_uuid;
+            SpriteMaterial* material = new SpriteMaterial();
+            
+            uint64_t asset_id = spriteData["asset_id"];
+            material->Create(asset_id);
+            material->m_Data->color = { color[0], color[1], color[2], color[3] };
+            material->m_Data->tiling_factor = spriteData["tilingFactor"];
+            material->UpdateBuffer();
 
-            entity = m_Scene->AddSprite(tag, transform, sprite);
+            m_Scene->m_Registry.emplace<SpriteComponent>((entt::entity)entity, material);
         }
-        else if (type == "PointLight")
+
+        // Point Light component
+        if (components.contains("pointLight"))
         {
-            const auto& lightData = entityJson["pointLight"];
+            const auto& lightData = components["pointLight"];
             const auto& color = lightData["color"];
-            glm::vec4 lightColor = { color[0], color[1], color[2], color[3] };
+            auto& light = m_Scene->m_Registry.emplace<PointLightComponent>(
+                (entt::entity)entity,
+                glm::vec4(color[0], color[1], color[2], color[3])
+            );
 
-            entity = m_Scene->AddPointLight(tag, transform, lightColor);
-
-            if (auto* light = m_Scene->m_Registry.try_get<PointLightComponent>((entt::entity)entity))
-            {
-                light->m_Radius = lightData["radius"];
-                light->m_Intensity = lightData["intensity"];
-                light->m_Falloff = lightData["falloff"];
-            }
+            light.m_Radius = lightData["radius"];
+            light.m_Intensity = lightData["intensity"];
+            light.m_Falloff = lightData["falloff"];
         }
-        else if (type == "DirectionalLight")
+
+        // Directional Light component
+        if (components.contains("directionalLight"))
         {
-            const auto& lightData = entityJson["directionalLight"];
+            const auto& lightData = components["directionalLight"];
             const auto& color = lightData["color"];
-            glm::vec4 lightColor = { color[0], color[1], color[2], color[3] };
-
-            entity = m_Scene->AddDirectionalLight(tag, transform, lightColor);
-        }
-        else if (type == "SpriteAnimation")
-        {
-            const auto& animData = entityJson["spriteAnimation"];
-            uint64_t texture_uuid = animData["asset_id"];
-
-            entity = m_Scene->AddSpriteAnimation(
-                tag,
-                transform,
-                texture_uuid,
-                animData["frameCount"],
-                animData["frameTime"]
+            m_Scene->m_Registry.emplace<DirectionalLightComponent>(
+                (entt::entity)entity,
+                glm::vec4(color[0], color[1], color[2], color[3])
             );
         }
-        else
+
+        // Sprite Animator component
+        if (components.contains("spriteAnimator"))
         {
-            // Default game object
-            entity = m_Scene->AddGameObject(tag, transform);
+            const auto& animData = components["spriteAnimator"];
+            uint64_t spriteSheet = animData["asset_id"];
+            uint32_t frameCount = animData["frameCount"];
+            float frameTime = animData["frameTime"];
+
+            m_Scene->m_Registry.emplace<SpriteAnimatorComponent>(
+                (entt::entity)entity,
+                spriteSheet,
+                frameCount,
+                frameTime
+            );
+        }
+
+        // Script component
+        if (components.contains("script"))
+        {
+            const auto& scriptData = components["script"];
+            std::string nameSpace = scriptData["nameSpace"];
+            std::string className = scriptData["className"];
+
+            m_Scene->m_Registry.emplace<ScriptComponentCSharp>(
+                (entt::entity)entity,
+                nameSpace,
+                className
+            );
         }
     }
 }
