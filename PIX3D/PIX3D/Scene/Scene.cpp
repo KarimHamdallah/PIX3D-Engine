@@ -170,7 +170,7 @@ namespace PIX3D
     {
         // update scripts
         OnScriptUpdate(dt);
-        
+
         // update scene
         OnUpdate(dt);
     }
@@ -224,5 +224,97 @@ namespace PIX3D
                 return entity;
         }
         return entt::null;
+    }
+
+
+    Scene* Scene::CopyScene(Scene* sourceScene)
+    {
+        Scene* newScene = new Scene(sourceScene->m_Name);
+
+        // Copy scene properties
+        newScene->m_UseSkybox = sourceScene->m_UseSkybox;
+        newScene->m_BackgroundColor = sourceScene->m_BackgroundColor;
+        newScene->m_Cam3D = sourceScene->m_Cam3D;
+
+        // Create a view to iterate over all entities
+        auto view = sourceScene->m_Registry.view<TagComponent>();
+        for (auto srcEntity : view)
+        {
+            // Create new entity in target scene
+            auto dstEntity = newScene->m_Registry.create();
+
+            // Copy TagComponent if it exists
+            if (auto* tag = sourceScene->m_Registry.try_get<TagComponent>(srcEntity)) {
+                newScene->m_Registry.emplace<TagComponent>(dstEntity, *tag);
+            }
+
+            // Copy TransformComponent if it exists
+            if (auto* transform = sourceScene->m_Registry.try_get<TransformComponent>(srcEntity)) {
+                newScene->m_Registry.emplace<TransformComponent>(dstEntity, *transform);
+            }
+
+            // Copy StaticMeshComponent if it exists
+            if (auto* staticMesh = sourceScene->m_Registry.try_get<StaticMeshComponent>(srcEntity)) {
+                newScene->m_Registry.emplace<StaticMeshComponent>(dstEntity, *staticMesh);
+            }
+
+            // Copy SpriteComponent if it exists
+            if (auto* sprite = sourceScene->m_Registry.try_get<SpriteComponent>(srcEntity)) {
+                SpriteMaterial* newMaterial = new SpriteMaterial();
+                newMaterial->Create(sprite->m_Material->m_TextureUUID);
+                newMaterial->m_Data->color = sprite->m_Material->m_Data->color;
+                newMaterial->m_Data->tiling_factor = sprite->m_Material->m_Data->tiling_factor;
+                newMaterial->UpdateBuffer();
+                newScene->m_Registry.emplace<SpriteComponent>(dstEntity, newMaterial);
+            }
+
+            // Copy PointLightComponent if it exists
+            if (auto* pointLight = sourceScene->m_Registry.try_get<PointLightComponent>(srcEntity)) {
+                newScene->m_Registry.emplace<PointLightComponent>(dstEntity, *pointLight);
+            }
+
+            // Copy DirectionalLightComponent if it exists
+            if (auto* dirLight = sourceScene->m_Registry.try_get<DirectionalLightComponent>(srcEntity)) {
+                newScene->m_Registry.emplace<DirectionalLightComponent>(dstEntity, *dirLight);
+            }
+
+            // Copy SpriteAnimatorComponent if it exists
+            if (auto* spriteAnim = sourceScene->m_Registry.try_get<SpriteAnimatorComponent>(srcEntity)) {
+                newScene->m_Registry.emplace<SpriteAnimatorComponent>(
+                    dstEntity,
+                    spriteAnim->m_Material->m_TextureUUID,
+                    spriteAnim->m_FrameCount,
+                    spriteAnim->m_FrameTime
+                );
+
+                // Copy additional animator properties
+                if (auto* dstAnim = newScene->m_Registry.try_get<SpriteAnimatorComponent>(dstEntity)) {
+                    dstAnim->m_IsPlaying = spriteAnim->m_IsPlaying;
+                    dstAnim->m_Loop = spriteAnim->m_Loop;
+                    dstAnim->m_TilingFactor = spriteAnim->m_TilingFactor;
+                    dstAnim->m_Flip = spriteAnim->m_Flip;
+                    dstAnim->m_Color = spriteAnim->m_Color;
+                    dstAnim->m_Material->m_Data->color = spriteAnim->m_Material->m_Data->color;
+                    dstAnim->m_Material->m_Data->tiling_factor = spriteAnim->m_Material->m_Data->tiling_factor;
+                    dstAnim->m_Material->m_Data->flip = spriteAnim->m_Material->m_Data->flip;
+                    dstAnim->m_Material->UpdateBuffer();
+                }
+            }
+
+            // Copy ScriptComponentCSharp if it exists
+            if (auto* script = sourceScene->m_Registry.try_get<ScriptComponentCSharp>(srcEntity)) {
+                auto& newScript = newScene->m_Registry.emplace<ScriptComponentCSharp>(
+                    dstEntity,
+                    script->NameSpaceName,
+                    script->ClassName
+                );
+                newScript.OnStartCalled = false; // Reset script state for the copy
+            }
+        }
+
+        newScene->OnStart();
+        newScene->m_Cam3D = sourceScene->m_Cam3D;
+
+        return newScene;
     }
 }

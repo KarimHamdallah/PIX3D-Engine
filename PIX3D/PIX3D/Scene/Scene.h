@@ -54,6 +54,8 @@ namespace PIX3D
 
         entt::entity GetEntityHandleByUUID(PIX3D::UUID uuid);
 
+        static Scene* CopyScene(Scene* sourceScene);
+
         // Scene Properties
         bool m_UseSkybox = true;
         glm::vec4 m_BackgroundColor = { 0.05f, 0.05f, 0.05f, 1.0f };

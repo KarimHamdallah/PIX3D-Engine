@@ -43,8 +43,9 @@ void EditorLayer::OnStart()
             PIX_DEBUG_ERROR("Failed to Load game script!");
             return;
         }
-
+        
         ScriptGlue::SetScene(m_Scene);
+
         ScriptGlue::RegisterFunctions();
         ScriptEngine::OnRuntimeStart(m_Scene);
     }
@@ -280,6 +281,10 @@ void EditorLayer::RenderToolbar()
             if (!m_IsPlaying)
             {
                 m_IsPlaying = true;
+
+                // Store Current Edior Scene
+                m_TempScene = PIX3D::Scene::CopyScene(m_Scene);
+
                 // Call OnCreate For All Scripts
                 m_Scene->OnRunTimeStart();
             }
@@ -298,6 +303,9 @@ void EditorLayer::RenderToolbar()
                 m_IsPlaying = false;
                 // Call OnDestroy For All Scripts
                 m_Scene->OnRunTimeEnd();
+
+                delete m_Scene;
+                m_Scene = m_TempScene;
             }
             ImGui::PopStyleColor();
         }

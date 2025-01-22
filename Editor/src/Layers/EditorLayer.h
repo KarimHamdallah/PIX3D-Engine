@@ -30,6 +30,8 @@ private:
     bool m_ShowAssetWidget = false;
 
     PIX3D::Scene* m_Scene = nullptr;
+    PIX3D::Scene* m_TempScene = nullptr;
+
     LightningWidget* m_LightningWidget = nullptr;
     HierarchyWidget* m_HierarchyWidget = nullptr;
     InspectorWidget* m_InspectorWidget = nullptr;
