@@ -301,11 +301,18 @@ void EditorLayer::RenderToolbar()
                 ImVec2(24, 24), ImVec2(0, 0), ImVec2(1, 1)))
             {
                 m_IsPlaying = false;
+                
                 // Call OnDestroy For All Scripts
                 m_Scene->OnRunTimeEnd();
 
+                // Destroy Scene
                 delete m_Scene;
-                m_Scene = m_TempScene;
+                m_Scene = nullptr;
+
+                m_Scene = PIX3D::Scene::CopyScene(m_TempScene);
+
+                delete m_TempScene;
+                m_TempScene = nullptr;
             }
             ImGui::PopStyleColor();
         }
