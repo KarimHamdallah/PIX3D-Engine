@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PIXScriptCore")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1e2ea6541cf123e185f7ff286404f54e7fa36db0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+84e95d3a4192737ea05f9048f34d72878d0adb04")]
 [assembly: System.Reflection.AssemblyProductAttribute("PIXScriptCore")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PIXScriptCore")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

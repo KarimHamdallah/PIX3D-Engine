@@ -224,6 +224,7 @@
     <ClCompile Include="PIX3D\Platfrom\WindowsPlatform.cpp" />
     <ClCompile Include="PIX3D\Scene\Scene.cpp" />
     <ClCompile Include="PIX3D\Scene\SceneSerializer.cpp" />
+    <ClCompile Include="PIX3D\Scripting Engine\ScriptGlue.cpp" />
     <ClCompile Include="PIX3D\Scripting Engine\ScriptingEngine.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -313,6 +314,7 @@
     <ClInclude Include="PIX3D\Scene\Scene.h" />
     <ClInclude Include="PIX3D\Scene\SceneSerializer.h" />
     <ClInclude Include="PIX3D\Scene\SceneStructures.h" />
+    <ClInclude Include="PIX3D\Scripting Engine\ScriptGlue.h" />
     <ClInclude Include="PIX3D\Scripting Engine\ScriptingEngine.h" />
     <ClInclude Include="PIX3D\Utils\entt.hpp" />
     <ClInclude Include="PIX3D\Utils\FileWatcher.hpp" />

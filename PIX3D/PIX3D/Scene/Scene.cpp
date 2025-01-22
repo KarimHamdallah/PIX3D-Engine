@@ -213,4 +213,16 @@ namespace PIX3D
                 ScriptEngine::OnDestroyEntity(&scriptComp, tag.m_UUID);
             });
     }
+
+    entt::entity Scene::GetEntityHandleByUUID(PIX3D::UUID uuid)
+    {
+        auto view = m_Registry.view<TagComponent>();
+        for (auto entity : view)
+        {
+            const auto& tag = view.get<TagComponent>(entity);
+            if (tag.m_UUID == uuid)
+                return entity;
+        }
+        return entt::null;
+    }
 }

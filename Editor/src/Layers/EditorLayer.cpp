@@ -1,6 +1,7 @@
 #include "EditorLayer.h"
 #include <imgui.h>
 #include <Scripting Engine/ScriptingEngine.h>
+#include <Scripting Engine/ScriptGlue.h>
 
 void EditorLayer::OnStart()
 {
@@ -43,6 +44,8 @@ void EditorLayer::OnStart()
             return;
         }
 
+        ScriptGlue::SetScene(m_Scene);
+        ScriptGlue::RegisterFunctions();
         ScriptEngine::OnRuntimeStart(m_Scene);
     }
 }

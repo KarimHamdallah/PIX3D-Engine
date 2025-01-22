@@ -52,6 +52,8 @@ namespace PIX3D
         void OnScriptUpdate(float dt);
         void OnScriptDestroy();
 
+        entt::entity GetEntityHandleByUUID(PIX3D::UUID uuid);
+
         // Scene Properties
         bool m_UseSkybox = true;
         glm::vec4 m_BackgroundColor = { 0.05f, 0.05f, 0.05f, 1.0f };
