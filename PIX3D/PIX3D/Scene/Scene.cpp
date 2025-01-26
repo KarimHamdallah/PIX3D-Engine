@@ -131,7 +131,7 @@ namespace PIX3D
         }
     }
 
-    void Scene::OnRender()
+    void Scene::OnRender(bool end)
     {
         VK::VulkanSceneRenderer::Begin(m_Cam3D);
 
@@ -158,7 +158,8 @@ namespace PIX3D
                 });
         }
 
-        VK::VulkanSceneRenderer::End();
+        if(end)
+            VK::VulkanSceneRenderer::End();
     }
 
     void Scene::OnRunTimeStart()

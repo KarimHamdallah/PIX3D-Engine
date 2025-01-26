@@ -103,6 +103,10 @@
     <ClCompile Include="src\Editor Widgets\InspectorWidget.cpp" />
     <ClCompile Include="src\Editor Widgets\LightningWidget.cpp" />
     <ClCompile Include="src\Editor Widgets\MaterialWidget.cpp" />
+    <ClCompile Include="src\Layers\Blur Example\FrostedGlassBlurPass.cpp" />
+    <ClCompile Include="src\Layers\Blur Example\FrostedGlassExample.cpp" />
+    <ClCompile Include="src\Layers\Blur Example\FrostedGlassMaskRenderpass.cpp" />
+    <ClCompile Include="src\Layers\Blur Example\FrostedGlassPostProcessPass.cpp" />
     <ClCompile Include="src\Layers\EditorLayer.cpp" />
     <ClCompile Include="src\Layers\LauncherLayer.cpp" />
     <ClCompile Include="src\Layers\Layer.cpp" />
@@ -130,6 +134,10 @@
     <ClInclude Include="src\Editor Widgets\InspectorWidget.h" />
     <ClInclude Include="src\Editor Widgets\LightningWidget.h" />
     <ClInclude Include="src\Editor Widgets\MaterialWidget.h" />
+    <ClInclude Include="src\Layers\Blur Example\FrostedGlassBlurPass.h" />
+    <ClInclude Include="src\Layers\Blur Example\FrostedGlassExample.h" />
+    <ClInclude Include="src\Layers\Blur Example\FrostedGlassMaskRenderpass.h" />
+    <ClInclude Include="src\Layers\Blur Example\FrostedGlassPostProcessPass.h" />
     <ClInclude Include="src\Layers\EditorLayer.h" />
     <ClInclude Include="src\Layers\LauncherLayer.h" />
     <ClInclude Include="src\Layers\Layer.h" />

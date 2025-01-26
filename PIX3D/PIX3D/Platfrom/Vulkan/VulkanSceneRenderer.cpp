@@ -557,7 +557,7 @@ namespace PIX3D
 			//////////////////////////////////////  Bloom & PostProcessing Passes   ////////////////////////////////////////////
 
 			s_BloomPass.Init(width, height);
-			s_PostProcessingRenderpass.Init(width, height, s_MainRenderpass.ColorAttachmentTexture, s_BloomPass.GetFinalBloomTexture());
+			s_PostProcessingRenderpass.Init(width, height);
 		}
 
 		void VulkanSceneRenderer::RenderClearPass(const glm::vec4& clearColor)
@@ -615,8 +615,16 @@ namespace PIX3D
 			auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
 
 			s_BloomPass.RecordCommandBuffer(s_MainRenderpass.BloomBrightnessAttachmentTexture, s_MainRenderpass.CommandBuffers[s_ImageIndex]);
-			s_PostProcessingRenderpass.RecordCommandBuffer(s_MainRenderpass.CommandBuffers[s_ImageIndex], s_ImageIndex);
+			s_PostProcessingRenderpass.RecordCommandBuffer(s_MainRenderpass.ColorAttachmentTexture, s_BloomPass.GetFinalBloomTexture(), s_MainRenderpass.CommandBuffers[s_ImageIndex], s_ImageIndex);
 
+			////////////////// End Record CommandBuffer ////////////////
+
+			VkResult res = vkEndCommandBuffer(s_MainRenderpass.CommandBuffers[s_ImageIndex]);
+			VK_CHECK_RESULT(res, "vkEndCommandBuffer");
+		}
+
+		void VulkanSceneRenderer::EndRecordCommandBuffer()
+		{
 			////////////////// End Record CommandBuffer ////////////////
 
 			VkResult res = vkEndCommandBuffer(s_MainRenderpass.CommandBuffers[s_ImageIndex]);
@@ -796,8 +804,11 @@ namespace PIX3D
 					auto environment_descriptor_set = s_EnvironmetDescriptorSet.GetVkDescriptorSet();
 					vkCmdBindDescriptorSets(s_MainRenderpass.CommandBuffers[s_ImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, s_MainRenderpass.PipelineLayout, 2, 1, &environment_descriptor_set, 0, nullptr);
 
-					auto point_lights_descriptor_set = scene->PointLightsDescriptorSet.GetVkDescriptorSet();
-					vkCmdBindDescriptorSets(s_MainRenderpass.CommandBuffers[s_ImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, s_MainRenderpass.PipelineLayout, 3, 1, &point_lights_descriptor_set, 0, nullptr);
+					if (scene)
+					{
+						auto point_lights_descriptor_set = scene->PointLightsDescriptorSet.GetVkDescriptorSet();
+						vkCmdBindDescriptorSets(s_MainRenderpass.CommandBuffers[s_ImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, s_MainRenderpass.PipelineLayout, 3, 1, &point_lights_descriptor_set, 0, nullptr);
+					}
 
 					// Draw the submesh using its base vertex and index offsets
 					vkCmdDrawIndexed(s_MainRenderpass.CommandBuffers[s_ImageIndex],
@@ -967,7 +978,7 @@ namespace PIX3D
 			s_BloomPass.OnResize(width, height);
 
 			// Resize post processing pass
-			s_PostProcessingRenderpass.OnResize(width, height, s_MainRenderpass.ColorAttachmentTexture, s_BloomPass.GetFinalBloomTexture());
+			s_PostProcessingRenderpass.OnResize(width, height);
 
 			VK::VulkanImGuiPass::OnResize(width, height);
 

@@ -23,16 +23,18 @@ namespace PIX3D
 				float BloomIntensity = 1.0f;
 				bool TonemappingEnabled = false;
 				float GammaCorrectionFactor = 2.2f;
+				bool ForstedPassEnabled = false;
 			};
 		public:
 			VulkanPostProcessingRenderpass() = default;
 			~VulkanPostProcessingRenderpass() {}
 
-			void Init(uint32_t width, uint32_t height, VulkanTexture* color_attachment, VulkanTexture* bloom_attachment);
-			void OnResize(uint32_t width, uint32_t height, VulkanTexture* color_attachment, VulkanTexture* bloom_attachment);
+			void Init(uint32_t width, uint32_t height);
+			void OnResize(uint32_t width, uint32_t height);
 			void Destroy();
 
-			void RecordCommandBuffer(VkCommandBuffer commandbuffer, uint32_t ImageIndex);
+			void RecordCommandBuffer(VulkanTexture* color_attachment, VulkanTexture* bloom_attachment, VulkanTexture* forsted_glass_blurred_attachment, VkCommandBuffer commandbuffer, uint32_t ImageIndex);
+			void RecordCommandBuffer(VulkanTexture* color_attachment, VulkanTexture* bloom_attachment, VkCommandBuffer commandbuffer, uint32_t ImageIndex);
 
 		public:
 			PushConstant m_Data;

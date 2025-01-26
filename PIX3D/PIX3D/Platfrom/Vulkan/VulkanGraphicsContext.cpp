@@ -465,6 +465,7 @@ namespace PIX3D
 				{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, MAX_UNIFORM_BUFFERS },
 				{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, MAX_COMBINED_IMAGE_SAMPLERS },
 				{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, MAX_STORAGE_BUFFERS },
+				{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, MAX_COMBINED_IMAGE_SAMPLERS },
 			};
 
 			// Descriptor pool creation info
@@ -478,6 +479,27 @@ namespace PIX3D
 			// Create the descriptor pool
 			if (vkCreateDescriptorPool(m_Device, &poolInfo, nullptr, &m_DescriptorPool) != VK_SUCCESS)
 				PIX_ASSERT_MSG(false, "Failed to create descriptor pool!");
+
+
+
+
+
+
+
+			////////////////////////////////////////////////////////////////////////////
+			///////////////// Swap Chain Image Layout Transition ///////////////////////
+			////////////////////////////////////////////////////////////////////////////
+
+			for (size_t i = 0; i < m_SwapChainImages.size(); i++)
+			{
+				VulkanTextureHelper::TransitionImageLayout(
+					m_SwapChainImages[i],
+					m_SwapChainSurfaceFormat.format,
+					0, 1,
+					VK_IMAGE_LAYOUT_UNDEFINED,
+					VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+				);
+			}
 		}
 
 		void VulkanGraphicsContext::SwapBuffers(void* window_handle)
@@ -594,23 +616,20 @@ namespace PIX3D
 
 			PIX_DEBUG_SUCCESS("Swapchain recreated successfully");
 
-			///////////////////////////////////////////////////////////////////////////////////////////////////////////
-            ////////////////// Transition SwapChain Images To Color Attachment ////////////////////////////////////////
-            ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+			////////////////////////////////////////////////////////////////////////////
+            ///////////////// Swap Chain Image Layout Transition ///////////////////////
+            ////////////////////////////////////////////////////////////////////////////
 
-			/*
 			for (size_t i = 0; i < m_SwapChainImages.size(); i++)
 			{
-				VK::VulkanTextureHelper::TransitionImageLayout
-				(
+				VulkanTextureHelper::TransitionImageLayout(
 					m_SwapChainImages[i],
 					m_SwapChainSurfaceFormat.format,
 					0, 1,
 					VK_IMAGE_LAYOUT_UNDEFINED,
-					VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+					VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
 				);
 			}
-			*/
 		}
 
 		void VulkanGraphicsContext::Resize(uint32_t width, uint32_t height)

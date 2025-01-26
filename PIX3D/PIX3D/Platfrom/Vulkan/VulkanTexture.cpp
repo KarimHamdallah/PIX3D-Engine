@@ -20,7 +20,7 @@ namespace PIX3D
 
             auto usage = IsDepthFormat(Format)
                 ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
-                : (VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+                : (VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
 
             // Create the image with mip levels
             auto ImageAndMemory = VulkanTextureHelper::CreateImage(Width, Height, Format,
@@ -30,7 +30,7 @@ namespace PIX3D
                 m_MipLevels);
 
             m_Image = ImageAndMemory.Image;
-            m_ImageMemory == ImageAndMemory.Memory;
+            m_ImageMemory = ImageAndMemory.Memory;
 
             // Create image view with mip levels
             m_ImageView = VulkanTextureHelper::CreateImageView(m_Image, Format, 0, MipLevels);
@@ -554,7 +554,7 @@ namespace PIX3D
                 1, &barrier);
         }
 
-        void VulkanTextureHelper::TransitionImageLayout(VkImage Image, VkFormat Format, uint32_t base_mip,uint32_t mip_count, VkImageLayout OldLayout, VkImageLayout NewLayout, VkCommandBuffer ExistingCommandBuffer)
+        void VulkanTextureHelper::TransitionImageLayout(VkImage Image, VkFormat Format, uint32_t base_mip, uint32_t mip_count, VkImageLayout OldLayout, VkImageLayout NewLayout, VkCommandBuffer ExistingCommandBuffer)
         {
             auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
 
@@ -678,6 +678,34 @@ namespace PIX3D
                 barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
                 barrier.dstAccessMask = 0;
                 sourceStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+                destinationStage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+            }
+            else if (OldLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL && NewLayout == VK_IMAGE_LAYOUT_GENERAL)
+            {
+                barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+                barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+                sourceStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+                destinationStage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+            }
+            else if (OldLayout == VK_IMAGE_LAYOUT_GENERAL && NewLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+            {
+                barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+                barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+                sourceStage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+                destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+            }
+            else if (OldLayout == VK_IMAGE_LAYOUT_UNDEFINED && NewLayout == VK_IMAGE_LAYOUT_GENERAL)
+            {
+                barrier.srcAccessMask = 0;
+                barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+                sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+                destinationStage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+            }
+            else if (OldLayout == VK_IMAGE_LAYOUT_UNDEFINED && NewLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
+            {
+                barrier.srcAccessMask = 0;
+                barrier.dstAccessMask = 0;
+                sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
                 destinationStage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
             }
             else

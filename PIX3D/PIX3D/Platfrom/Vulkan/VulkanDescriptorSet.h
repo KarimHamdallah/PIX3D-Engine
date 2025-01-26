@@ -14,6 +14,7 @@ namespace PIX3D
         public:
             VulkanDescriptorSet& Init(VkDescriptorSetLayout layout);
             VulkanDescriptorSet& AddTexture(uint32_t binding, const VulkanTexture& texture);
+            VulkanDescriptorSet& AddStorageTexture(uint32_t binding, const VulkanTexture& texture);
             VulkanDescriptorSet& AddTexture(uint32_t binding, VkImageView ImageView, VkSampler Sampler);
             VulkanDescriptorSet& AddCubemap(uint32_t binding, const VulkanHdrCubemap& cubemap);
             VulkanDescriptorSet& AddCubemap(uint32_t binding, VkImageView ImageView, VkSampler Sampler);
@@ -29,6 +30,7 @@ namespace PIX3D
             std::unordered_map<uint32_t, VkDescriptorBufferInfo> m_ShaderStorageBufferBindings;
             std::unordered_map<uint32_t, VkDescriptorBufferInfo> m_UniformBufferBindings;
             std::unordered_map<uint32_t, VkDescriptorImageInfo> m_ImageBindings;
+            std::unordered_map<uint32_t, VkDescriptorImageInfo> m_StorageImageBindings;
         };
     }
 }

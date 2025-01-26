@@ -71,6 +71,21 @@ namespace PIX3D
                 descriptorWrites.push_back(descriptorWrite);
             }
 
+            // Add image descriptors
+            for (const auto& [binding, imageInfo] : m_StorageImageBindings)
+            {
+                VkWriteDescriptorSet descriptorWrite{};
+                descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                descriptorWrite.dstSet = m_DescriptorSet;
+                descriptorWrite.dstBinding = binding;
+                descriptorWrite.dstArrayElement = 0;
+                descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+                descriptorWrite.descriptorCount = 1;
+                descriptorWrite.pImageInfo = &imageInfo;
+
+                descriptorWrites.push_back(descriptorWrite);
+            }
+
             vkUpdateDescriptorSets(Context->m_Device,
                 static_cast<uint32_t>(descriptorWrites.size()),
                 descriptorWrites.data(),
@@ -86,6 +101,17 @@ namespace PIX3D
             imageInfo.sampler = texture.GetSampler();    
 
             m_ImageBindings[binding] = imageInfo;
+            return *this;
+        }
+
+        VulkanDescriptorSet& VulkanDescriptorSet::AddStorageTexture(uint32_t binding, const VulkanTexture& texture)
+        {
+            VkDescriptorImageInfo imageInfo{};
+            imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+            imageInfo.imageView = texture.GetImageView();
+            imageInfo.sampler = texture.GetSampler();
+
+            m_StorageImageBindings[binding] = imageInfo;
             return *this;
         }
 
@@ -181,6 +207,7 @@ namespace PIX3D
                 m_ShaderStorageBufferBindings.clear();
                 m_UniformBufferBindings.clear();
                 m_ImageBindings.clear();
+                m_StorageImageBindings.clear();
             }
         }
     }

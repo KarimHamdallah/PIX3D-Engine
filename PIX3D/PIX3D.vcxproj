@@ -358,6 +358,11 @@
     <None Include="res\vk shaders\diffuse_irradiance.vert" />
     <None Include="res\vk shaders\equirectangluarmap_to_cube.frag" />
     <None Include="res\vk shaders\equirectangluarmap_to_cube.vert" />
+    <None Include="res\vk shaders\Frosted Glass Example\frostedglass_blur.comp" />
+    <None Include="res\vk shaders\Frosted Glass Example\frostedglass_mask.frag" />
+    <None Include="res\vk shaders\Frosted Glass Example\frostedglass_mask.vert" />
+    <None Include="res\vk shaders\Frosted Glass Example\frostedglass_post.frag" />
+    <None Include="res\vk shaders\Frosted Glass Example\frostedglass_post.vert" />
     <None Include="res\vk shaders\ibl_specular_map.frag" />
     <None Include="res\vk shaders\ibl_specular_map.vert" />
     <None Include="res\vk shaders\post.frag" />

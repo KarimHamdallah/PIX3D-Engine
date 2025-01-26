@@ -2,9 +2,11 @@
 #include <Platfrom/Vulkan/VulkanHelper.h>
 #include <imgui.h>
 
+#include "Layers/Blur Example/FrostedGlassExample.h"
+
 void PixEditor::OnStart()
 {
-    m_LayerManager.init(new EditorLayer());
+    m_LayerManager.init(new FrostedGlassExample());
     m_LayerManager.OnStart();
 }
 

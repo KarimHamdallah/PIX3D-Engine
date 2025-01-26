@@ -1,0 +1,92 @@
+#version 460
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(std430, set = 0, binding = 0) readonly buffer SettingsBuffer
+{
+    int width;
+    int height;
+    float pad1;
+    float pad2;
+}settings;
+
+layout(binding = 1, rgba16f) uniform image2D inputImage;
+layout(binding = 2, rgba16f) uniform image2D outputImage;
+
+const int M = 16;  // Half kernel size
+const int N = 2 * M + 1;  // Full kernel size
+
+// Precalculated Gaussian coefficients for sigma = 10
+const float coeffs[N] = float[N](
+    0.012318109844189502,
+    0.014381474814203989,
+    0.016623532195728208,
+    0.019024086115486723,
+    0.02155484948872149,
+    0.02417948052890078,
+    0.02685404941667096,
+    0.0295279624870386,
+    0.03214534135442581,
+    0.03464682117793548,
+    0.0369716985390341,
+    0.039060328279673276,
+    0.040856643282313365,
+    0.04231065439216247,
+    0.043380781642569775,
+    0.044035873841196206,
+    0.04425662519949865,
+    0.044035873841196206,
+    0.043380781642569775,
+    0.04231065439216247,
+    0.040856643282313365,
+    0.039060328279673276,
+    0.0369716985390341,
+    0.03464682117793548,
+    0.03214534135442581,
+    0.0295279624870386,
+    0.02685404941667096,
+    0.02417948052890078,
+    0.02155484948872149,
+    0.019024086115486723,
+    0.016623532195728208,
+    0.014381474814203989,
+    0.012318109844189502
+);
+
+
+void main()
+{
+    ivec2 pixelCoord = ivec2(gl_GlobalInvocationID.xy);
+    if(pixelCoord.x >= settings.width || pixelCoord.y >= settings.height) return;
+
+    vec4 originalColor = imageLoad(inputImage, pixelCoord);
+    
+    // Only blur if pixel is not transparent (was part of glass area)
+    if(originalColor.a == 0.0)
+    {
+        imageStore(outputImage, pixelCoord, vec4(0.0));
+        return;
+    }
+
+    vec4 sum = vec4(0.0);
+    vec2 texelSize = 1.0 / vec2(settings.width, settings.height);
+
+    // Separable Gaussian blur
+    for(int i = 0; i < N; ++i)
+    {
+        for(int j = 0; j < N; ++j)
+        {
+            ivec2 sampleCoord = pixelCoord + ivec2(i - M, j - M);
+            
+            // Clamp sample coordinates to image bounds
+            sampleCoord = clamp(sampleCoord, ivec2(0), ivec2(settings.width - 1, settings.height - 1));
+            
+            vec4 sampleColor = imageLoad(inputImage, sampleCoord);
+            
+            if(sampleColor.a > 0.0) {  // Only include non-transparent pixels
+                sum += coeffs[i] * coeffs[j] * sampleColor;
+            }
+        }
+    }
+
+    imageStore(outputImage, pixelCoord, sum);
+}

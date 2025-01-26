@@ -564,5 +564,10 @@
     <None Include="res\vk shaders\brdf_lut.vert" />
     <None Include="res\vk shaders\sprite.vert" />
     <None Include="res\vk shaders\sprite.frag" />
+    <None Include="res\vk shaders\Frosted Glass Example\frostedglass_mask.vert" />
+    <None Include="res\vk shaders\Frosted Glass Example\frostedglass_mask.frag" />
+    <None Include="res\vk shaders\Frosted Glass Example\frostedglass_post.vert" />
+    <None Include="res\vk shaders\Frosted Glass Example\frostedglass_post.frag" />
+    <None Include="res\vk shaders\Frosted Glass Example\frostedglass_blur.comp" />
   </ItemGroup>
 </Project>

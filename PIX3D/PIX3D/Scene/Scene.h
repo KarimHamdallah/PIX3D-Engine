@@ -40,7 +40,7 @@ namespace PIX3D
 
         void OnStart();
         void OnUpdate(float dt);
-        void OnRender();
+        void OnRender(bool end = false);
 
 
         void OnRunTimeStart();
