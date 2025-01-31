@@ -23,6 +23,7 @@ namespace PIX3D
             static VulkanStaticMeshData GenerateCube();
             static VulkanStaticMeshData GenerateQuad();
             static VulkanStaticMeshData GenerateSprite();
+            static VulkanStaticMeshData GenerateGrid(uint32_t width, uint32_t height, float gridSize);
 
         private:
             inline static VulkanStaticMeshData CubeMesh;

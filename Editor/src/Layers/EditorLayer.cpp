@@ -97,6 +97,8 @@ void EditorLayer::OnUpdate(float dt)
         m_Scene->OnRender();
     }
 
+    VK::VulkanSceneRenderer::RenderTerrain();
+
     uint32_t ImageIndex = VK::VulkanSceneRenderer::s_ImageIndex;
 
     // Bloom Pass

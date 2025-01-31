@@ -571,5 +571,7 @@
     <None Include="res\vk shaders\Frosted Glass Example\frostedglass_blur.comp" />
     <None Include="res\vk shaders\outline.vert" />
     <None Include="res\vk shaders\outline.frag" />
+    <None Include="res\vk shaders\terrain.vert" />
+    <None Include="res\vk shaders\terrain.frag" />
   </ItemGroup>
 </Project>

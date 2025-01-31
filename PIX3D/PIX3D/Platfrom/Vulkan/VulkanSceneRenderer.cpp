@@ -584,6 +584,70 @@ namespace PIX3D
 			}
 
 
+			/////////////////////// Terrain Pass ///////////////////
+
+			{
+				s_Terrain.TerrainMesh = PIX3D::VK::VulkanStaticMeshGenerator::GenerateGrid(100, 100, 1.0f);
+
+				// Create and compile shaders
+				s_Terrain.TerrainPass.Shader.LoadFromFile(
+					"../PIX3D/res/vk shaders/terrain.vert",
+					"../PIX3D/res/vk shaders/terrain.frag"
+				);
+
+				// Create pipeline layout
+				VkPushConstantRange pushConstant{};
+				pushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+				pushConstant.offset = 0;
+				pushConstant.size = sizeof(_ModelMatrixPushConstant);
+
+				VkDescriptorSetLayout layouts[] = {
+					s_CameraDescriptorSetLayout.GetVkDescriptorSetLayout()
+				};
+
+				VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
+				pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+				pipelineLayoutInfo.setLayoutCount = 1;
+				pipelineLayoutInfo.pSetLayouts = layouts;
+				pipelineLayoutInfo.pushConstantRangeCount = 1;
+				pipelineLayoutInfo.pPushConstantRanges = &pushConstant;
+
+				if (vkCreatePipelineLayout(Context->m_Device, &pipelineLayoutInfo, nullptr,
+					&s_Terrain.TerrainPass.PipelineLayout) != VK_SUCCESS)
+				{
+					PIX_ASSERT_MSG(false, "Failed to create terrain pipeline layout!");
+				}
+
+				// Setup vertex description
+				auto bindingDesc = VulkanVertexInputLayout()
+					.AddAttribute(VertexAttributeFormat::Float3)  // position
+					.AddAttribute(VertexAttributeFormat::Float2)  // texcoords
+					.AddAttribute(VertexAttributeFormat::Float3)  // normal
+					.GetBindingDescription();
+
+				auto attributeDesc = VulkanVertexInputLayout()
+					.AddAttribute(VertexAttributeFormat::Float3)
+					.AddAttribute(VertexAttributeFormat::Float2)
+					.AddAttribute(VertexAttributeFormat::Float3)
+					.GetAttributeDescriptions();
+
+				// Create graphics pipeline
+				s_Terrain.TerrainPass.GraphicsPipeline.Init(Context->m_Device, s_MainRenderpass.Renderpass.GetVKRenderpass())
+					.AddShaderStages(
+						s_Terrain.TerrainPass.Shader.GetVertexShader(),
+						s_Terrain.TerrainPass.Shader.GetFragmentShader())
+					.AddVertexInputState(&bindingDesc, attributeDesc.data(), 1, attributeDesc.size())
+					.AddViewportState(width, height)
+					.AddInputAssemblyState(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, VK_FALSE)
+					.AddRasterizationState(VK_POLYGON_MODE_LINE, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE)
+					.AddMultisampleState(VK_SAMPLE_COUNT_1_BIT)
+					.AddDepthStencilState(true, true)
+					.AddColorBlendState(false, 2)
+					.SetPipelineLayout(s_Terrain.TerrainPass.PipelineLayout)
+					.Build();
+			}
+
+
 			//////////////////////////////////////  Bloom & PostProcessing Passes   ////////////////////////////////////////////
 
 			s_BloomPass.Init(width, height);
@@ -665,6 +729,83 @@ namespace PIX3D
 		{
 			auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
 			Context->m_Queue.SubmitAsync(s_MainRenderpass.CommandBuffers[s_ImageIndex]);
+		}
+
+		void VulkanSceneRenderer::RenderTerrain()
+		{
+			auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
+			auto specs = Engine::GetApplicationSpecs();
+
+			VkRenderPassBeginInfo renderPassInfo = {};
+			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+			renderPassInfo.renderPass = s_MainRenderpass.Renderpass.GetVKRenderpass();
+			renderPassInfo.framebuffer = s_MainRenderpass.Framebuffer.GetVKFramebuffer();
+			renderPassInfo.renderArea.offset = { 0, 0 };
+			renderPassInfo.renderArea.extent = { specs.Width, specs.Height };
+			renderPassInfo.clearValueCount = 0;
+			renderPassInfo.pClearValues = nullptr;
+
+			vkCmdBeginRenderPass(s_MainRenderpass.CommandBuffers[s_ImageIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+			vkCmdBindPipeline(s_MainRenderpass.CommandBuffers[s_ImageIndex],
+				VK_PIPELINE_BIND_POINT_GRAPHICS,
+				s_Terrain.TerrainPass.GraphicsPipeline.GetVkPipeline());
+
+			vkCmdSetLineWidth(s_MainRenderpass.CommandBuffers[s_ImageIndex], 1.0f);
+
+			// Set viewport and scissor
+			VkViewport viewport{};
+			viewport.x = 0.0f;
+			viewport.y = (float)specs.Height;
+			viewport.width = (float)specs.Width;
+			viewport.height = -(float)specs.Height;
+			viewport.minDepth = 0.0f;
+			viewport.maxDepth = 1.0f;
+
+			VkRect2D scissor{};
+			scissor.offset = { 0, 0 };
+			scissor.extent = { specs.Width, specs.Height };
+
+			vkCmdSetViewport(s_MainRenderpass.CommandBuffers[s_ImageIndex], 0, 1, &viewport);
+			vkCmdSetScissor(s_MainRenderpass.CommandBuffers[s_ImageIndex], 0, 1, &scissor);
+
+			// Bind camera descriptor set
+			auto cameraDescriptorSet = s_CameraDescriptorSets[s_ImageIndex].GetVkDescriptorSet();
+			vkCmdBindDescriptorSets(s_MainRenderpass.CommandBuffers[s_ImageIndex],
+				VK_PIPELINE_BIND_POINT_GRAPHICS,
+				s_Terrain.TerrainPass.PipelineLayout,
+				0, 1, &cameraDescriptorSet,
+				0, nullptr);
+
+			// Bind vertex and index buffers
+			VkBuffer vertexBuffers[] = { s_Terrain.TerrainMesh.VertexBuffer.GetBuffer() };
+			VkDeviceSize offsets[] = { 0 };
+			vkCmdBindVertexBuffers(s_MainRenderpass.CommandBuffers[s_ImageIndex], 0, 1, vertexBuffers, offsets);
+			vkCmdBindIndexBuffer(s_MainRenderpass.CommandBuffers[s_ImageIndex],
+				s_Terrain.TerrainMesh.IndexBuffer.GetBuffer(),
+				0, VK_INDEX_TYPE_UINT32);
+
+			// Push constants
+			_ModelMatrixPushConstant pushData = {
+				glm::mat4(1.0f),  // Model matrix (identity for now)
+				s_CameraPosition,
+				0.0f,            // Selected mesh ID
+				s_BloomThreshold,
+				0.0f             // Point light count
+			};
+
+			vkCmdPushConstants(s_MainRenderpass.CommandBuffers[s_ImageIndex],
+				s_Terrain.TerrainPass.PipelineLayout,
+				VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+				0, sizeof(_ModelMatrixPushConstant),
+				&pushData);
+
+			// Draw the terrain
+			vkCmdDrawIndexed(s_MainRenderpass.CommandBuffers[s_ImageIndex],
+				s_Terrain.TerrainMesh.IndicesCount,
+				1, 0, 0, 0);
+
+			vkCmdEndRenderPass(s_MainRenderpass.CommandBuffers[s_ImageIndex]);
 		}
 
 
@@ -1246,6 +1387,16 @@ namespace PIX3D
 			// Destroy bloom and post processing passes
 			s_BloomPass.Destroy();
 			s_PostProcessingRenderpass.Destroy();
+
+			s_Terrain.TerrainMesh.VertexBuffer.Destroy();
+			s_Terrain.TerrainMesh.IndexBuffer.Destroy();
+			s_Terrain.TerrainPass.Shader.Destroy();
+			s_Terrain.TerrainPass.GraphicsPipeline.Destroy();
+			if (s_Terrain.TerrainPass.PipelineLayout != VK_NULL_HANDLE)
+			{
+				vkDestroyPipelineLayout(Context->m_Device, s_Terrain.TerrainPass.PipelineLayout, nullptr);
+				s_Terrain.TerrainPass.PipelineLayout = VK_NULL_HANDLE;
+			}
 		}
 	}
 }

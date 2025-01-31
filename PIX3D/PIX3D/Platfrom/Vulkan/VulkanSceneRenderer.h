@@ -25,6 +25,7 @@ namespace PIX3D
 
 			static void Begin(Camera3D& cam);
 			static void RenderClearPass(const glm::vec4& clearColor);
+			static void RenderTerrain();
 			static void RenderMesh(Scene* scene, VulkanStaticMesh& mesh, const glm::mat4& transform);
 			static void RenderMeshOutline(Scene* scene, VulkanStaticMesh& mesh, const glm::mat4& transform);
 			static void RenderTexturedQuad(SpriteMaterial* material, const glm::mat4& transform);
@@ -179,6 +180,19 @@ namespace PIX3D
 			};
 			inline static _Environment s_Environment;
 
+			struct TerrainRenderpass
+			{
+				VulkanShader Shader;
+				VulkanGraphicsPipeline GraphicsPipeline;
+				VkPipelineLayout PipelineLayout = VK_NULL_HANDLE;
+			};
+
+			struct _Terrain
+			{
+				VulkanStaticMeshData TerrainMesh;
+				TerrainRenderpass TerrainPass;
+			};
+			inline static _Terrain s_Terrain;
 
 			inline static VulkanPostProcessingRenderpass s_PostProcessingRenderpass;
 			inline static VulkanBloomPass s_BloomPass;

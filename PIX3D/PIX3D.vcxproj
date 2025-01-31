@@ -376,6 +376,8 @@
     <None Include="res\vk shaders\sprite.frag" />
     <None Include="res\vk shaders\sprite.vert" />
     <None Include="res\vk shaders\square.comp" />
+    <None Include="res\vk shaders\terrain.frag" />
+    <None Include="res\vk shaders\terrain.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
