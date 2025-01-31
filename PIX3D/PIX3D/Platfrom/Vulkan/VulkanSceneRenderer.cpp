@@ -152,6 +152,7 @@ namespace PIX3D
 				//////////////////////// Shader ///////////////////////////
 
 				s_MainRenderpass.Shader.LoadFromFile("../PIX3D/res/vk shaders/3d_model.vert", "../PIX3D/res/vk shaders/3d_model.frag");
+				s_MainRenderpass.OutlineShader.LoadFromFile("../PIX3D/res/vk shaders/outline.vert", "../PIX3D/res/vk shaders/outline.frag");
 
 				/////////////// Color Attachments //////////////////////
 
@@ -286,6 +287,35 @@ namespace PIX3D
 					.AddDepthStencilState(true, true)
 					.AddColorBlendState(true, 2)
 					.SetPipelineLayout(s_MainRenderpass.PipelineLayout)
+					.Build();
+
+				VkDescriptorSetLayout OutLineLayouts[] =
+				{
+					s_CameraDescriptorSetLayout.GetVkDescriptorSetLayout(),
+				};
+
+				VkPipelineLayoutCreateInfo outlinepipelineLayoutInfo = {};
+				outlinepipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+				outlinepipelineLayoutInfo.setLayoutCount = 1;
+				outlinepipelineLayoutInfo.pSetLayouts = layouts;
+				outlinepipelineLayoutInfo.pushConstantRangeCount = 1;
+				outlinepipelineLayoutInfo.pPushConstantRanges = &pushConstant;
+
+				if (vkCreatePipelineLayout(Context->m_Device, &pipelineLayoutInfo, nullptr, &s_MainRenderpass.OutlinePipelineLayout) != VK_SUCCESS)
+					PIX_ASSERT_MSG(false, "Failed to create pipeline layout!");
+
+
+				// outline graphics pipeline
+				s_MainRenderpass.OutlineGraphicsPipeline.Init(Context->m_Device, s_MainRenderpass.Renderpass.GetVKRenderpass())
+					.AddShaderStages(s_MainRenderpass.OutlineShader.GetVertexShader(), s_MainRenderpass.OutlineShader.GetFragmentShader())
+					.AddVertexInputState(&VertexBindingDescription, VertexAttributeDescriptions.data(), 1, VertexAttributeDescriptions.size())
+					.AddViewportState(width, height)
+					.AddInputAssemblyState(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, VK_FALSE)
+					.AddRasterizationState(VK_POLYGON_MODE_LINE, VK_CULL_MODE_FRONT_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE)
+					.AddMultisampleState(VK_SAMPLE_COUNT_1_BIT)
+					.AddDepthStencilState(true, false)
+					.AddColorBlendState(true, 2)
+					.SetPipelineLayout(s_MainRenderpass.OutlinePipelineLayout)
 					.Build();
 
 				/////////////// Command Buffers //////////////////////
@@ -546,7 +576,7 @@ namespace PIX3D
 				.AddInputAssemblyState(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, VK_FALSE)
 				.AddRasterizationState(VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE)
 				.AddMultisampleState(VK_SAMPLE_COUNT_1_BIT)
-				.AddDepthStencilState(false, false) // Disable depth testing for 2D sprites
+				.AddDepthStencilState(true, true)
 				.AddColorBlendState(true, 2)  // Enable blending for transparency
 				.SetPipelineLayout(s_SpriteRenderpass.PipelineLayout)
 				.Build();
@@ -778,6 +808,8 @@ namespace PIX3D
 
 				vkCmdSetViewport(s_MainRenderpass.CommandBuffers[s_ImageIndex], 0, 1, &viewport);
 				vkCmdSetScissor(s_MainRenderpass.CommandBuffers[s_ImageIndex], 0, 1, &scissor);
+				vkCmdSetLineWidth(s_MainRenderpass.CommandBuffers[s_ImageIndex], 5.0f);
+
 
 				auto _camera_descriptor_set = s_CameraDescriptorSets[s_ImageIndex].GetVkDescriptorSet();
 				vkCmdBindDescriptorSets(s_MainRenderpass.CommandBuffers[s_ImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, s_MainRenderpass.PipelineLayout, 0, 1, &_camera_descriptor_set, 0, nullptr);
@@ -809,6 +841,99 @@ namespace PIX3D
 						auto point_lights_descriptor_set = scene->PointLightsDescriptorSet.GetVkDescriptorSet();
 						vkCmdBindDescriptorSets(s_MainRenderpass.CommandBuffers[s_ImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, s_MainRenderpass.PipelineLayout, 3, 1, &point_lights_descriptor_set, 0, nullptr);
 					}
+
+					// Draw the submesh using its base vertex and index offsets
+					vkCmdDrawIndexed(s_MainRenderpass.CommandBuffers[s_ImageIndex],
+						subMesh.IndicesCount,    // Index count for this submesh
+						1,                       // Instance count
+						subMesh.BaseIndex,      // First index
+						subMesh.BaseVertex,     // Vertex offset
+						0);                     // First instance
+
+					SubMeshIndex++;
+				}
+
+				vkCmdEndRenderPass(s_MainRenderpass.CommandBuffers[s_ImageIndex]);
+			}
+		}
+
+		void VulkanSceneRenderer::RenderMeshOutline(Scene* scene, VulkanStaticMesh& mesh, const glm::mat4& transform)
+		{
+			auto* Context = (VK::VulkanGraphicsContext*)Engine::GetGraphicsContext();
+			auto specs = Engine::GetApplicationSpecs();
+
+			// main renderpass record command buffers
+			{
+
+				VkClearColorValue ClearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
+				VkClearValue ClearValue[3];
+
+				ClearValue[0].color = ClearColor;
+
+				ClearValue[1].color = ClearColor;
+
+				ClearValue[2].depthStencil = { 1.0f, 0 };
+
+				VkRenderPassBeginInfo RenderPassBeginInfo =
+				{
+					.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+					.pNext = NULL,
+					.renderPass = s_MainRenderpass.Renderpass.GetVKRenderpass(),
+					.renderArea = {
+						.offset = {
+							.x = 0,
+							.y = 0
+						},
+						.extent = {
+							.width = specs.Width,
+							.height = specs.Height
+						}
+					},
+					//.clearValueCount = 3,
+					//.pClearValues = ClearValue
+					.clearValueCount = 0,
+					.pClearValues = nullptr
+				};
+
+
+				RenderPassBeginInfo.framebuffer = s_MainRenderpass.Framebuffer.GetVKFramebuffer();
+
+				vkCmdBeginRenderPass(s_MainRenderpass.CommandBuffers[s_ImageIndex], &RenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+				vkCmdBindPipeline(s_MainRenderpass.CommandBuffers[s_ImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, s_MainRenderpass.OutlineGraphicsPipeline.GetVkPipeline());
+
+				VkViewport viewport{};
+				viewport.x = 0.0f;
+				viewport.y = (float)specs.Height;
+				viewport.width = (float)specs.Width;
+				viewport.height = -(float)specs.Height;
+				viewport.minDepth = 0.0f;
+				viewport.maxDepth = 1.0f;
+
+				VkRect2D scissor{};
+				scissor.offset = { 0, 0 };
+				scissor.extent = { specs.Width, specs.Height };
+
+				vkCmdSetViewport(s_MainRenderpass.CommandBuffers[s_ImageIndex], 0, 1, &viewport);
+				vkCmdSetScissor(s_MainRenderpass.CommandBuffers[s_ImageIndex], 0, 1, &scissor);
+				vkCmdSetLineWidth(s_MainRenderpass.CommandBuffers[s_ImageIndex], 5.0f);
+
+
+				auto _camera_descriptor_set = s_CameraDescriptorSets[s_ImageIndex].GetVkDescriptorSet();
+				vkCmdBindDescriptorSets(s_MainRenderpass.CommandBuffers[s_ImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, s_MainRenderpass.OutlinePipelineLayout, 0, 1, &_camera_descriptor_set, 0, nullptr);
+
+				VkBuffer vertexBuffers[] = { mesh.GetVertexBuffer() };
+				VkDeviceSize offsets[] = { 0 };
+				vkCmdBindVertexBuffers(s_MainRenderpass.CommandBuffers[s_ImageIndex], 0, 1, vertexBuffers, offsets);
+				vkCmdBindIndexBuffer(s_MainRenderpass.CommandBuffers[s_ImageIndex], mesh.GetIndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
+
+				int SubMeshIndex = 0;
+				for (const auto& subMesh : mesh.m_SubMeshes)
+				{
+					_ModelMatrixPushConstant pushData = { transform, s_CameraPosition, (float)SubMeshIndex, s_BloomThreshold, (float)scene->m_PointLightsCount };
+					vkCmdPushConstants(s_MainRenderpass.CommandBuffers[s_ImageIndex], s_MainRenderpass.OutlinePipelineLayout,
+						VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+						0, sizeof(_ModelMatrixPushConstant), &pushData);
 
 					// Draw the submesh using its base vertex and index offsets
 					vkCmdDrawIndexed(s_MainRenderpass.CommandBuffers[s_ImageIndex],

@@ -26,6 +26,7 @@ namespace PIX3D
 			static void Begin(Camera3D& cam);
 			static void RenderClearPass(const glm::vec4& clearColor);
 			static void RenderMesh(Scene* scene, VulkanStaticMesh& mesh, const glm::mat4& transform);
+			static void RenderMeshOutline(Scene* scene, VulkanStaticMesh& mesh, const glm::mat4& transform);
 			static void RenderTexturedQuad(SpriteMaterial* material, const glm::mat4& transform);
 			static void RenderSkyBox();
 			static void End();
@@ -105,11 +106,15 @@ namespace PIX3D
 			struct _MainRenderpass
 			{
 				VK::VulkanShader Shader;
+				VK::VulkanShader OutlineShader;
 				
 				VK::VulkanVertexInputLayout VertexInputLayout;
 
 				VkPipelineLayout PipelineLayout = nullptr;
 				VK::VulkanGraphicsPipeline GraphicsPipeline;
+
+				VkPipelineLayout OutlinePipelineLayout = nullptr;
+				VK::VulkanGraphicsPipeline OutlineGraphicsPipeline;
 
 				VK::VulkanTexture* ColorAttachmentTexture;
 				VK::VulkanTexture* BloomBrightnessAttachmentTexture;

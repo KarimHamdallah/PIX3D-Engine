@@ -56,6 +56,9 @@ namespace PIX3D
 
         static Scene* CopyScene(Scene* sourceScene);
 
+        void SetSelectedEntityID(PIX3D::UUID entity_id);
+        bool IsSelectedEntity(PIX3D::UUID entity_id);
+
         // Scene Properties
         bool m_UseSkybox = true;
         glm::vec4 m_BackgroundColor = { 0.05f, 0.05f, 0.05f, 1.0f };
@@ -72,6 +75,8 @@ namespace PIX3D
         std::vector<_PointLightShaderData> m_PointLightsData;
         VK::VulkanShaderStorageBuffer m_PointLightsShaderBuffer;
         VK::VulkanDescriptorSet PointLightsDescriptorSet;
+
+        PIX3D::UUID m_SelectedEntityID = 0;
 
         VulkanStaticMesh m_LightBulbMesh;
         friend class SceneSerializer;

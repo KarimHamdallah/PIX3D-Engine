@@ -61,7 +61,7 @@ namespace PIX3D
             m_colorBlendState = {};
 
             // Initialize dynamic state
-            m_dynamicStates = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+            m_dynamicStates = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_LINE_WIDTH };
             m_dynamicState = {};
             m_dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
             m_dynamicState.dynamicStateCount = static_cast<uint32_t>(m_dynamicStates.size());

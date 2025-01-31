@@ -12,15 +12,24 @@ namespace PIX3D
     public:
         static void Render(Scene* scene)
         {
-            auto view = scene->m_Registry.view<TransformComponent, StaticMeshComponent>();
-            view.each([scene](TransformComponent& transform, StaticMeshComponent& mesh)
+            auto view = scene->m_Registry.view<TagComponent, TransformComponent, StaticMeshComponent>();
+            view.each([scene](TagComponent& tag, TransformComponent& transform, StaticMeshComponent& mesh)
                 {
                     if (mesh.m_AssetID != 0) // valid asset
                     {
-                        VulkanStaticMesh* StaticMesh = AssetManager::Get().GetStaticMesh(mesh.m_AssetID);
-                        PIX_ASSERT(StaticMesh);
-                        if(StaticMesh)
-                            VK::VulkanSceneRenderer::RenderMesh(scene, *StaticMesh, transform.GetTransformMatrix());
+                        VulkanStaticMesh* _StaticMesh = AssetManager::Get().GetStaticMesh(mesh.m_AssetID);
+                        PIX_ASSERT(_StaticMesh);
+                        if (_StaticMesh)
+                        {
+                            bool Selected = scene->IsSelectedEntity(tag.m_UUID);
+                            if (Selected)
+                            {
+                                VK::VulkanSceneRenderer::RenderMeshOutline(scene, *_StaticMesh, transform.GetTransformMatrix());
+                                VK::VulkanSceneRenderer::RenderMesh(scene, *_StaticMesh, transform.GetTransformMatrix());
+                            }
+                            else
+                                VK::VulkanSceneRenderer::RenderMesh(scene, *_StaticMesh, transform.GetTransformMatrix());
+                        }
                     }
                 });
         }

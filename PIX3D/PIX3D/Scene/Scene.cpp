@@ -110,7 +110,6 @@ namespace PIX3D
 
         SpriteAnimatorSystem::Update(m_Registry, dt);
 
-
         ///////////// Update Point Lights Shader Buffer ////////////////
         {
             int light_index = 0;
@@ -317,5 +316,15 @@ namespace PIX3D
         newScene->m_Cam3D = sourceScene->m_Cam3D;
 
         return newScene;
+    }
+
+    bool Scene::IsSelectedEntity(PIX3D::UUID entity_id)
+    {
+        return m_SelectedEntityID == entity_id;
+    }
+
+    void Scene::SetSelectedEntityID(PIX3D::UUID entity_id)
+    {
+        m_SelectedEntityID = entity_id;
     }
 }

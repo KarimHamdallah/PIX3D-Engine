@@ -54,6 +54,8 @@ void HierarchyWidget::OnRender()
         if (ImGui::IsItemClicked())
         {
             m_SelectedEntity = entity;
+
+           m_Scene->SetSelectedEntityID(view.get<TagComponent>(entity).m_UUID);
         }
 
         if (opened)

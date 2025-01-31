@@ -365,6 +365,8 @@
     <None Include="res\vk shaders\Frosted Glass Example\frostedglass_post.vert" />
     <None Include="res\vk shaders\ibl_specular_map.frag" />
     <None Include="res\vk shaders\ibl_specular_map.vert" />
+    <None Include="res\vk shaders\outline.frag" />
+    <None Include="res\vk shaders\outline.vert" />
     <None Include="res\vk shaders\post.frag" />
     <None Include="res\vk shaders\post.vert" />
     <None Include="res\vk shaders\3d_model.frag" />

@@ -6,7 +6,7 @@
 
 void PixEditor::OnStart()
 {
-    m_LayerManager.init(new FrostedGlassExample());
+    m_LayerManager.init(new EditorLayer());
     m_LayerManager.OnStart();
 }
 

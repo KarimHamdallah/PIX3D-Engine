@@ -310,6 +310,12 @@ void LauncherLayer::OnUpdate(float dt)
     VK::VulkanImGuiPass::EndFrame();
     VK::VulkanImGuiPass::EndRecordCommandbufferAndSubmit(ImageIndex, false);
 
+    Context->m_Queue.SubmitAsync(
+        {
+            VK::VulkanImGuiPass::m_CommandBuffers[ImageIndex]
+        });
+    Context->m_Queue.Present(ImageIndex);
+
     if(m_ProjectLoaded)
         LayerManager::Get().GoToLayer(new EditorLayer());
 }

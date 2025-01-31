@@ -325,6 +325,8 @@ namespace PIX3D
 			DeviceFeatures.geometryShader = VK_TRUE;
 			DeviceFeatures.tessellationShader = VK_TRUE;
 			DeviceFeatures.samplerAnisotropy = VK_TRUE;
+			DeviceFeatures.fillModeNonSolid = VK_TRUE;
+			DeviceFeatures.wideLines = VK_TRUE;
 
 			// Logical device creation
 			VkDeviceCreateInfo DeviceCreateInfo = {};

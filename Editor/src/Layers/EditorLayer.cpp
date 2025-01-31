@@ -99,6 +99,24 @@ void EditorLayer::OnUpdate(float dt)
 
     uint32_t ImageIndex = VK::VulkanSceneRenderer::s_ImageIndex;
 
+    // Bloom Pass
+    VK::VulkanSceneRenderer::s_BloomPass.RecordCommandBuffer(
+        VK::VulkanSceneRenderer::s_MainRenderpass.BloomBrightnessAttachmentTexture,
+        VK::VulkanSceneRenderer::s_MainRenderpass.CommandBuffers[ImageIndex]);
+
+
+    // Full Screen Quad
+    VK::VulkanSceneRenderer::s_PostProcessingRenderpass.RecordCommandBuffer(
+        VK::VulkanSceneRenderer::s_MainRenderpass.ColorAttachmentTexture,
+        VK::VulkanSceneRenderer::s_BloomPass.GetFinalBloomTexture(),
+        VK::VulkanSceneRenderer::s_MainRenderpass.CommandBuffers[ImageIndex],
+        ImageIndex);
+
+    VK::VulkanSceneRenderer::EndRecordCommandBuffer();
+
+
+    // ImGui Pass
+
     VK::VulkanImGuiPass::BeginRecordCommandbuffer(ImageIndex);
     VK::VulkanImGuiPass::BeginFrame();
 
