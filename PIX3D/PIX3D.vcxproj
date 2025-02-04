@@ -350,6 +350,8 @@
     <None Include="res\gl shaders\skybox.vert" />
     <None Include="res\gl shaders\smooth_rounded_quad.frag" />
     <None Include="res\gl shaders\smooth_rounded_quad.vert" />
+    <None Include="res\vk shaders\Billboard Grass Rendering\grass_billboard.frag" />
+    <None Include="res\vk shaders\Billboard Grass Rendering\grass_billboard.vert" />
     <None Include="res\vk shaders\bloom.frag" />
     <None Include="res\vk shaders\bloom.vert" />
     <None Include="res\vk shaders\brdf_lut.frag" />

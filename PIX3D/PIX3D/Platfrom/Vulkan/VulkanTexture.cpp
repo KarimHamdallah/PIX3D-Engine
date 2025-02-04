@@ -39,7 +39,7 @@ namespace PIX3D
             return true;
         }
 
-        bool VulkanTexture::LoadFromFile(const std::filesystem::path& FilePath, bool gen_mips, bool IsSRGB)
+        bool VulkanTexture::LoadFromFile(const std::filesystem::path& FilePath, bool gen_mips, bool IsSRGB, bool clamp_to_edge)
         {
             auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
             if (!Context) return false;
@@ -116,7 +116,7 @@ namespace PIX3D
 
             // Create image view and sampler
             m_ImageView = VulkanTextureHelper::CreateImageView(m_Image, m_Format, 0, m_MipLevels);
-            m_Sampler = VulkanTextureHelper::CreateSampler(m_MipLevels, false);
+            m_Sampler = VulkanTextureHelper::CreateSampler(m_MipLevels, clamp_to_edge);
 
             stagingBuffer.Destroy(Context->m_Device);
             return true;

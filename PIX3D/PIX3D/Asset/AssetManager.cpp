@@ -56,7 +56,7 @@ namespace PIX3D
         }
     }
 
-    VK::VulkanTexture* AssetManager::LoadTexture(const std::string& path, bool genMips, bool isSRGB)
+    VK::VulkanTexture* AssetManager::LoadTexture(const std::string& path, bool genMips, bool isSRGB, bool clamp_to_edge)
     {
         // Check if texture is already loaded
         for (const auto& pair : m_Textures)
@@ -67,7 +67,7 @@ namespace PIX3D
 
         // Create and load new texture
         auto* texture = new VK::VulkanTexture();
-        texture->LoadFromFile(path, genMips, isSRGB);
+        texture->LoadFromFile(path, genMips, isSRGB, clamp_to_edge);
         m_Textures[texture->GetUUID()] = texture;
         return texture;
     }

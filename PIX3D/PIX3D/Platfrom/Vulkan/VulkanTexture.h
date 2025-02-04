@@ -59,7 +59,7 @@ namespace PIX3D
             VulkanTexture() = default;
             ~VulkanTexture() = default;
 
-            bool LoadFromFile(const std::filesystem::path& FilePath, bool gen_mips = true, bool IsSRGB = false);
+            bool LoadFromFile(const std::filesystem::path& FilePath, bool gen_mips = true, bool IsSRGB = false, bool clamp_to_edge = false);
 
             bool LoadFromHDRFile(const std::filesystem::path& FilePath, VkFormat  format = VK_FORMAT_R32G32B32A32_SFLOAT, uint32_t miplevels = 1);
             

@@ -1,0 +1,11 @@
+Model Information:
+* title:	GameReady Grass
+* source:	https://sketchfab.com/3d-models/gameready-grass-60a4f92d8226482ea32184f987ef0342
+* author:	Cynerix (https://sketchfab.com/meraj1681503)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "GameReady Grass" (https://sketchfab.com/3d-models/gameready-grass-60a4f92d8226482ea32184f987ef0342) by Cynerix (https://sketchfab.com/meraj1681503) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

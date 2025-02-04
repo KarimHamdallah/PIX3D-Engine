@@ -1,5 +1,7 @@
 #version 450
 
+#extension GL_KHR_vulkan_glsl : enable
+
 layout(location = 0) in vec3 inWorldPos;
 layout(location = 1) in vec2 inTexCoord;
 layout(location = 2) in vec3 inNormal;
@@ -7,10 +9,12 @@ layout(location = 2) in vec3 inNormal;
 layout(location = 0) out vec4 outColor;
 layout(location = 1) out vec4 outBrightColor;
 
+layout(set = 1, binding = 0) uniform sampler2D _Texture;
+
 void main()
 {
     // Simple orange color
-    vec3 color = vec3(1.0, 0.65, 0.0); // Orange
+    vec3 color = texture(_Texture, inTexCoord * 100).rgb;
     
     // Basic lighting calculation
     vec3 normal = normalize(inNormal);

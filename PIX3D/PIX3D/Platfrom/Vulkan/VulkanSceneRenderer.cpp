@@ -583,6 +583,72 @@ namespace PIX3D
 
 			}
 
+			//////////////////////////////////////  Grass Pass   //////////////////////////////////////////////////////////////
+
+
+			{
+				//////////////////////// Shader ///////////////////////////
+
+				s_GrassSpriteRenderpass.Shader.LoadFromFile
+				(
+					"../PIX3D/res/vk shaders/Billboard Grass Rendering/grass_billboard.vert",
+					"../PIX3D/res/vk shaders/Billboard Grass Rendering/grass_billboard.frag"
+				);
+
+				//////////////////////// Descriptor Layout ///////////////////////
+
+				s_GrassSpriteRenderpass.DescriptorSetLayout
+					.AddBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)
+					.AddBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+					.Build();
+
+				//////////////////////// Pipeline Layout ///////////////////////
+
+				VkPushConstantRange pushConstant{};
+				pushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+				pushConstant.offset = 0;
+				pushConstant.size = sizeof(_GrassPushConstant);
+
+				VkDescriptorSetLayout layouts[] =
+				{
+					s_CameraDescriptorSetLayout.GetVkDescriptorSetLayout(),
+					s_GrassSpriteRenderpass.DescriptorSetLayout.GetVkDescriptorSetLayout()
+				};
+
+				VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
+				pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+				pipelineLayoutInfo.setLayoutCount = 2;
+				pipelineLayoutInfo.pSetLayouts = layouts;
+				pipelineLayoutInfo.pushConstantRangeCount = 1;
+				pipelineLayoutInfo.pPushConstantRanges = &pushConstant;
+
+				if (vkCreatePipelineLayout(Context->m_Device, &pipelineLayoutInfo, nullptr, &s_GrassSpriteRenderpass.PipelineLayout) != VK_SUCCESS)
+					PIX_ASSERT_MSG(false, "Failed to create sprite pipeline layout!");
+
+				//////////////////////// Vertex Description ///////////////////////
+
+				s_GrassSpriteRenderpass.SpriteMesh = VulkanStaticMeshGenerator::GenerateSprite();
+
+				auto bindingDesc = s_GrassSpriteRenderpass.SpriteMesh.VertexLayout.GetBindingDescription();
+				auto attributeDesc = s_GrassSpriteRenderpass.SpriteMesh.VertexLayout.GetAttributeDescriptions();
+
+				//////////////////////// Graphics Pipeline ///////////////////////
+
+				s_GrassSpriteRenderpass.GraphicsPipeline.Init(Context->m_Device, s_MainRenderpass.Renderpass.GetVKRenderpass())
+					.AddShaderStages(s_GrassSpriteRenderpass.Shader.GetVertexShader(), s_GrassSpriteRenderpass.Shader.GetFragmentShader())
+					.AddVertexInputState(&bindingDesc, attributeDesc.data(), 1, attributeDesc.size())
+					.AddViewportState(width, height)
+					.AddInputAssemblyState(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, VK_FALSE)
+					.AddRasterizationState(VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE)
+					.AddMultisampleState(VK_SAMPLE_COUNT_1_BIT)
+					.AddDepthStencilState(true, true)
+					.AddColorBlendState(false, 2)  // Enable blending for transparency
+					.SetPipelineLayout(s_GrassSpriteRenderpass.PipelineLayout)
+					.Build();
+
+				s_GrassSpriteRenderpass.GrassPositionsBuffer.Create(s_GrassSpriteRenderpass.MAX_GRASS_COUNT * sizeof(glm::mat4));
+			}
+
 
 			/////////////////////// Terrain Pass ///////////////////
 
@@ -595,6 +661,10 @@ namespace PIX3D
 					"../PIX3D/res/vk shaders/terrain.frag"
 				);
 
+				s_Terrain.DescriptorSetLayout
+					.AddBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+					.Build();
+
 				// Create pipeline layout
 				VkPushConstantRange pushConstant{};
 				pushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -602,12 +672,13 @@ namespace PIX3D
 				pushConstant.size = sizeof(_ModelMatrixPushConstant);
 
 				VkDescriptorSetLayout layouts[] = {
-					s_CameraDescriptorSetLayout.GetVkDescriptorSetLayout()
+					s_CameraDescriptorSetLayout.GetVkDescriptorSetLayout(),
+					s_Terrain.DescriptorSetLayout.GetVkDescriptorSetLayout()
 				};
 
 				VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
 				pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-				pipelineLayoutInfo.setLayoutCount = 1;
+				pipelineLayoutInfo.setLayoutCount = 2;
 				pipelineLayoutInfo.pSetLayouts = layouts;
 				pipelineLayoutInfo.pushConstantRangeCount = 1;
 				pipelineLayoutInfo.pPushConstantRanges = &pushConstant;
@@ -639,7 +710,7 @@ namespace PIX3D
 					.AddVertexInputState(&bindingDesc, attributeDesc.data(), 1, attributeDesc.size())
 					.AddViewportState(width, height)
 					.AddInputAssemblyState(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, VK_FALSE)
-					.AddRasterizationState(VK_POLYGON_MODE_LINE, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE)
+					.AddRasterizationState(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE)
 					.AddMultisampleState(VK_SAMPLE_COUNT_1_BIT)
 					.AddDepthStencilState(true, true)
 					.AddColorBlendState(false, 2)
@@ -731,10 +802,17 @@ namespace PIX3D
 			Context->m_Queue.SubmitAsync(s_MainRenderpass.CommandBuffers[s_ImageIndex]);
 		}
 
-		void VulkanSceneRenderer::RenderTerrain()
+		void VulkanSceneRenderer::RenderTerrain(VulkanTexture* texture)
 		{
 			auto* Context = (VulkanGraphicsContext*)Engine::GetGraphicsContext();
 			auto specs = Engine::GetApplicationSpecs();
+
+			if (!s_Terrain.DescriptorSet.GetVkDescriptorSet())
+			{
+				s_Terrain.DescriptorSet.Init(s_Terrain.DescriptorSetLayout)
+					.AddTexture(0, *texture)
+					.Build();
+			}
 
 			VkRenderPassBeginInfo renderPassInfo = {};
 			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -775,6 +853,13 @@ namespace PIX3D
 				VK_PIPELINE_BIND_POINT_GRAPHICS,
 				s_Terrain.TerrainPass.PipelineLayout,
 				0, 1, &cameraDescriptorSet,
+				0, nullptr);
+
+			auto descriptorSet = s_Terrain.DescriptorSet.GetVkDescriptorSet();
+			vkCmdBindDescriptorSets(s_MainRenderpass.CommandBuffers[s_ImageIndex],
+				VK_PIPELINE_BIND_POINT_GRAPHICS,
+				s_Terrain.TerrainPass.PipelineLayout,
+				1, 1, &descriptorSet,
 				0, nullptr);
 
 			// Bind vertex and index buffers
@@ -886,6 +971,97 @@ namespace PIX3D
 			vkCmdDrawIndexed(s_MainRenderpass.CommandBuffers[s_ImageIndex],
 				s_SpriteRenderpass.SpriteMesh.IndicesCount,
 				1, 0, 0, 0);
+
+			vkCmdEndRenderPass(s_MainRenderpass.CommandBuffers[s_ImageIndex]);
+		}
+
+		void VulkanSceneRenderer::RenderTexturedQuadInstanced(VulkanTexture* texture, uint32_t instanceCount, float _time, float wind_strength, glm::vec2 wind_movement)
+		{
+			auto* Context = (VK::VulkanGraphicsContext*)Engine::GetGraphicsContext();
+			auto specs = Engine::GetApplicationSpecs();
+
+			VkRenderPassBeginInfo RenderPassBeginInfo = {
+				.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+				.pNext = NULL,
+				.renderPass = s_MainRenderpass.Renderpass.GetVKRenderpass(),
+				.renderArea = {
+					.offset = { 0, 0 },
+					.extent = { specs.Width, specs.Height }
+				},
+				.clearValueCount = 0,
+				.pClearValues = nullptr
+			};
+			RenderPassBeginInfo.framebuffer = s_MainRenderpass.Framebuffer.GetVKFramebuffer();
+
+			vkCmdBeginRenderPass(s_MainRenderpass.CommandBuffers[s_ImageIndex], &RenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+			vkCmdBindPipeline(s_MainRenderpass.CommandBuffers[s_ImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, s_GrassSpriteRenderpass.GraphicsPipeline.GetVkPipeline());
+
+			// Set viewport and scissor
+			VkViewport viewport{};
+			viewport.x = 0.0f;
+			viewport.y = (float)specs.Height;
+			viewport.width = (float)specs.Width;
+			viewport.height = -(float)specs.Height;
+			viewport.minDepth = 0.0f;
+			viewport.maxDepth = 1.0f;
+
+			VkRect2D scissor{};
+			scissor.offset = { 0, 0 };
+			scissor.extent = { specs.Width, specs.Height };
+
+			vkCmdSetViewport(s_MainRenderpass.CommandBuffers[s_ImageIndex], 0, 1, &viewport);
+			vkCmdSetScissor(s_MainRenderpass.CommandBuffers[s_ImageIndex], 0, 1, &scissor);
+
+			// Bind camera's descriptor set
+			auto camera_descriptor_set = s_CameraDescriptorSets[s_ImageIndex].GetVkDescriptorSet();
+			vkCmdBindDescriptorSets(s_MainRenderpass.CommandBuffers[s_ImageIndex],
+				VK_PIPELINE_BIND_POINT_GRAPHICS,
+				s_GrassSpriteRenderpass.PipelineLayout,
+				0, 1, &camera_descriptor_set,
+				0, nullptr);
+
+			_GrassPushConstant pushconstantdata;
+			pushconstantdata.time = _time;
+			pushconstantdata.wind_strength = wind_strength;
+			pushconstantdata.wind_movement = wind_movement;
+
+			// Push model matrix
+			vkCmdPushConstants(s_MainRenderpass.CommandBuffers[s_ImageIndex],
+				s_GrassSpriteRenderpass.PipelineLayout,
+				VK_SHADER_STAGE_VERTEX_BIT,
+				0,
+				sizeof(_GrassPushConstant),
+				&pushconstantdata);
+
+			if (!s_GrassSpriteRenderpass.DescriptorSet.GetVkDescriptorSet())
+			{
+				s_GrassSpriteRenderpass.DescriptorSet.Init(s_GrassSpriteRenderpass.DescriptorSetLayout)
+					.AddShaderStorageBuffer(0, s_GrassSpriteRenderpass.GrassPositionsBuffer)
+					.AddTexture(1, *texture)
+					.Build();
+			}
+
+			auto descriptorSet = s_GrassSpriteRenderpass.DescriptorSet.GetVkDescriptorSet();
+			vkCmdBindDescriptorSets(s_MainRenderpass.CommandBuffers[s_ImageIndex],
+				VK_PIPELINE_BIND_POINT_GRAPHICS,
+				s_GrassSpriteRenderpass.PipelineLayout,
+				1, 1, &descriptorSet,
+				0, nullptr);
+
+			// Bind vertex and index buffers
+			VkBuffer vertexBuffers[] = { s_GrassSpriteRenderpass.SpriteMesh.VertexBuffer.GetBuffer() };
+			VkDeviceSize offsets[] = { 0 };
+			vkCmdBindVertexBuffers(s_MainRenderpass.CommandBuffers[s_ImageIndex], 0, 1, vertexBuffers, offsets);
+			vkCmdBindIndexBuffer(s_MainRenderpass.CommandBuffers[s_ImageIndex],
+				s_GrassSpriteRenderpass.SpriteMesh.IndexBuffer.GetBuffer(),
+				0,
+				VK_INDEX_TYPE_UINT32);
+
+			// Modified draw command to use instancing
+			vkCmdDrawIndexed(s_MainRenderpass.CommandBuffers[s_ImageIndex],
+				s_GrassSpriteRenderpass.SpriteMesh.IndicesCount,
+				instanceCount,  // Number of instances to draw
+				0, 0, 0);
 
 			vkCmdEndRenderPass(s_MainRenderpass.CommandBuffers[s_ImageIndex]);
 		}

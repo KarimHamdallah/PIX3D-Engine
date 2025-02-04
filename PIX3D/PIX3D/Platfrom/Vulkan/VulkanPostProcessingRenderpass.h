@@ -19,7 +19,7 @@ namespace PIX3D
 		public:
 			struct PushConstant
 			{
-				bool BloomEnabled = true;
+				bool BloomEnabled = false;
 				float BloomIntensity = 1.0f;
 				bool TonemappingEnabled = false;
 				float GammaCorrectionFactor = 2.2f;

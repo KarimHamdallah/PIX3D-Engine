@@ -16,7 +16,7 @@ namespace PIX3D
         void UnloadStaticMesh(const UUID& uuid);
 
         // Texture management
-        VK::VulkanTexture* LoadTexture(const std::string& path, bool genMips = true, bool isSRGB = false);
+        VK::VulkanTexture* LoadTexture(const std::string& path, bool genMips = true, bool isSRGB = false, bool clamp_to_edge = false);
         VK::VulkanTexture* LoadTextureUUID(PIX3D::UUID uuid, const std::string& path, bool genMips = true, bool isSRGB = true);
         VK::VulkanTexture* GetTexture(const PIX3D::UUID& uuid);
         void UnloadTexture(const PIX3D::UUID& uuid);

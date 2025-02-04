@@ -25,10 +25,11 @@ namespace PIX3D
 
 			static void Begin(Camera3D& cam);
 			static void RenderClearPass(const glm::vec4& clearColor);
-			static void RenderTerrain();
+			static void RenderTerrain(VulkanTexture* texture);
 			static void RenderMesh(Scene* scene, VulkanStaticMesh& mesh, const glm::mat4& transform);
 			static void RenderMeshOutline(Scene* scene, VulkanStaticMesh& mesh, const glm::mat4& transform);
 			static void RenderTexturedQuad(SpriteMaterial* material, const glm::mat4& transform);
+			static void RenderTexturedQuadInstanced(VulkanTexture* texture, uint32_t instanceCount, float _time, float wind_strength, glm::vec2 wind_movement);
 			static void RenderSkyBox();
 			static void End();
 			static void EndRecordCommandBuffer();
@@ -167,6 +168,35 @@ namespace PIX3D
 
 			inline static _SpriteRenderpass s_SpriteRenderpass;
 
+
+			struct _GrassPushConstant
+			{
+				float time;
+				float wind_strength;
+				glm::vec2 wind_movement;
+			};
+
+			struct _GrassSpriteRenderpass
+			{
+				VK::VulkanShader Shader;
+
+				VK::VulkanDescriptorSetLayout DescriptorSetLayout;
+				VK::VulkanDescriptorSet DescriptorSet;
+
+				VkPipelineLayout PipelineLayout = nullptr;
+				VK::VulkanGraphicsPipeline GraphicsPipeline;
+
+				VulkanStaticMeshData SpriteMesh;
+
+				uint32_t MAX_GRASS_COUNT = 200000;
+				VK::VulkanShaderStorageBuffer GrassPositionsBuffer;
+			};
+
+			inline static _GrassSpriteRenderpass s_GrassSpriteRenderpass;
+
+
+
+
 			struct _Environment
 			{
 				VK::VulkanHdrCubemap* Cubemap;
@@ -191,6 +221,9 @@ namespace PIX3D
 			{
 				VulkanStaticMeshData TerrainMesh;
 				TerrainRenderpass TerrainPass;
+
+				VK::VulkanDescriptorSetLayout DescriptorSetLayout;
+				VK::VulkanDescriptorSet DescriptorSet;
 			};
 			inline static _Terrain s_Terrain;
 

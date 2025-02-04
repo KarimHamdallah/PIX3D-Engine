@@ -46,4 +46,15 @@ private:
     VK::VulkanTexture* m_PlayIcon = nullptr;
     VK::VulkanTexture* m_StopIcon = nullptr;
     bool m_IsPlaying = false;
+
+    //////// Grass ////////////
+    uint32_t GrassCountX = 200;
+    uint32_t GrassCountZ = 200;
+
+    VK::VulkanTexture* m_TerrainGrassTexture = nullptr;
+    VK::VulkanTexture* m_GrassTexture = nullptr;
+    std::vector<glm::mat4> m_GrassTransformationMatrices;
+    float m_Time = 0.0f;
+    float m_WindStrength = 0.1f;
+    glm::vec2 m_WindDirection = { 1.0f, 0.0f };
 };
